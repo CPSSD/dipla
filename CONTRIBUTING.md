@@ -61,12 +61,16 @@ Here are a collection of rules/guidelines being used internally by the core Dipl
  * `assignee_first_initial/issue_name#issue_number`
 
  * For multiple assignees the initals can be hyphenated.
-   * `c/atom_support#43`
-   * `c-r/atom_support#43`
+ 
+ * e.g. `c/atom_support#43`
+
+ *  * e.g. `c-r/atom_support#43`
 
 * Commit messages should be written in “tenseless” format.
-   * `git commit -m “Fix compilation error xyz in example.cpp”`
-   * `git commit -m "Create CONTRIBUTING.md in project root"`
+   
+   * e.g. `git commit -m “Fix compilation error xyz in example.cpp”`
+   
+   * e.g. `git commit -m "Create CONTRIBUTING.md in project root"`
 
 * Commit messages should clearly describe the small feature they address.
 
