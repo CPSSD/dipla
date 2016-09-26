@@ -64,7 +64,7 @@ Here are a collection of rules/guidelines being used internally by the core Dipl
  
  * e.g. `c/atom_support#43`
 
- *  * e.g. `c-r/atom_support#43`
+ * e.g. `c-r/atom_support#43`
 
 * Commit messages should be written in “tenseless” format.
    
