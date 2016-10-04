@@ -1,6 +1,6 @@
 # dipla
 
-## The Development Environment
+## Setting Up your Development Environment
 
 ### Pre-requisites
 
@@ -10,7 +10,7 @@
     * pip
     * virtualenv
 
-### Setting up
+### Instructions
 
 1. Clone the repository: `git clone https://www.github.com/cpssd/dipla.git`
 
@@ -29,4 +29,12 @@ You can now write code for the project!
 * If you install additional dependencies with pip, you can update the requirements file using `pip freeze > requirements.txt`
 
 * Remember to deactivate the virtual environment when you're done using `deactivate`
+
+## Checking Code Style
+
+You can check if your code complies with the PEP8 style guide using `pep8`.
+
+* Checking all of the tests: `pep8 tests`
+
+* Checking all of the production code: `pep8 dipla`
 
