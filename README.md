@@ -6,7 +6,7 @@
 
 * To set up the project, you will need...
     * git
-    * python 3.4
+    * python 3.5
     * pip
     * virtualenv
 
