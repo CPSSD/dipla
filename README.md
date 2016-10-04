@@ -6,7 +6,7 @@
 
 * To set up the project, you will need...
     * git
-    * python 2.7
+    * python 3.4
     * pip
     * virtualenv
 
@@ -16,7 +16,8 @@
 
 2. Change directory to project root: `cd dipla`
 
-3. Create your virtual environment: `virtualenv venv`
+3. Create your virtual environment: `virtualenv venv --python=<python3_path>`
+    * Linux: `virtualenv venv --python=/usr/bin/python3`
 
 4. Activate your virtual environment: `source venv/bin/activate`
 
