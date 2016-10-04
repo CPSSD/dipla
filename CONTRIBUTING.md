@@ -32,19 +32,18 @@ Here are a collection of rules/guidelines being used internally by the core Dipl
 
 ## Waffle Columns
 
-| Column         | Description                              |
-| :------------- | :--------------------------------------- |
-| Backlog        | This is the Product Backlog              |
-| Ready          | This is the Sprint Backlog               |
-| In Progress    | Tasks currently being worked on          |
-| In Review      | Tasks with an open pull request          |
-| Complete       | Tasks which have been merged into master |
+| Column           | Description                              |
+| :-------------   | :--------------------------------------- |
+| Backlog          | This is the Product Backlog              |
+| Ready            | This is the Sprint Backlog               |
+| In Progress      | Tasks currently being worked on          |
+| Done this Sprint | Tasks which have been merged into master |
 
 ## Waffle Usage Rules
 
 * No more than **2 tasks per person** can be "In Progress" at once. This will ensure each task gets completed.
 
-* If too many tickets are "In Review", the team should **make an effort to review** them and clear the bottleneck.
+* If too many tickets have open Pull Requests, the team should **make an effort to review** them and clear the bottleneck.
 
 ## Waffle Task Rules
 
@@ -52,7 +51,7 @@ Here are a collection of rules/guidelines being used internally by the core Dipl
 
 ## Code Style
 
-* This section depends on the languages/technologies being used. This can be written **after a design document has been prepared**.
+For python, we will be following the [Official PEP8 Style Guide](https://www.python.org/dev/peps/pep-0008/).
 
 ## Git Guidelines
 
@@ -61,12 +60,16 @@ Here are a collection of rules/guidelines being used internally by the core Dipl
  * `assignee_first_initial/issue_name#issue_number`
 
  * For multiple assignees the initals can be hyphenated.
-   * `c/atom_support#43`
-   * `c-r/atom_support#43`
+ 
+ * e.g. `c/atom_support#43`
+
+ * e.g. `c-r/atom_support#43`
 
 * Commit messages should be written in “tenseless” format.
-   * `git commit -m “Fix compilation error xyz in example.cpp”`
-   * `git commit -m "Create CONTRIBUTING.md in project root"`
+   
+   * e.g. `git commit -m “Fix compilation error xyz in example.cpp”`
+   
+   * e.g. `git commit -m "Create CONTRIBUTING.md in project root"`
 
 * Commit messages should clearly describe the small feature they address.
 
