@@ -12,8 +12,6 @@
 
 ### Setting up
 
-Before starting, you must install `pip`, and then `pip install virtualenv`.
-
 1. Clone the repository: `git clone https://www.github.com/cpssd/dipla.git`
 
 2. Change directory to project root: `cd dipla`
