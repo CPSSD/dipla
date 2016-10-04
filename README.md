@@ -2,6 +2,14 @@
 
 ## The Development Environment
 
+### Pre-requisites
+
+* To set up the project, you will need...
+    * git
+    * python 2.7
+    * pip
+    * virtualenv
+
 ### Setting up
 
 Before starting, you must install `pip`, and then `pip install virtualenv`.
