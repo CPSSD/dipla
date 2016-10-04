@@ -30,6 +30,10 @@ You can now write code for the project!
 
 * Remember to deactivate the virtual environment when you're done using `deactivate`
 
+## Running the tests
+
+You can run all the tests with: `nosetests`
+
 ## Checking Code Style
 
 You can check if your code complies with the PEP8 style guide using `pep8`.
