@@ -32,12 +32,13 @@ Here are a collection of rules/guidelines being used internally by the core Dipl
 
 ## Waffle Columns
 
-| Column           | Description                              |
-| :-------------   | :--------------------------------------- |
-| Backlog          | This is the Product Backlog              |
-| Ready            | This is the Sprint Backlog               |
-| In Progress      | Tasks currently being worked on          |
-| Done this Sprint | Tasks which have been merged into master |
+| Column           | Description                                       |
+| :-------------   | :---------------------------------------          |
+| Backlog          | This is the Product Backlog                       |
+| User Stories     | This is for all the User Stories                  |
+| Ready            | This is the Sprint Backlog                        |
+| In Progress      | Tasks currently being worked on                   |
+| Done in Sprint   | Unclosed tasks which have been merged into master |
 
 ## Waffle Usage Rules
 
