@@ -26,7 +26,7 @@ You can now write code for the project!
 
 ### Notes
 
-* If you install additional dependencies with pip, you can update the requirements file using `pip freeze > requirements.txt`.
+* If you install additional dependencies with pip, you can update the requirements file using `pip freeze > requirements.txt`
 
-* Remember to deactivate the virtual environment when you're done using `deactivate`.
+* Remember to deactivate the virtual environment when you're done using `deactivate`
 
