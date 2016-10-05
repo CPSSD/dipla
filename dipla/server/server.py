@@ -17,6 +17,7 @@ async def handler(websocket, path):
             # recv() raises a ConnectionClosed exception when the client
             # disconnects, which breaks out of the while True loop.
             message = await websocket.recv()
+            # TODO(stefankennedy) Handle received message
             print(message)
     finally:
         del connected[user_id]
