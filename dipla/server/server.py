@@ -10,7 +10,7 @@ async def handler(websocket, path):
         await websocket.send("Sorry, this Agent ID is taken")
         return
 
-    connected[user_id] = (websocket)
+    connected[user_id] = websocket
     try:
         await websocket.send("Online users: " + ", ".join(connected.keys()))
         while True:
