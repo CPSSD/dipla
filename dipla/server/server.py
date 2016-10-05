@@ -4,8 +4,8 @@ import websockets
 connected = set()
 
 async def handler(websocket, path):
-  connected.add(websocket)
-  await websocket.send(str(connected));
+    connected.add(websocket)
+    await websocket.send(str(connected))
 
 start_server = websockets.serve(handler, 'localhost', 8765)
 
