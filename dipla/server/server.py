@@ -3,7 +3,7 @@ import websockets
 
 connected = {}
 
-async def handler(websocket, path):
+async def websocket_handler(websocket, path):
     user_id = path[1:]
 
     if(user_id in connected.keys()):
@@ -19,11 +19,13 @@ async def handler(websocket, path):
             message = await websocket.recv()
             # TODO(stefankennedy) Handle received message
             print(message)
+    except websockets.exceptions.ConnectionClosed:
+        print(user_id + " has closed the connection")
     finally:
         del connected[user_id]
 
 
-start_server = websockets.serve(handler, "localhost", 8765)
+start_server = websockets.serve(websocket_handler, "localhost", 8765)
 
 asyncio.get_event_loop().run_until_complete(start_server)
 asyncio.get_event_loop().run_forever()
