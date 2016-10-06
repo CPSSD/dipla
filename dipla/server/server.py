@@ -1,9 +1,7 @@
 import asyncio
 import websockets
 
-connected = {}
-
-async def websocket_handler(websocket, path):
+async def websocket_handler(websocket, path, connected = {}):
     user_id = path[1:]
 
     if(user_id in connected.keys()):
@@ -11,6 +9,7 @@ async def websocket_handler(websocket, path):
         return
 
     connected[user_id] = websocket
+
     try:
         await websocket.send("Online users: " + ", ".join(connected.keys()))
         while True:
