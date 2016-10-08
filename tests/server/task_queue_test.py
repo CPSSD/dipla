@@ -18,3 +18,11 @@ class TaskQueueTest(unittest.TestCase):
         self.assertEqual(queue.pop_task().data_instructions, "2")
         queue.add_task("3", "")
         self.assertEqual(queue.pop_task().data_instructions, "3")
+
+    def test_peek_tasks(self):
+        queue = task_queue.TaskQueue()
+        queue.add_task("1", "")
+        self.assertEqual(queue.peek_task().data_instructions, "1")
+        queue.add_task("2", "")
+        self.assertEqual(queue.peek_task().data_instructions, "1")
+        
