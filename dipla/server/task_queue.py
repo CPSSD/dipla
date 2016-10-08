@@ -1,7 +1,7 @@
 """ Task Queue
 
-This module represents a queue of distributable tasks that can be
-executed using information such as the task identifier and input data
+This module is a queue implementation for organising distributable tasks
+using information such as the task identifier and input data
 """
 
 import queue
@@ -24,6 +24,7 @@ class TaskQueue:
     def peek_task(self):
         return self.queue.queue[0]
         
+# Abstraction of the information necessary to represent a task
 class _QueueItem:
 
     def __init__(self, data_instructions, task_instructions):
