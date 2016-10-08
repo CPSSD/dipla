@@ -1,6 +1,7 @@
 """ Task Queue
 
-This module represents a queue of distributable tasks that can be executed using the information and functionality provided in this module
+This module represents a queue of distributable tasks that can be
+executed using information such as the task identifier and input data
 """
 
 import queue
@@ -12,6 +13,16 @@ class TaskQueue:
 
     def add_task(self, data_instructions, task_instructions):
         self.queue.put(_QueueItem(data_instructions, task_instructions))
+
+    # Return the task at the front of the queue, removing it from the
+    # queue in the process
+    def pop_task(self):
+        return self.queue.get()
+
+    # Return the task at the front of the queue without removing it
+    # from the queue
+    def peek_task(self):
+        return self.queue.queue[0]
         
 class _QueueItem:
 
