@@ -3,6 +3,9 @@ import websockets
 
 class Server:
     
+    def __init__(self, task_queue):
+        self.task_queue = task_queue
+
     async def websocket_handler(self, websocket, path, connected = {}):
         user_id = path[1:]
 
