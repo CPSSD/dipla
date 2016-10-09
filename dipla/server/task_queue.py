@@ -6,13 +6,14 @@ using information such as the task identifier and input data
 
 import queue
 
+
 class TaskQueue:
 
     def __init__(self):
         self.queue = queue.Queue()
 
-    def add_task(self, data_instructions, task_instructions):
-        self.queue.put(_QueueItem(data_instructions, task_instructions))
+    def push_task(self, item):
+        self.queue.put(item)
 
     # Return the task at the front of the queue, removing it from the
     # queue in the process
@@ -22,10 +23,13 @@ class TaskQueue:
     # Return the task at the front of the queue without removing it
     # from the queue
     def peek_task(self):
+        if self.queue.qsize() == 0:
+            raise queue.Empty("Queue was empty and could not peek item")
         return self.queue.queue[0]
-        
+
+
 # Abstraction of the information necessary to represent a task
-class _QueueItem:
+class QueueItem:
 
     def __init__(self, data_instructions, task_instructions):
         self.data_instructions = data_instructions

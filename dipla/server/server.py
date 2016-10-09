@@ -1,12 +1,13 @@
 import asyncio
 import websockets
 
+
 class Server:
-    
+
     def __init__(self, task_queue):
         self.task_queue = task_queue
 
-    async def websocket_handler(self, websocket, path, connected = {}):
+    async def websocket_handler(self, websocket, path, connected={}):
         user_id = path[1:]
 
         if(user_id in connected.keys()):
@@ -16,7 +17,8 @@ class Server:
         connected[user_id] = websocket
 
         try:
-            await websocket.send("Online users: " + ", ".join(connected.keys()))
+            await websocket.send(
+                    "Online users: " + ", ".join(connected.keys()))
             while True:
                 # recv() raises a ConnectionClosed exception when the client
                 # disconnects, which breaks out of the while True loop.
