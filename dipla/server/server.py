@@ -17,14 +17,12 @@ class Server:
         connected[user_id] = websocket
 
         try:
-            await websocket.send(
-                    "Online users: " + ", ".join(connected.keys()))
+            await websocket.send(self.task_queue.pop_task().data_instructions)
             while True:
                 # recv() raises a ConnectionClosed exception when the client
                 # disconnects, which breaks out of the while True loop.
                 message = await websocket.recv()
                 # TODO(stefankennedy) Handle received message
-                print(message)
         except websockets.exceptions.ConnectionClosed:
             print(user_id + " has closed the connection")
         finally:

@@ -29,7 +29,7 @@ class TaskQueue:
 
 
 # Abstraction of the information necessary to represent a task
-class QueueItem:
+class Task:
 
     def __init__(self, data_instructions, task_instructions):
         self.data_instructions = data_instructions
