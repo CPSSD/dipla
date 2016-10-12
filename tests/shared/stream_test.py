@@ -2,7 +2,7 @@ import io
 import queue
 import time
 import unittest
-from dipla.stream import TextCollector
+from dipla.shared.stream import TextCollector
 
 
 class TextCollectorTest(unittest.TestCase):
