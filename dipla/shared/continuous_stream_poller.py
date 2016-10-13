@@ -26,7 +26,7 @@ class ContinuousStreamPoller(Thread):
         self._reading = False
 
     def run(self):
-        self._logger.debug("Started running ContinuousStreamPoller.")
+        self._logger.debug("ContinuousStreamPoller: about to run...")
         self._running = True
         while self._running:
             self._read_from_stream()
@@ -40,6 +40,7 @@ class ContinuousStreamPoller(Thread):
         return self._reading
 
     def _read_from_stream(self):
+        self._logger.debug("ContinuousStreamPoller: Should I be running? %s" % self._running)
         self._logger.debug("ContinuousStreamPoller is about to read from stream...")
         self._reading = True
         self._line = self._stream.readline().strip()
