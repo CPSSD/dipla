@@ -10,58 +10,58 @@ from dipla.shared.continuous_stream_poller import ContinuousStreamPoller
 
 class ContinuousStreamPollerTest(unittest.TestCase):
 
-    def setUp(self):
-        self.stream_poller = None
-
-    def tearDown(self):
-        self.stream_poller.join()
-
     def test_that_the_stream_is_shared_by_the_continuous_stream_poller(self):
-        self.given_collecting_text_from_an_empty_stream()
+        self.given_an_empty_stream()
         self.when_we_start_the_stream_poller()
         self.then_the_stream_will_be_shared()
 
     def test_that_the_queue_is_shared_by_the_continuous_stream_poller(self):
-        self.given_collecting_text_from_an_empty_stream()
+        self.given_an_empty_stream()
         self.when_we_start_the_stream_poller()
         self.then_the_queue_will_be_shared()
 
-#    def test_that_no_text_is_collected_from_an_empty_stream(self):
-#        self.given_collecting_text_from_an_empty_stream()
-#        self.when_we_start_the_continuous_stream_poller()
-#        self.and_we_wait_a_little_big()
-#        self.then_nothing_will_have_been_collected()
-#
-#    def test_that_text_is_collected_from_non_empty_stream(self):
-#        self.given_collecting_text_from_a_stream_with("Foo")
-#        self.when_we_start_the_continuous_stream_poller()
-#        self.and_we_wait_a_little_big()
-#        self.then_we_will_have_collected("Foo")
-#
-#    def test_that_multiple_lines_can_be_collected_from_stream(self):
-#        self.given_collecting_text_from_a_stream_with("Foo\nBar")
-#        self.when_we_start_the_continuous_stream_poller()
-#        self.and_we_wait_a_little_big()
-#        self.then_we_will_have_collected("Foo")
-#        self.then_we_will_have_collected("Bar")
-#
-#    def test_that_it_will_not_be_left_reading_once_stopped(self):
-#        self.given_collecting_text_from_an_empty_stream()
-#        self.when_we_start_the_continuous_stream_poller()
-#        self.and_we_stop_the_continuous_stream_poller()
-#        self.and_we_wait_a_little_big()
-#        self.then_the_stream_poller_will_not_currently_be_reading()
-#
-#    def test_that_it_will_still_be_running_when_not_stopped(self):
-#        self.given_collecting_text_from_an_empty_stream()
-#        self.when_we_start_the_continuous_stream_poller()
-#        self.and_we_wait_a_little_big()
-#        self.then_the_stream_poller_will_still_be_running()
+    @timeout(10)
+    def test_that_no_text_is_collected_from_an_empty_stream(self):
+        self.given_an_empty_stream()
+        self.when_we_start_the_stream_poller()
+        self.and_we_wait_a_little_bit()
+        self.then_nothing_will_have_been_collected()
 
-    def given_collecting_text_from_an_empty_stream(self):
+    @timeout(10)
+    def test_that_text_is_collected_from_non_empty_stream(self):
+        self.given_a_stream_with("Foo")
+        self.when_we_start_the_stream_poller()
+        self.and_we_wait_a_little_bit()
+        self.then_we_will_have_collected("Foo")
+
+    @timeout(10)
+    def test_that_multiple_lines_can_be_collected_from_stream(self):
+        self.given_a_stream_with("Foo\nBar")
+        self.when_we_start_the_stream_poller()
+        self.and_we_wait_a_little_bit()
+        self.then_we_will_have_collected("Foo")
+        self.then_we_will_have_collected("Bar")
+
+    @timeout(10)
+    def test_that_it_will_not_be_left_reading_once_stopped(self):
+        self.given_an_empty_stream()
+        self.when_we_start_the_stream_poller()
+        self.and_we_wait_a_little_bit()
+        self.and_we_stop_the_stream_poller()
+        self.and_we_wait_a_little_bit()
+        self.then_it_wont_be_reading()
+
+    @timeout(10)
+    def test_that_it_will_still_be_running_when_not_stopped(self):
+        self.given_an_empty_stream()
+        self.when_we_start_the_stream_poller()
+        self.and_we_wait_a_little_bit()
+        self.then_it_will_be_reading()
+
+    def given_an_empty_stream(self):
         self.stream = StringIO()
 
-    def given_collecting_text_from_a_stream_with(self, text):
+    def given_a_stream_with(self, text):
         self.stream = StringIO(text)
 
     def when_we_start_the_stream_poller(self):
@@ -82,8 +82,8 @@ class ContinuousStreamPollerTest(unittest.TestCase):
         foreign_queue_id = id(self.stream_poller._queue)
         self.assertEqual(local_queue_id, foreign_queue_id)
 
-    def and_we_wait_a_little_big(self):
-        time.sleep(0.03)
+    def and_we_wait_a_little_bit(self):
+        time.sleep(0.1)
 
     def then_nothing_will_have_been_collected(self):
         self.assertTrue(self.queue.empty())
@@ -93,6 +93,18 @@ class ContinuousStreamPollerTest(unittest.TestCase):
             self.assertEqual(expected, self.queue.get_nowait())
         except Empty:
             self.fail("Queue is unexpectedly empty")
+   
+    def then_it_wont_be_reading(self):
+        reading = not self.stream_poller._stop_request.isSet()
+        self.assertTrue(not reading)
+
+    def then_it_will_be_reading(self):
+        reading = not self.stream_poller._stop_request.isSet()
+        self.assertTrue(reading)
+
+    def tearDown(self):
+        self.stream_poller.join()
+
 
 
 class ContinuousStreamPollerThreadedTest(unittest.TestCase):
