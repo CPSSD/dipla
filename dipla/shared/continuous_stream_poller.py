@@ -1,6 +1,7 @@
 import time
 from queue import Queue
 from threading import Thread
+from threading import Event
 from nonblock import nonblock_read
 from .logutils import get_logger
 
@@ -22,29 +23,26 @@ class ContinuousStreamPoller(Thread):
         self._stream = stream
         self._queue = queue
         self._interval = interval
-        self._running = False
-        self._reading = False
+        self._stop_request = Event()
 
+    # Override
     def run(self):
         self._logger.debug("ContinuousStreamPoller: about to run...")
-        self._running = True
-        while self._running:
+        while not self._stop_request.isSet():
             self._read_from_stream()
             self._push_result_onto_queue()
-            self._sleep()
+            self._sleep_for_interval()
 
-    def currently_running(self):
-        return self._running
+    # Override
+    def join(self, timeout=None):
+        self._logger.debug("ContinuousStreamReader: about to join thread...")
+        self._stop_request.set()
+        super().join(timeout)
 
-    def currently_reading(self):
-        return self._reading
 
     def _read_from_stream(self):
-        self._logger.debug("ContinuousStreamPoller: Should I be running? %s" % self._running)
         self._logger.debug("ContinuousStreamPoller is about to read from stream...")
-        self._reading = True
         self._line = self._stream.readline().strip()
-        self._reading = False
         self._logger.debug("ContinuousStreamPoller has finished reading from stream.")
 
     def _push_result_onto_queue(self):
@@ -52,10 +50,6 @@ class ContinuousStreamPoller(Thread):
             self._logger.debug("ContinuousStreamPoller is appending %s onto queue." % self._line)
             self._queue.put(self._line)
 
-    def _sleep(self):
+    def _sleep_for_interval(self):
         time.sleep(self._interval)
 
-    def stop(self):
-        self._logger.debug("ContinuousStreamPoller has stopped.")
-        self._running = False
-        self.join()
