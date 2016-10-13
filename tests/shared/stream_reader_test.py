@@ -18,6 +18,13 @@ class StreamReaderTest(unittest.TestCase):
         self.then_it_will_not_be_reading()
 
     @timeout(10)
+    def test_that_thread_does_not_get_blocked_when_reading_from_a_populated_stream_without_waiting(self):
+        self.given_the_stream("CONTENT")
+        self.when_we_read_without_waiting()
+        self.and_we_wait_a_bit()
+        self.then_it_will_not_be_reading()
+
+    @timeout(10)
     def test_that_thread_does_not_get_blocked_when_reading_from_a_populated_stream_with_waiting(self):
         self.given_the_stream("CONTENT")
         self.when_we_read_with_waiting()
@@ -32,7 +39,28 @@ class StreamReaderTest(unittest.TestCase):
         self.and_we_close_it()
         self.and_we_wait_a_bit()
         self.then_it_will_be_reading()
-    
+   
+    @timeout(10)
+    def test_that_reading_without_wait_returns_nothing_from_empty_stream(self):
+        self.given_the_stream()
+        self.when_we_read_without_waiting()
+        self.and_we_wait_a_bit()
+        self.then_the_result_will_be(None)
+
+    @timeout(10)
+    def test_that_reading_without_wait_returns_correct_result_from_populated_stream(self):
+        self.given_the_stream("CONTENT\nHERE")
+        self.when_we_read_without_waiting()
+        self.and_we_wait_a_bit()
+        self.then_the_result_will_be("CONTENT")
+
+    @timeout(10)
+    def test_that_reading_with_wait_returns_correct_result_from_populated_stream(self):
+        self.given_the_stream("CONTENT\nHERE")
+        self.when_we_read_with_waiting()
+        self.and_we_wait_a_bit()
+        self.then_the_result_will_be("CONTENT")
+
     def given_the_stream(self, contents=""):
         self.stream = StringIO(contents)
         self.stream_reader = StreamReader(self.stream)
@@ -59,6 +87,9 @@ class StreamReaderTest(unittest.TestCase):
         reading = self.stream_reader._reading
         self.assertTrue(reading)
 
+    def then_the_result_will_be(self, expected):
+        self.assertEqual(expected, self.operation.result)
+
     def tearDown(self):
         self.operation.join()
 
@@ -71,7 +102,7 @@ class NonBlockingStreamReadOperation(Thread):
 
     def run(self):
         self._stream_reader.open()
-        self._stream_reader.read_line_without_waiting()
+        self.result = self._stream_reader.read_line_without_waiting()
         self._stream_reader.close()
 
 
@@ -83,8 +114,8 @@ class BlockingStreamReadOperation(Thread):
 
     def run(self):
         self._stream_reader.open()
-        self._stream_reader.read_line_with_waiting()
-
+        self.result = self._stream_reader.read_line_with_waiting()
+        self._stream_reader.close()
 
 if __name__ == "__main__":
     unittest.main()

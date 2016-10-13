@@ -1,5 +1,6 @@
 import time
 from queue import Queue
+from queue import Empty
 from threading import Thread
 from threading import Event
 from nonblock import nonblock_read
@@ -23,16 +24,22 @@ class StreamReader(object):
        
     def read_line_without_waiting(self):
         self._reading = True
+        try:
+            line = self._queue.get_nowait()
+        except Empty:
+            line = None
         self._reading = False
+        return line
 
     def read_line_with_waiting(self):
         self._reading = True
-        start_time = time.time()
+        line = None
         while not self._stop_request.isSet():
             if not self._queue.empty():
                 self._reading = False
-                return
-
+                line = self._queue.get_nowait()
+                break
+        return line
 
     def close(self):
         self._logger.debug("StreamReader: about to close...")
