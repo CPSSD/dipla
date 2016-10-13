@@ -57,3 +57,4 @@ class ContinuousStreamPoller(Thread):
     def stop(self):
         self._logger.debug("ContinuousStreamPoller has stopped.")
         self._running = False
+        self.join()
