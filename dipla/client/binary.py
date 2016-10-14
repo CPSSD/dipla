@@ -1,16 +1,19 @@
 from subprocess import Popen, PIPE
+from ..shared.logutils import get_logger
 import os
 
 
 class BinaryRunner(object):
 
     def __init__(self):
+        self._logger = get_logger(__name__)
         self._process = None
         self._running = False
 
     def run(self, command):
         arguments = command.split(" ")
         filepath = arguments[0]
+        self._logger.debug("BinaryRunner: about to run binary at '%s'" % filepath)
         if not os.path.exists(filepath):
             raise FileNotFoundError
         else:

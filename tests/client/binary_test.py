@@ -17,11 +17,11 @@ class BinaryRunnerTest(unittest.TestCase):
         self.given_using_the_example_binary()
         self.then_running_the_binary_will_not_raise_any_exceptions()
 
-    def test_that_binary_is_running_after_no_commands_have_been_given(self):
-        self.given_using_the_example_binary()
-        self.when_the_binary_is_run()
-        self.then_the_binary_will_be_running()
-
+#    def test_that_binary_is_running_after_no_commands_have_been_given(self):
+#        self.given_using_the_example_binary()
+#        self.when_the_binary_is_run()
+#        self.then_the_binary_will_be_running()
+#
 #    def test_that_binary_is_running_after_an_arbitrary_command_has_been_given(self):
 #        self.given_using_the_example_binary()
 #        self.when_the_binary_is_run()
