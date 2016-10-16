@@ -13,10 +13,13 @@ class WorkerGroup:
         self.busy_workers = {}
 
     def add_worker(self, uid, worker):
-        self.workers[uid] = worker
+        self.ready_workers[uid] = worker
 
     def remove_worker(self, uid):
-        del self.workers[uid]
+        if(uid in self.ready_workers):
+            del self.ready_workers[uid]
+        else:
+            del self.busy_workers[uid]
 
     def lease_worker(self):
         chosen = self.ready_workers.items[0]
@@ -24,5 +27,13 @@ class WorkerGroup:
 
     def return_worker(self, uid):
         worker = self.busy_workers.pop(uid)
-        self.ready_worlers[uid] = worker
+        self.ready_workers[uid] = worker
         
+    def worker_keys(self):
+        return self.__all_workers().keys()
+
+    def worker_sockets(self):
+        return self.__all_workers().values()
+
+    def __all_workers(self):
+        return {**self.ready_workers, **self.busy_workers}
