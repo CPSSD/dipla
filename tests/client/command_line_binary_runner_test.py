@@ -26,6 +26,13 @@ class CommandLineBinaryRunnerTest(TestCase):
         self.when_the_binary_is_run()
         self.then_the_result_will_be("3")
 
+    def test_that_binary_produces_valid_output_with_another_url(self):
+        self.given_a_web_count_binary()
+        self.given_using_another_github_resource()
+        self.given_searching_for("BLARG")
+        self.when_the_binary_is_run()
+        self.then_the_result_will_be("4")
+
     def given_a_non_existent_binary(self):
         self.filepath = "/dont_exist/binary"
 
@@ -38,6 +45,11 @@ class CommandLineBinaryRunnerTest(TestCase):
     def given_using_a_github_resource(self):
         repo = "https://raw.githubusercontent.com/byxor/resources-for-testing/"
         resource_url = repo + "master/txt/word_count.txt"
+        self.arguments.append(resource_url)
+
+    def given_using_another_github_resource(self):
+        repo = "https://raw.githubusercontent.com/byxor/resources-for-testing/"
+        resource_url = repo + "master/txt/word_count_again.txt"
         self.arguments.append(resource_url)
 
     def given_searching_for(self, word):
