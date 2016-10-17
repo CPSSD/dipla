@@ -11,51 +11,51 @@ from dipla.shared.stream_reader import StreamReader
 class StreamReaderTest(unittest.TestCase):
 
     @timeout(10)
-    def test_that_thread_does_not_get_blocked_when_reading_from_an_empty_stream_without_waiting(self):
+    def test_thread_finishes_when_reading_empty_stream_without_wait(self):
         self.given_the_stream()
         self.when_we_read_without_waiting()
         self.and_we_wait_a_bit()
         self.then_it_will_not_be_reading()
 
     @timeout(10)
-    def test_that_thread_does_not_get_blocked_when_reading_from_a_populated_stream_without_waiting(self):
+    def test_thread_finishes_when_reading_populated_stream_without_wait(self):
         self.given_the_stream("CONTENT")
         self.when_we_read_without_waiting()
         self.and_we_wait_a_bit()
         self.then_it_will_not_be_reading()
 
     @timeout(10)
-    def test_that_thread_does_not_get_blocked_when_reading_from_a_populated_stream_with_waiting(self):
+    def test_thread_finishes_when_reading_populated_stream_with_wait(self):
         self.given_the_stream("CONTENT")
         self.when_we_read_with_waiting()
         self.and_we_wait_a_bit()
         self.then_it_will_not_be_reading()
 
     @timeout(10)
-    def test_that_thread_gets_blocked_when_reading_from_an_empty_stream(self):
+    def test_that_thread_hangs_when_reading_empty_stream_with_wait(self):
         self.given_the_stream()
         self.when_we_read_with_waiting()
         self.and_we_wait_a_bit()
         self.and_we_close_it()
         self.and_we_wait_a_bit()
         self.then_it_will_be_reading()
-   
+
     @timeout(10)
-    def test_that_reading_without_wait_returns_nothing_from_empty_stream(self):
+    def test_that_reading_empty_stream_without_wait_returns_nothing(self):
         self.given_the_stream()
         self.when_we_read_without_waiting()
         self.and_we_wait_a_bit()
         self.then_the_result_will_be(None)
 
     @timeout(10)
-    def test_that_reading_without_wait_returns_correct_result_from_populated_stream(self):
+    def test_reading_populated_stream_without_wait_returns_correct_value(self):
         self.given_the_stream("CONTENT\nHERE")
         self.when_we_read_without_waiting()
         self.and_we_wait_a_bit()
         self.then_the_result_will_be("CONTENT")
 
     @timeout(10)
-    def test_that_reading_with_wait_returns_correct_result_from_populated_stream(self):
+    def test_reading_populated_stream_with_wait_returns_correct_value(self):
         self.given_the_stream("CONTENT\nHERE")
         self.when_we_read_with_waiting()
         self.and_we_wait_a_bit()
@@ -107,7 +107,7 @@ class NonBlockingStreamReadOperation(Thread):
 
 
 class BlockingStreamReadOperation(Thread):
-    
+
     def __init__(self, stream_reader):
         super().__init__()
         self._stream_reader = stream_reader

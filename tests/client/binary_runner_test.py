@@ -7,7 +7,9 @@ from dipla.environment import PROJECT_DIRECTORY
 
 class BinaryRunnerTest(unittest.TestCase):
 
-    EXAMPLE_BINARY_PATH = PROJECT_DIRECTORY + "tests/example_binaries/dynamic_web_count/builds/ARM"
+    EXAMPLE_BINARY_PATH = PROJECT_DIRECTORY + \
+                          "tests/example_binaries/" + \
+                          "dynamic_web_count/builds/ARM"
 
     def test_that_error_is_raised_when_running_non_existent_binary(self):
         self.given_the_binary("~/fake_binary")
@@ -30,7 +32,7 @@ class BinaryRunnerTest(unittest.TestCase):
 #        self.and_we_wait_a_bit()
 #        self.then_the_binary_will_be_running()
 #
-#    def test_that_binary_is_running_after_an_arbitrary_command_has_been_given(self):
+#    def test_that_binary_is_running_after_arbitrary_command_is_given(self):
 #        self.given_using_the_example_binary()
 #        self.when_the_binary_is_run()
 #        self.and_we_wait_a_bit()

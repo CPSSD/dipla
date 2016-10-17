@@ -44,4 +44,4 @@ class StreamWriterFileStreamTest(TestCase):
 
     def tearDown(self):
         filename = StreamWriterFileStreamTest.FILENAME
-        os.remove(filename) 
+        os.remove(filename)

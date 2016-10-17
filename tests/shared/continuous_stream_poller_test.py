@@ -93,7 +93,7 @@ class ContinuousStreamPollerTest(unittest.TestCase):
             self.assertEqual(expected, self.queue.get_nowait())
         except Empty:
             self.fail("Queue is unexpectedly empty")
-   
+
     def then_it_wont_be_reading(self):
         reading = not self.stream_poller._stop_request.isSet()
         self.assertTrue(not reading)
@@ -106,11 +106,10 @@ class ContinuousStreamPollerTest(unittest.TestCase):
         self.stream_poller.join()
 
 
-
 class ContinuousStreamPollerThreadedTest(unittest.TestCase):
 
     @timeout(10)
-    def test_that_stream_poller_stops_when_stopped_directly_from_the_main_thread(self):
+    def test_that_poller_stops_when_stopped_directly_from_main_thread(self):
         self.given_a_running_stream_poller_nested_in_a_thread()
         self.and_we_wait_a_bit()
         self.when_we_stop_the_stream_poller_directly()
@@ -118,7 +117,7 @@ class ContinuousStreamPollerThreadedTest(unittest.TestCase):
         self.then_the_stream_poller_will_not_be_running()
 
     @timeout(10)
-    def test_that_stream_poller_stops_when_stopped_through_the_intermediate_thread(self):
+    def test_that_poller_stops_when_stopped_through_intermediate_thread(self):
         self.given_a_running_stream_poller_nested_in_a_thread()
         self.and_we_wait_a_bit()
         self.when_we_stop_the_stream_poller_through_the_intermediate_thread()
@@ -128,8 +127,12 @@ class ContinuousStreamPollerThreadedTest(unittest.TestCase):
     def given_a_running_stream_poller_nested_in_a_thread(self):
         empty_stream = StringIO()
         empty_queue = Queue()
-        self.stream_poller = ContinuousStreamPoller(empty_stream, empty_queue, interval=0.1)
-        self.intermediate_thread = IntermediateStreamPollerThread(self.stream_poller)
+        self.stream_poller = ContinuousStreamPoller(empty_stream,
+                                                    empty_queue,
+                                                    interval=0.1)
+        self.intermediate_thread = IntermediateStreamPollerThread(
+            self.stream_poller
+        )
         self.intermediate_thread.start()
 
     def when_we_stop_the_stream_poller_directly(self):

@@ -40,7 +40,9 @@ class CommandLineBinaryRunnerTest(TestCase):
         self.given_a_web_count_binary()
 
     def given_a_web_count_binary(self):
-        self.filepath = PROJECT_DIRECTORY + "tests/example_binaries/web_count/web_count"
+        self.filepath = PROJECT_DIRECTORY + \
+                        "tests/example_binaries/" + \
+                        "web_count/web_count"
 
     def given_using_a_github_resource(self):
         repo = "https://raw.githubusercontent.com/byxor/resources-for-testing/"
