@@ -1,6 +1,7 @@
 from subprocess import Popen, PIPE
 from ..shared.logutils import get_logger
 from ..shared.stream_reader import StreamReader
+from ..shared.stream_writer import StreamWriter
 import os
 import shlex
 
@@ -27,10 +28,10 @@ class BinaryRunner(object):
             self._running = True
 
     def send_stdin(self, message):
+        message = message.encode("utf-8")
         self._logger.debug("BinaryRunner: sending '%s' to stdin" % message)
-        self._process.stdin.write(message.encode("utf-8"))
-        self._process.stdin.close()
-        print(self._process.stdout.read())
+        stream_writer = StreamWriter(self._process.stdin, message)
+        stream_writer.start()
 
     def read_stdout_without_waiting(self, message):
         output = self._stdout_reader.read_line_without_waiting()

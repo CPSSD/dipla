@@ -1,4 +1,5 @@
 from threading import Thread
+from .logutils import get_logger
 
 
 # This class writes a message to a stream in a separate thread.
@@ -12,9 +13,11 @@ class StreamWriter(Thread):
     
     def __init__(self, stream, message):
         super().__init__()
+        self._logger = get_logger(__name__)
         self._stream = stream
         self._message = message
 
     # Override
     def run(self):
+        self._logger.debug("StreamWriter: about to write {} to {}".format(self._message, self._stream))
         self._stream.write(self._message)
