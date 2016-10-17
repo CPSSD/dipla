@@ -1,5 +1,6 @@
 import asyncio
 import websockets
+import worker_group
 
 
 class Server:
@@ -15,7 +16,9 @@ class Server:
             await websocket.send("Sorry, this Agent ID is taken")
             return
 
-        self.worker_group.add_worker(user_id, websocket)
+        self.worker_group.add_worker(
+                user_id,
+                worker_group.Worker(0.5, websocket))
 
         try:
             await websocket.send(self.task_queue.pop_task().data_instructions)

@@ -18,7 +18,7 @@ class WorkerGroup:
     def remove_worker(self, uid):
         if(uid in self.ready_workers):
             del self.ready_workers[uid]
-        else:
+        elif(uid in self.busy_workers):
             del self.busy_workers[uid]
 
     def lease_worker(self):
@@ -30,10 +30,20 @@ class WorkerGroup:
         self.ready_workers[uid] = worker
         
     def worker_keys(self):
-        return self.__all_workers().keys()
+        return list(self.__all_workers().keys())
 
     def worker_sockets(self):
-        return self.__all_workers().values()
+        return [w.websocket for w in self.__all_workers().values()]
 
     def __all_workers(self):
         return {**self.ready_workers, **self.busy_workers}
+
+
+class Worker:
+    
+    def __init__(self, quality, websocket):
+        self._quality = quality
+        self.websocket = websocket
+
+    def quality(self):
+        return self._quality**2
