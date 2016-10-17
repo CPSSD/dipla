@@ -12,7 +12,7 @@ class StreamReader(object):
 
     def __init__(self, stream):
         self._logger = get_logger(__name__)
-        self._stream = stream 
+        self._stream = stream
         self._queue = Queue()
         self._stream_poller = ContinuousStreamPoller(self._stream, self._queue)
         self._reading = False
@@ -21,7 +21,7 @@ class StreamReader(object):
     def open(self):
         self._logger.debug("StreamReader: about to open...")
         self._stream_poller.start()
-       
+
     def read_line_without_waiting(self):
         self._reading = True
         try:

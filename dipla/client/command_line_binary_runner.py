@@ -3,7 +3,7 @@ from os.path import isfile
 
 
 class CommandLineBinaryRunner(object):
-    
+
     def run(self, filepath, arguments):
         self._filepath = filepath
         self._arguments = arguments

@@ -9,7 +9,7 @@ from .logutils import get_logger
 #
 # This class continually reads from a text stream on its own thread.
 # It pushes each line of text it discovers to a queue.
-# 
+#
 # Just specify...
 # 1. The stream to read from.
 # 2. The queue to write to.
@@ -40,15 +40,22 @@ class ContinuousStreamPoller(Thread):
         super().join(timeout)
 
     def _read_from_stream(self):
-        self._logger.debug("ContinuousStreamPoller: about to read from stream...")
+        self._logger.debug(
+            "ContinuousStreamPoller: about to read from stream..."
+        )
         self._line_from_stream = self._stream.readline().strip()
 
     def _push_result_onto_queue(self):
         if self._line_from_stream:
-            self._logger.debug("ContinuousStreamPoller: appending %s onto queue." % self._line_from_stream)
+            self._logger.debug(
+                "ContinuousStreamPoller: appending %s onto queue." %
+                self._line_from_stream
+            )
             self._queue.put(self._line_from_stream)
         else:
-            self._logger.debug("ContinuousStreamPoller: nothing to append to queue.")
+            self._logger.debug(
+                 "ContinuousStreamPoller: nothing to append to queue."
+            )
 
     def _sleep_for_interval(self):
         time.sleep(self._interval)

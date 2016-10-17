@@ -15,16 +15,16 @@ class BinaryRunner(object):
         self._running = False
 
     def run(self, command):
-        arguments = shlex.split(command) 
-        self._logger.debug("BinaryRunner: about to run binary with args " +
-                           "{}".format(arguments))
+        arguments = shlex.split(command)
+        log_message = "BinaryRunner: about to run binary with args {}"
+        self._logger.debug(log_message.format(arguments))
         filepath = arguments[0]
         if not os.path.exists(filepath):
             raise FileNotFoundError
         else:
             self._process = Popen(command, shell=True, stdin=PIPE, stdout=PIPE)
-            #self._stdout_reader = StreamReader(self._process.stdout)
-            #self._stdout_reader.open()
+#            self._stdout_reader = StreamReader(self._process.stdout)
+#            self._stdout_reader.open()
             self._running = True
 
     def send_stdin(self, message):
@@ -42,9 +42,12 @@ class BinaryRunner(object):
         return output
 
     def is_running(self):
-        self._logger.debug("BinaryRunner: checking if binary is running...")
+        log_message = "BinaryRunner: checking if binary is running..."
+        log_return_code = "BinaryRunner: return code of binary is {}"
+        log_poll_result = "BinaryRunner: poll_result is {}"
+        self._logger.debug(log_message)
         poll_result = self._process.poll()
-        self._running = poll_result == None
-        self._logger.debug("BinaryRunner: return code of binary is {}".format(self._process.returncode))
-        self._logger.debug("BinaryRunner: poll_result is {}".format(poll_result))
+        self._running = poll_result is None
+        self._logger.debug(log_return_code.format(self._process.returncode))
+        self._logger.debug(log_poll_result.format(poll_result))
         return self._running
