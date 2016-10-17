@@ -13,23 +13,23 @@ class BinaryRunnerTest(unittest.TestCase):
         self.given_the_binary("~/fake_binary")
         self.then_running_the_binary_will_raise_a_FileNotFoundError()
 
-    def test_that_no_error_is_raised_when_running_existing_binary(self):
-        self.given_using_the_example_binary()
-        self.then_running_the_binary_will_not_raise_any_exceptions()
-
+#    def test_that_no_error_is_raised_when_running_existing_binary(self):
+#        self.given_using_the_example_binary()
+#        self.then_running_the_binary_will_not_raise_any_exceptions()
+#
 #    def test_that_binary_stops_running_after_the_exit_command_is_given(self):
 #        self.given_using_the_example_binary()
 #        self.when_the_binary_is_run()
 #        self.and_the_standard_input_is_injected("!")
 #        self.and_we_wait_a_bit()
 #        self.then_the_binary_will_not_be_running()
-
+#
 #    def test_that_binary_is_running_after_no_commands_have_been_given(self):
 #        self.given_using_the_example_binary()
 #        self.when_the_binary_is_run()
 #        self.and_we_wait_a_bit()
 #        self.then_the_binary_will_be_running()
-
+#
 #    def test_that_binary_is_running_after_an_arbitrary_command_has_been_given(self):
 #        self.given_using_the_example_binary()
 #        self.when_the_binary_is_run()
