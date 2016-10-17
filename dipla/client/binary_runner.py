@@ -23,8 +23,6 @@ class BinaryRunner(object):
             raise FileNotFoundError
         else:
             self._process = Popen(command, shell=True, stdin=PIPE, stdout=PIPE)
-#            self._stdout_reader = StreamReader(self._process.stdout)
-#            self._stdout_reader.open()
             self._running = True
 
     def send_stdin(self, message):
