@@ -12,7 +12,6 @@ class BinaryRunner(object):
         self._logger = get_logger(__name__)
         self._process = None
         self._stdout_reader = None
-        self._running = False
 
     def run(self, command):
         arguments = shlex.split(command)
@@ -23,7 +22,6 @@ class BinaryRunner(object):
             raise FileNotFoundError
         else:
             self._process = Popen(command, shell=True, stdin=PIPE, stdout=PIPE)
-            self._running = True
 
     def send_stdin(self, message):
         message = message.encode("utf-8")
@@ -45,7 +43,6 @@ class BinaryRunner(object):
         log_poll_result = "BinaryRunner: poll_result is {}"
         self._logger.debug(log_message)
         poll_result = self._process.poll()
-        self._running = poll_result is None
         self._logger.debug(log_return_code.format(self._process.returncode))
         self._logger.debug(log_poll_result.format(poll_result))
-        return self._running
+        return not poll_result is None
