@@ -1,7 +1,7 @@
 import unittest
 import time
 import os
-from dipla.client.binary import BinaryRunner
+from dipla.client.binary_runner import BinaryRunner
 from dipla.environment import PROJECT_DIRECTORY
 
 
