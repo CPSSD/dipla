@@ -37,9 +37,7 @@ class StreamReader(object):
         while not self._stop_request.isSet():
             if not self._queue.empty():
                 self._reading = False
-                line = self._queue.get_nowait()
-                break
-        return line
+                return self._queue.get_nowait()
 
     def close(self):
         self._logger.debug("StreamReader: about to close...")
