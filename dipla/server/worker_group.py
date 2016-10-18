@@ -5,21 +5,26 @@ order in which workers are chosen. This should track which workers are
 available to start a new task, and which are currently running a task
 """
 
+import heapq
 
 class WorkerGroup:
     
     def __init__(self):
-        self.ready_workers = {}
+        self.ready_workers = []
         self.busy_workers = {}
 
-    def add_worker(self, uid, worker):
-        self.ready_workers[uid] = worker
+    def add_worker(self, worker):
+        heapq.heappush(self.ready_workers, worker)
 
     def remove_worker(self, uid):
-        if(uid in self.ready_workers):
-            del self.ready_workers[uid]
-        elif(uid in self.busy_workers):
+        if(uid in self.busy_workers):
             del self.busy_workers[uid]
+        else:
+            for i in range(0, len(self.ready_workers)):
+                if self.ready_workers[i].uid == uid:
+                    self.ready_workers.pop(i)
+                    break
+            heapq.heapify(self.ready_workers)
 
     def lease_worker(self):
         chosen = self.ready_workers.items[0]
@@ -29,21 +34,28 @@ class WorkerGroup:
         worker = self.busy_workers.pop(uid)
         self.ready_workers[uid] = worker
         
-    def worker_keys(self):
-        return list(self.__all_workers().keys())
+    def worker_uids(self):
+        return [x.uid for x in self.__all_workers()]
 
     def worker_sockets(self):
         return [w.websocket for w in self.__all_workers().values()]
 
     def __all_workers(self):
-        return {**self.ready_workers, **self.busy_workers}
+        return self.ready_workers + list(self.busy_workers.values())
 
 
 class Worker:
     
-    def __init__(self, quality, websocket):
+    def __init__(self, uid, quality, websocket):
+        self.uid = uid
         self._quality = quality
         self.websocket = websocket
 
     def quality(self):
         return self._quality**2
+
+    def __eq__(self, other):
+        return self.quality() == other.quality()
+
+    def __gt__(self, other):
+        return self.quality() > other.quality()
