@@ -21,12 +21,15 @@ class WorkerGroup:
     def remove_worker(self, uid):
         if uid in self.busy_workers:
             del self.busy_workers[uid]
-        else:
-            for i in range(0, len(self.ready_workers)):
-                if self.ready_workers[i].uid == uid:
-                    self.ready_workers.pop(i)
-                    break
-            heapq.heapify(self.ready_workers)
+            return
+        
+        for i in range(0, len(self.ready_workers)):
+            if self.ready_workers[i].uid == uid:
+                self.ready_workers.pop(i)
+                heapq.heapify(self.ready_workers)
+                return 
+
+        raise KeyError("No worker was found with the ID: " + uid)
 
     def lease_worker(self):
         if len(self.ready_workers) == 0:

@@ -25,6 +25,9 @@ class WorkerGroupTest(unittest.TestCase):
         self.group.remove_worker("B")
         self.assertCountEqual(self.group.worker_uids(), [])
 
+        with self.assertRaises(KeyError):
+            self.group.remove_worker("A")
+
     def test_lease_worker(self):
         self.group.add_worker(Worker("A", 0.75, None))
         self.assertEqual(self.group.lease_worker().uid, "A")
