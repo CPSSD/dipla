@@ -29,8 +29,8 @@ class ContinuousStreamPoller(Thread):
     def run(self):
         self._logger.debug("ContinuousStreamPoller: about to run...")
         while not self._stop_request.isSet():
-            self._read_from_stream()
-            self._push_result_onto_queue()
+            line = self._read_from_stream()
+            self._push_onto_queue(line)
             self._sleep_for_interval()
 
     # Overridden from Thread
@@ -40,18 +40,15 @@ class ContinuousStreamPoller(Thread):
         super().join(timeout)
 
     def _read_from_stream(self):
-        self._logger.debug(
-            "ContinuousStreamPoller: about to read from stream..."
-        )
-        self._line_from_stream = self._stream.readline().strip()
+        self._logger.debug("ContinuousStreamPoller: about to read from stream")
+        return self._stream.readline().strip()
 
-    def _push_result_onto_queue(self):
-        if self._line_from_stream:
+    def _push_onto_queue(self, line):
+        if line:
             self._logger.debug(
-                "ContinuousStreamPoller: appending %s onto queue." %
-                self._line_from_stream
+                "ContinuousStreamPoller: appending %s onto queue." % line
             )
-            self._queue.put(self._line_from_stream)
+            self._queue.put(line)
         else:
             self._logger.debug(
                  "ContinuousStreamPoller: nothing to append to queue."
