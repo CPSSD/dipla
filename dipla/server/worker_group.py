@@ -27,6 +27,8 @@ class WorkerGroup:
             heapq.heapify(self.ready_workers)
 
     def lease_worker(self):
+        if len(self.ready_workers) == 0:
+            raise IndexError("No workers available to lease")
         chosen = heapq.heappop(self.ready_workers)
         self.busy_workers[chosen.uid] = chosen
         return chosen

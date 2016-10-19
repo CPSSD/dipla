@@ -30,6 +30,9 @@ class WorkerGroupTest(unittest.TestCase):
         self.assertEqual(self.group.lease_worker().uid, "C")
         self.assertEqual(self.group.lease_worker().uid, "B")
 
+        with self.assertRaises(IndexError):
+            self.group.lease_worker()
+
     def test_return_worker(self):
         self.group.add_worker(Worker("A", 0.75, None))
         self.group.add_worker(Worker("B", 1, None))
