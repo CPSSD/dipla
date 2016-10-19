@@ -32,6 +32,8 @@ class WorkerGroup:
         return chosen
 
     def return_worker(self, uid):
+        if uid not in self.busy_workers.keys():
+            raise KeyError("No busy workers with the provided key")
         worker = self.busy_workers.pop(uid)
         heapq.heappush(self.ready_workers, worker)
         

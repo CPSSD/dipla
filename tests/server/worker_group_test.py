@@ -43,3 +43,6 @@ class WorkerGroupTest(unittest.TestCase):
         self.group.lease_worker()
         self.group.return_worker(test_uid)
         self.assertEqual("A", self.group.lease_worker().uid)
+
+        with self.assertRaises(KeyError):
+            self.group.return_worker("Z")
