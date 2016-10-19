@@ -27,12 +27,13 @@ class WorkerGroup:
             heapq.heapify(self.ready_workers)
 
     def lease_worker(self):
-        chosen = self.ready_workers.items[0]
-        busy_workers[chosen[0]] = chosen[1]
+        chosen = heapq.heappop(self.ready_workers)
+        self.busy_workers[chosen.uid] = chosen
+        return chosen
 
     def return_worker(self, uid):
         worker = self.busy_workers.pop(uid)
-        self.ready_workers[uid] = worker
+        heapq.heappush(self.ready_workers, worker)
         
     def worker_uids(self):
         return [x.uid for x in self.__all_workers()]
@@ -51,6 +52,8 @@ class Worker:
         self._quality = quality
         self.websocket = websocket
 
+    # The closer to zero the quality value is, the more preferrable
+    # the worker is
     def quality(self):
         return self._quality**2
 
