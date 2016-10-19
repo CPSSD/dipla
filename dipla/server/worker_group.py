@@ -15,7 +15,7 @@ class WorkerGroup:
 
     def add_worker(self, worker):
         if worker.uid in self.worker_uids():
-            raise UniqueException(worker.uid + " is already in use")
+            raise UniqueError("Unique ID " + worker.uid + " is already in use")
         heapq.heappush(self.ready_workers, worker)
 
     def remove_worker(self, uid):
@@ -31,6 +31,8 @@ class WorkerGroup:
 
         raise KeyError("No worker was found with the ID: " + uid)
 
+    # Choose a worker to mark lease, so that this will not be used by
+    # another task at the same time
     def lease_worker(self):
         if len(self.ready_workers) == 0:
             raise IndexError("No workers available to lease")
@@ -38,6 +40,8 @@ class WorkerGroup:
         self.busy_workers[chosen.uid] = chosen
         return chosen
 
+    # Indicate that a leased worker is no longer needed and can now be
+    # used by other tasks
     def return_worker(self, uid):
         if uid not in self.busy_workers.keys():
             raise KeyError("No busy workers with the provided key")
@@ -54,6 +58,8 @@ class WorkerGroup:
         return self.ready_workers + list(self.busy_workers.values())
 
 
+# Abstraction of the information necessary to represent a Worker in the
+# worker group
 class Worker:
     
     def __init__(self, uid, quality, websocket):
@@ -72,5 +78,6 @@ class Worker:
     def __gt__(self, other):
         return self.quality() > other.quality()
 
-class UniqueException(Exception):
+# Error raised when a suggested  value is not unique in a collection
+class UniqueError(Exception):
     pass

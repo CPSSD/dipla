@@ -12,13 +12,14 @@ class Server:
     async def websocket_handler(self, websocket, path):
         user_id = path[1:]
 
-        if(user_id in self.worker_group.worker_keys()):
+        try:
+            self.worker_group.add_worker(
+                    worker_group.Worker(user_id, 0.5, websocket))
+        except(worker_group.UniqueError):
             await websocket.send("Sorry, this Agent ID is taken")
             return
-
-        self.worker_group.add_worker(
-                user_id,
-                worker_group.Worker(0.5, websocket))
+        
+        self.worker_group.lease_worker()
 
         try:
             await websocket.send(self.task_queue.pop_task().data_instructions)
@@ -30,6 +31,7 @@ class Server:
         except websockets.exceptions.ConnectionClosed:
             print(user_id + " has closed the connection")
         finally:
+            self.worker_group.return_worker(user_id)
             self.worker_group.remove_worker(user_id)
 
     def start(self):
