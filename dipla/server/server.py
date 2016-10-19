@@ -1,11 +1,15 @@
+import sys
+import json
+import base64
 import asyncio
 import websockets
 
 
 class Server:
-    def __init__(self, task_queue):
+    def __init__(self, task_queue, binary_paths):
         self.task_queue = task_queue
         self.connected = {}
+        self.binary_paths = binary_paths
         # This dict stores the requests the server can process paired with the
         # handler function.
         self.services = {
@@ -13,10 +17,17 @@ class Server:
             'get_data_instructions': self._handle_get_data_instructions,
         }
 
-    async def _handle_get_binary(self, message):
-        pass
+    def _handle_get_binary(self, message):
+        # TODO: Get data from the `message` to decide which archetecture
+        # to send a binary for
+        path = self.binary_paths['win32']
+        with open(path, 'rb') as binary:
+            binary_bytes = binary.read()
+        # Encode the bytes to base64, this returnes bytes which can then be
+        # decoded to a string.
+        return base64.b64encode(binary_bytes).decode('utf-8')
 
-    async def _handle_get_data_instructions(self, message):
+    def _handle_get_data_instructions(self, message):
         return self.task_queue.pop_task().data_instructions
 
     async def websocket_handler(self, websocket, path):
@@ -36,10 +47,15 @@ class Server:
                 # TODO: Parse the message into some format rather than taking
                 # as a string (to allow other params to be included in the
                 # request)
-                response = 'ERROR'
+                response = {
+                    'status': 'ok',
+                    'data': {},
+                }
+                # TODO: Error handling
                 if message in self.services:
-                    response = self.services[message](message)
-                await websocket.send(response)
+                    response['data'] = self.services[message](message)
+                await websocket.send(json.dumps(response))
+
         except websockets.exceptions.ConnectionClosed:
             print(user_id + " has closed the connection")
         finally:
@@ -54,6 +70,14 @@ class Server:
         asyncio.get_event_loop().run_until_complete(start_server)
         asyncio.get_event_loop().run_forever()
 
+
 if __name__ == '__main__':
-    s = Server([])
+    if len(sys.argv) != 2:
+        print('Usage: python server.py /path/to/binary')
+        sys.exit()
+
+    bin_paths = {
+        'win32': sys.argv[1],
+    }
+    s = Server([], bin_paths)
     s.start()
