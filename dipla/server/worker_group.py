@@ -7,8 +7,9 @@ available to start a new task, and which are currently running a task
 
 import heapq
 
+
 class WorkerGroup:
-    
+
     def __init__(self):
         self.ready_workers = []
         self.busy_workers = {}
@@ -24,12 +25,12 @@ class WorkerGroup:
         if uid in self.busy_workers:
             del self.busy_workers[uid]
             return
-        
+
         for i in range(0, len(self.ready_workers)):
             if self.ready_workers[i].uid == uid:
                 self.ready_workers.pop(i)
                 heapq.heapify(self.ready_workers)
-                return 
+                return
 
         raise KeyError("No worker was found with the ID: " + uid)
 
@@ -49,7 +50,7 @@ class WorkerGroup:
             raise KeyError("No busy workers with the provided key")
         worker = self.busy_workers.pop(uid)
         heapq.heappush(self.ready_workers, worker)
-        
+
     def worker_uids(self):
         return [x.uid for x in self.__all_workers()]
 
@@ -60,7 +61,7 @@ class WorkerGroup:
 # Abstraction of the information necessary to represent a Worker in the
 # worker group
 class Worker:
-    
+
     def __init__(self, uid, quality, websocket):
         self.uid = uid
         self._quality = quality
@@ -76,6 +77,7 @@ class Worker:
 
     def __gt__(self, other):
         return self.quality() > other.quality()
+
 
 # Error raised when a suggested value is not unique in a collection
 class UniqueError(Exception):

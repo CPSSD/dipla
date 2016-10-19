@@ -18,7 +18,7 @@ class Server:
         except(worker_group.UniqueError):
             await websocket.send("Sorry, this Agent ID is taken")
             return
-        
+
         self.worker_group.lease_worker()
 
         try:

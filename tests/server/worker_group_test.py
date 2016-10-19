@@ -6,7 +6,7 @@ from dipla.server.worker_group import Worker
 class WorkerGroupTest(unittest.TestCase):
 
     def setUp(self):
-        self.group = worker_group.WorkerGroup() 
+        self.group = worker_group.WorkerGroup()
 
     def test_add_worker(self):
         self.group.add_worker(Worker("A", 1, None))
@@ -47,7 +47,7 @@ class WorkerGroupTest(unittest.TestCase):
         self.group.return_worker(first_uid)
         second_uid = self.group.lease_worker().uid
         self.assertEqual("C", second_uid)
-        
+
         test_uid = self.group.lease_worker().uid
         self.group.lease_worker()
         self.group.return_worker(test_uid)
