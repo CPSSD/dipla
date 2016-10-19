@@ -14,6 +14,9 @@ class WorkerGroupTest(unittest.TestCase):
         self.group.add_worker(Worker("B", 1, None))
         self.assertCountEqual(self.group.worker_uids(), ["A", "B"])
 
+        with self.assertRaises(worker_group.UniqueException):
+            self.group.add_worker(Worker("A", 1, None))
+
     def test_remove_worker(self):
         self.group.add_worker(Worker("A", 1, None))
         self.group.add_worker(Worker("B", 1, None))

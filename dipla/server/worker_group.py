@@ -14,10 +14,12 @@ class WorkerGroup:
         self.busy_workers = {}
 
     def add_worker(self, worker):
+        if worker.uid in self.worker_uids():
+            raise UniqueException(worker.uid + " is already in use")
         heapq.heappush(self.ready_workers, worker)
 
     def remove_worker(self, uid):
-        if(uid in self.busy_workers):
+        if uid in self.busy_workers:
             del self.busy_workers[uid]
         else:
             for i in range(0, len(self.ready_workers)):
@@ -66,3 +68,6 @@ class Worker:
 
     def __gt__(self, other):
         return self.quality() > other.quality()
+
+class UniqueException(Exception):
+    pass
