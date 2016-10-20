@@ -16,13 +16,11 @@ class CommandLineBinaryRunner(object):
         return isfile(self._filepath)
 
     def _run_binary(self):
-        command = [self._filepath] + self._arguments
         process = Popen(
-            command,
-            shell=False,
+            args=[self._filepath] + self._arguments,
             stdin=PIPE,
             stdout=PIPE,
-            stderr=PIPE
+            stderr=PIPE,
+            shell=False
         )
-        output = process.communicate(None)[0].strip().decode()
-        return output
+        return process.communicate(None)[0].strip().decode()
