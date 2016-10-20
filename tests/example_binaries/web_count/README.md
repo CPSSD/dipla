@@ -4,7 +4,7 @@
 
 This binary is writen in C++ and requires the libcurl library, specifically `libcurl4-gnutls-dev`
 
-To compile run `g++ web_count.cpp -o example -lcurl`
+To compile run `g++ web_count.cpp -o web_count -lcurl`
 
 You will then have an `web_count` executable.
 
