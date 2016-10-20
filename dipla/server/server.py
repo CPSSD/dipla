@@ -69,15 +69,3 @@ class Server:
 
         asyncio.get_event_loop().run_until_complete(start_server)
         asyncio.get_event_loop().run_forever()
-
-
-if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        print('Usage: python server.py /path/to/binary')
-        sys.exit()
-
-    bin_paths = {
-        'win32': sys.argv[1],
-    }
-    s = Server([], bin_paths)
-    s.start()
