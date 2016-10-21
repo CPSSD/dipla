@@ -10,7 +10,12 @@ import heapq
 
 class WorkerGroup:
 
+    # TODO(StefanKennedy): Add functionality to choose another
+    # worker when a busy worker disconnects
+
     def __init__(self):
+        # Ready Workers is a min heap, used to quickly find the most
+        # preferrable worker during worker-leasing behaviour
         self.ready_workers = []
         self.busy_workers = {}
 
@@ -20,13 +25,11 @@ class WorkerGroup:
         heapq.heappush(self.ready_workers, worker)
 
     def remove_worker(self, uid):
-        # TODO(StefanKennedy): Add functionality to choose another
-        # worker when a busy worker disconnects
         if uid in self.busy_workers:
-            del self.busy_workers[uid]
+            self.busy_workers.pop(uid)
             return
 
-        for i in range(0, len(self.ready_workers)):
+        for i in range(len(self.ready_workers)):
             if self.ready_workers[i].uid == uid:
                 self.ready_workers.pop(i)
                 heapq.heapify(self.ready_workers)
@@ -52,9 +55,9 @@ class WorkerGroup:
         heapq.heappush(self.ready_workers, worker)
 
     def worker_uids(self):
-        return [x.uid for x in self.__all_workers()]
+        return [x.uid for x in self._all_workers()]
 
-    def __all_workers(self):
+    def _all_workers(self):
         return self.ready_workers + list(self.busy_workers.values())
 
 

@@ -15,7 +15,7 @@ class Server:
         try:
             self.worker_group.add_worker(
                     worker_group.Worker(user_id, 0.5, websocket))
-        except(worker_group.UniqueError):
+        except worker_group.UniqueError:
             await websocket.send("Sorry, this Agent ID is taken")
             return
 
