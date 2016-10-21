@@ -9,6 +9,13 @@ from base64 import b64encode
 class Server:
 
     def __init__(self, task_queue, binary_paths):
+        """
+        task_queue is a TaskQueue object that tasks to be run are taken from
+
+        binary_paths is a dictionary where the keys are the architecures and
+        the values are the paths to the binaries to run on those platforms.
+        E.g. {'win32':'/binaries/win_bin.exe'}
+        """
         self.task_queue = task_queue
         self.connected = {}
         self.binary_paths = binary_paths
