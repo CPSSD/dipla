@@ -1,4 +1,10 @@
+<<<<<<< HEAD
 # Example Binary
+=======
+# Web Count
+
+This is a modified version of CianLR's original example binary.
+>>>>>>> master
 
 ## Compilation
 
@@ -6,7 +12,7 @@ This binary is writen in C++ and requires the libcurl library, specifically `lib
 
 To compile run `g++ web_count.cpp -o web_count -lcurl`
 
-You will then have an `web_count` executable.
+You will then have a `web_count` executable.
 
 ## Usage
 

@@ -7,6 +7,9 @@ DIPLA.LOG
 # Vim swap files
 *.swp
 
+# Ignore executable files
+*.exe
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

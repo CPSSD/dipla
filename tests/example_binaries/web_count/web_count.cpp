@@ -1,3 +1,13 @@
+<<<<<<< HEAD
+=======
+/*
+ * This is a modified version of CianLR's dynamic_web_count.
+ *
+ * It uses argv instead of stdin to get input.
+ *
+ */
+
+>>>>>>> master
 #include <iostream>
 #include <curl/curl.h>
 
