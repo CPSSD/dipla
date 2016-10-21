@@ -1,6 +1,10 @@
+<<<<<<< HEAD
+# Example Binary
+=======
 # Web Count
 
 This is a modified version of CianLR's original example binary.
+>>>>>>> master
 
 ## Compilation
 

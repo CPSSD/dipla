@@ -1,3 +1,5 @@
+<<<<<<< HEAD
+=======
 /*
  * This is a modified version of CianLR's dynamic_web_count.
  *
@@ -5,6 +7,7 @@
  *
  */
 
+>>>>>>> master
 #include <iostream>
 #include <curl/curl.h>
 
