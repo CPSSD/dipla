@@ -1,11 +1,13 @@
 import sys
 import json
-import base64
 import asyncio
 import websockets
 
+from base64 import b64encode
+
 
 class Server:
+
     def __init__(self, task_queue, binary_paths):
         self.task_queue = task_queue
         self.connected = {}
@@ -23,22 +25,20 @@ class Server:
         path = self.binary_paths['win32']
         with open(path, 'rb') as binary:
             binary_bytes = binary.read()
-        # Encode the bytes to base64, this returnes bytes which can then be
-        # decoded to a string.
-        return base64.b64encode(binary_bytes).decode('utf-8')
+
+        encoded_bytes = b64encode(binary_bytes)
+        return encoded_bytes.decode('utf-8')
 
     def _handle_get_data_instructions(self, message):
         return self.task_queue.pop_task().data_instructions
 
-    async def websocket_handler(self, websocket, path):
-        user_id = path[1:]
+    async def _reject_user(self, user_id, websocket):
+        print("User ID '{}' requsted but already exists".format(user_id))
+        # TODO: Send this in a standard format
+        await websocket.send("Sorry, this User ID is taken")
 
-        if user_id in self.connected.keys():
-            await websocket.send("Sorry, this Agent ID is taken")
-            return
-
+    async def _process_user(self, user_id, websocket):
         self.connected[user_id] = websocket
-
         try:
             # recv() raises a ConnectionClosed exception when the client
             # disconnects, which breaks out of the while True loop.
@@ -60,6 +60,13 @@ class Server:
             print(user_id + " has closed the connection")
         finally:
             self.connected.pop(user_id, None)
+
+    async def websocket_handler(self, websocket, path):
+        user_id = path[1:]
+        if user_id not in self.connected:
+            self._process_user(user_id, websocket)
+        else:
+            self._reject_user(user_id, websocket)
 
     def start(self):
         start_server = websockets.serve(
