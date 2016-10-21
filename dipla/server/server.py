@@ -1,72 +1,32 @@
-import sys
-import json
 import asyncio
 import websockets
-
-from base64 import b64encode
 
 
 class Server:
 
-    def __init__(self, task_queue, binary_paths):
+    def __init__(self, task_queue):
         self.task_queue = task_queue
-        self.connected = {}
-        self.binary_paths = binary_paths
-        # This dict stores the requests the server can process paired with the
-        # handler function.
-        self.services = {
-            'get_binary': self._handle_get_binary,
-            'get_data_instructions': self._handle_get_data_instructions,
-        }
 
-    def _handle_get_binary(self, message):
-        # TODO: Get data from the `message` to decide which archetecture
-        # to send a binary for
-        path = self.binary_paths['win32']
-        with open(path, 'rb') as binary:
-            binary_bytes = binary.read()
+    async def websocket_handler(self, websocket, path, connected={}):
+        user_id = path[1:]
 
-        encoded_bytes = b64encode(binary_bytes)
-        return encoded_bytes.decode('utf-8')
+        if(user_id in connected.keys()):
+            await websocket.send("Sorry, this Agent ID is taken")
+            return
 
-    def _handle_get_data_instructions(self, message):
-        return self.task_queue.pop_task().data_instructions
+        connected[user_id] = websocket
 
-    async def _reject_user(self, user_id, websocket):
-        print("User ID '{}' requsted but already exists".format(user_id))
-        # TODO: Send this in a standard format
-        await websocket.send("Sorry, this User ID is taken")
-
-    async def _process_user(self, user_id, websocket):
-        self.connected[user_id] = websocket
         try:
-            # recv() raises a ConnectionClosed exception when the client
-            # disconnects, which breaks out of the while True loop.
+            await websocket.send(self.task_queue.pop_task().data_instructions)
             while True:
+                # recv() raises a ConnectionClosed exception when the client
+                # disconnects, which breaks out of the while True loop.
                 message = await websocket.recv()
-                # TODO: Parse the message into some format rather than taking
-                # as a string (to allow other params to be included in the
-                # request)
-                response = {
-                    'status': 'ok',
-                    'data': {},
-                }
-                # TODO: Error handling
-                if message in self.services:
-                    response['data'] = self.services[message](message)
-                await websocket.send(json.dumps(response))
-
+                # TODO(stefankennedy) Handle received message
         except websockets.exceptions.ConnectionClosed:
             print(user_id + " has closed the connection")
         finally:
-            self.connected.pop(user_id, None)
-
-    async def websocket_handler(self, websocket, path):
-        user_id = path[1:]
-        if user_id not in self.connected:
-            self._process_user(user_id, websocket)
-        else:
-            self._reject_user(user_id, websocket)
+            del connected[user_id]
 
     def start(self):
         start_server = websockets.serve(
