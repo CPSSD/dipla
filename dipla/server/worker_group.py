@@ -21,7 +21,7 @@ class WorkerGroup:
 
     def add_worker(self, worker):
         if worker.uid in self.worker_uids():
-            raise UniqueError("Unique ID " + worker.uid + " is already in use")
+            raise ValueError("Unique ID " + worker.uid + " is already in use")
         heapq.heappush(self.ready_workers, worker)
 
     def remove_worker(self, uid):
@@ -38,7 +38,8 @@ class WorkerGroup:
         raise KeyError("No worker was found with the ID: " + uid)
 
     # Choose a worker to mark leased, so that this will not be used by
-    # another task at the same time
+    # another task at the same time. This must be returned later using
+    # return_worker so that the worker can be reused
     def lease_worker(self):
         if len(self.ready_workers) == 0:
             raise IndexError("No workers available to lease")
@@ -47,7 +48,7 @@ class WorkerGroup:
         return chosen
 
     # Indicate that a leased worker is no longer needed and can now be
-    # used by other tasks
+    # used by other tasks.
     def return_worker(self, uid):
         if uid not in self.busy_workers.keys():
             raise KeyError("No busy workers with the provided key")
@@ -65,23 +66,29 @@ class WorkerGroup:
 # worker group
 class Worker:
 
-    def __init__(self, uid, quality, websocket):
+    def __init__(self, uid, websocket, quality):
+        """
+        uid is the workers Unique Identifier string
+
+        websocket is the workers connected websocket
+
+        quality is a numeric indicator of how preferrable this worker is
+        for running a task. This could depend on the hosts ping,
+        reliability, processing power, etc.
+        """
         self.uid = uid
         self._quality = quality
         self.websocket = websocket
 
-    # The closer to zero the quality value is, the more preferrable
-    # the worker is
+    # The closer to zero the quality value is, the more preferable the
+    # worker is
     def quality(self):
-        return self._quality**2
+        # Squaring the values here is a placeholder until a more
+        # relevant quality formula is determined
+        return self._quality*self._quality
 
     def __eq__(self, other):
         return self.quality() == other.quality()
 
     def __gt__(self, other):
         return self.quality() > other.quality()
-
-
-# Error raised when a suggested value is not unique in a collection
-class UniqueError(Exception):
-    pass
