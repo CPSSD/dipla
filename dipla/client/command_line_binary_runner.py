@@ -1,5 +1,6 @@
 from logging import getLogger
-from subprocess import *
+from subprocess import Popen
+from subprocess import PIPE
 from os.path import isfile
 
 
