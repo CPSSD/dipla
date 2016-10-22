@@ -45,13 +45,11 @@ class CommandLineBinaryRunnerTest(TestCase):
                         "web_count/web_count.exe"
 
     def given_using_a_github_resource(self):
-        repo = "https://raw.githubusercontent.com/byxor/resources-for-testing/"
-        resource_url = repo + "master/txt/word_count.txt"
+        resource_url = github_resource("master/txt/word_count.txt")
         self.arguments.append(resource_url)
 
     def given_using_another_github_resource(self):
-        repo = "https://raw.githubusercontent.com/byxor/resources-for-testing/"
-        resource_url = repo + "master/txt/word_count_again.txt"
+        resource_url = github_resource("master/txt/word_count_again.txt")
         self.arguments.append(resource_url)
 
     def given_searching_for(self, word):
@@ -73,3 +71,8 @@ class CommandLineBinaryRunnerTest(TestCase):
 
     def then_the_result_will_be(self, expected):
         self.assertEqual(expected, self.result)
+
+
+def github_resource(resource_path):
+    repo_url = "https://raw.githubusercontent.com/byxor/resources-for-testing/"
+    return repo_url + resource_path
