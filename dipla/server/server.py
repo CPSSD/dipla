@@ -9,6 +9,9 @@ from base64 import b64encode
 class ServerServices:
 
     def __init__(self):
+        # Raising an expection in these services will NOT return an error to
+        # to the client, the service should add a field to the dict it returns
+        # that indicates an error occured.
         self.services = {
             'get_binary': self._handle_get_binary,
             'get_data_instructions': self._handle_get_data_instructions,
@@ -17,20 +20,31 @@ class ServerServices:
     def get_service(self, label):
         if label in self.services:
             return self.services[label]
-        return None
+        raise KeyError("Label '{}' does not have a handler".format(label))
 
-    def _handle_get_binary(self, message):
-        # TODO(cianlr): Get data from the `message` to decide which platform
-        # to send a binary for
-        path = self.binary_paths['win32']
+    def _handle_get_binary(self, message, server):
+        platform = message['platform']
+        if platform not in server.binary_paths:
+            data = {
+                'error': 'No binary for platform: {}'.format(platform)
+            }
+            return data
+        path = server.binary_paths[platform]
         with open(path, 'rb') as binary:
             binary_bytes = binary.read()
 
         encoded_bytes = b64encode(binary_bytes)
-        return encoded_bytes.decode('utf-8')
+        data = {
+            'base64_binary': encoded_bytes.decode('utf-8'),
+        }
+        return data
 
-    def _handle_get_data_instructions(self, message):
-        return self.task_queue.pop_task().data_instructions
+    def _handle_get_data_instructions(self, message, server):
+        task = server.task_queue.pop_task()
+        data = {
+            'data_instructions': task.data_instructions,
+        }
+        return data
 
 
 class Server:
@@ -54,8 +68,10 @@ class Server:
 
     async def _reject_user(self, user_id, websocket):
         # TODO(cianlr): Log something here indicating the error
-        # TODO(cianlr): Send this in a standard format
-        await websocket.send("Sorry, this User ID is taken")
+        data = {'details': 'UserID already taken'}
+        await self._send_message(websocket,
+                                 'general_error',
+                                 data)
 
     async def _process_user(self, user_id, websocket):
         self.connected[user_id] = websocket
@@ -63,21 +79,22 @@ class Server:
             # recv() raises a ConnectionClosed exception when the client
             # disconnects, which breaks out of the while True loop.
             while True:
-                message = await websocket.recv()
-                # TODO(cianlr): Parse the message into some format rather than
-                # taking as a string (to allow other params to be included in
-                # the request)
-                response = {
-                    'status': 'ok',
-                    'data': {},
-                }
-                # TODO(cianlr): Error handling
-                service = self.services.get_service(message)
-                if not service:
-                    response['status'] = 'error'
-                else:
-                    response['data'] = service(message)
-                await websocket.send(json.dumps(response))
+                try:
+                    # Parse the message, get the corresponding service, send
+                    # back the response.
+                    message = self._decode_message(await websocket.recv())
+                    service = self.services.get_service(message['label'])
+                    response_data = service(message['data'], self)
+                    await self._send_message(websocket,
+                                             message['label'],
+                                             response_data)
+                except (ValueError, KeyError) as e:
+                    # If there is a general error that isn't service specific
+                    # then send a message with the 'general_error' label.
+                    data = {'details': str(e)}
+                    await self._send_message(websocket,
+                                             'general_error',
+                                             data)
 
         except websockets.exceptions.ConnectionClosed:
             print(user_id + " has closed the connection")
@@ -87,9 +104,23 @@ class Server:
     async def websocket_handler(self, websocket, path):
         user_id = path[1:]
         if user_id not in self.connected:
-            self._process_user(user_id, websocket)
+            await self._process_user(user_id, websocket)
         else:
-            self._reject_user(user_id, websocket)
+            await self._reject_user(user_id, websocket)
+
+    def _decode_message(self, message):
+        message_dict = json.loads(message)
+        if 'label' not in message_dict or 'data' not in message_dict:
+            raise ValueError('Message missing "label" or "data": {}'.format(
+                str(message_dict)))
+        return message_dict
+
+    async def _send_message(self, socket, label, data):
+        response = {
+            'label': label,
+            'data': data,
+        }
+        await socket.send(json.dumps(response))
 
     def start(self):
         start_server = websockets.serve(
