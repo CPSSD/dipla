@@ -3,7 +3,7 @@ import json
 from dipla.client.client import Client
 
 
-class TaskQueueTest(unittest.TestCase):
+class ClientTest(unittest.TestCase):
 
     def setUp(self):
         self.client = Client('no address')
