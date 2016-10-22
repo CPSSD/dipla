@@ -1,6 +1,6 @@
+import subprocess
 from logging import getLogger
 from subprocess import Popen
-from subprocess import PIPE
 from os.path import isfile
 
 
@@ -13,8 +13,7 @@ class CommandLineBinaryRunner(object):
         if self._binary_exists(filepath):
             return self._run_binary(filepath, arguments)
         else:
-            error_message = "Attempted to run binary, '%s', " +
-                            "that could not be found." % filepath
+            error_message = "Could not locate binary: '{}'".format(filepath)
             self._logger.error(error_message)
             raise FileNotFoundError(error_message)
 
@@ -25,9 +24,9 @@ class CommandLineBinaryRunner(object):
         self._logger.debug("About to run binary %s" % filepath)
         process = Popen(
             args=[filepath] + arguments,
-            stdin=PIPE,
-            stdout=PIPE,
-            stderr=PIPE,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             shell=False
         )
         process_output = process.communicate(None)[0]
