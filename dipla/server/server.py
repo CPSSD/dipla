@@ -2,6 +2,7 @@ import sys
 import json
 import asyncio
 import websockets
+import worker_group
 
 from base64 import b64encode
 
@@ -49,7 +50,11 @@ class ServerServices:
 
 class Server:
 
-    def __init__(self, task_queue, binary_paths, services=None):
+    def __init__(self,
+                 task_queue,
+                 binary_paths,
+                 w_group=None,
+                 services=None):
         """
         task_queue is a TaskQueue object that tasks to be run are taken from
 
@@ -57,24 +62,31 @@ class Server:
         the values are the paths to the binaries to run on those platforms.
         E.g. {'win32':'/binaries/win_bin.exe'}
 
+        w_group is the WorkerGroup class used to manage and sort workers
+
         services is an instance of ServerServices that is used to lookup
         functions for handling client requests. If this is not provided a
         default instance is used.
         """
         self.task_queue = task_queue
-        self.connected = {}
         self.binary_paths = binary_paths
-        self.services = services if services else ServerServices()
 
-    async def _reject_user(self, user_id, websocket):
+        self.worker_group = w_group
+        if not self.worker_group:
+            self.worker_group = worker_group.WorkerGroup()
+
+        self.services = services
+        if not self.services:
+            self.services = ServerServices()
+
+    async def _reject_worker(self, user_id, websocket):
         # TODO(cianlr): Log something here indicating the error
         data = {'details': 'UserID already taken'}
         await self._send_message(websocket,
                                  'general_error',
                                  data)
 
-    async def _process_user(self, user_id, websocket):
-        self.connected[user_id] = websocket
+    async def _process_worker(self, worker):
         try:
             # recv() raises a ConnectionClosed exception when the client
             # disconnects, which breaks out of the while True loop.
@@ -82,31 +94,39 @@ class Server:
                 try:
                     # Parse the message, get the corresponding service, send
                     # back the response.
-                    message = self._decode_message(await websocket.recv())
+                    message = self._decode_message(
+                        await worker.websocket.recv())
                     service = self.services.get_service(message['label'])
                     response_data = service(message['data'], self)
-                    await self._send_message(websocket,
+                    await self._send_message(worker.websocket,
                                              message['label'],
                                              response_data)
                 except (ValueError, KeyError) as e:
                     # If there is a general error that isn't service specific
                     # then send a message with the 'general_error' label.
                     data = {'details': str(e)}
-                    await self._send_message(websocket,
+                    await self._send_message(worker.websocket,
                                              'general_error',
                                              data)
 
         except websockets.exceptions.ConnectionClosed:
-            print(user_id + " has closed the connection")
+            print(worker.uid + " has closed the connection")
         finally:
-            self.connected.pop(user_id, None)
+            self.worker_group.return_worker(worker.uid)
+            self.worker_group.remove_worker(worker.uid)
 
     async def websocket_handler(self, websocket, path):
         user_id = path[1:]
-        if user_id not in self.connected:
-            await self._process_user(user_id, websocket)
-        else:
-            await self._reject_user(user_id, websocket)
+        try:
+            self.worker_group.add_worker(
+                worker_group.Worker(user_id, websocket, quality=0.5))
+            # This is kind of unusual, we add a new worker to the group and
+            # then pull out whatever is at the top of the group and repurpose
+            # the thread to handle that worker, but it works for now.
+            new_worker = self.worker_group.lease_worker()
+            await self._process_worker(new_worker)
+        except ValueError:
+            await self._reject_worker(user_id, websocket)
 
     def _decode_message(self, message):
         message_dict = json.loads(message)
