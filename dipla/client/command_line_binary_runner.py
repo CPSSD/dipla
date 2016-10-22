@@ -1,6 +1,5 @@
-import subprocess
 from logging import getLogger
-from subprocess import Popen
+from subprocess import Popen, PIPE
 from os.path import isfile
 
 
@@ -24,9 +23,9 @@ class CommandLineBinaryRunner(object):
         self._logger.debug("About to run binary %s" % filepath)
         process = Popen(
             args=[filepath] + arguments,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stdin=PIPE,
+            stdout=PIPE,
+            stderr=PIPE,
             shell=False
         )
         process_output = process.communicate(None)[0]
