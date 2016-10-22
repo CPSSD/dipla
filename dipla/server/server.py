@@ -6,28 +6,21 @@ import websockets
 from base64 import b64encode
 
 
-class Server:
+class ServerServices:
 
-    def __init__(self, task_queue, binary_paths):
-        """
-        task_queue is a TaskQueue object that tasks to be run are taken from
-
-        binary_paths is a dictionary where the keys are the architecures and
-        the values are the paths to the binaries to run on those platforms.
-        E.g. {'win32':'/binaries/win_bin.exe'}
-        """
-        self.task_queue = task_queue
-        self.connected = {}
-        self.binary_paths = binary_paths
-        # This dict stores the requests the server can process paired with the
-        # handler function.
+    def __init__(self):
         self.services = {
             'get_binary': self._handle_get_binary,
             'get_data_instructions': self._handle_get_data_instructions,
         }
 
+    def get_service(self, label):
+        if label in self.services:
+            return self.services[label]
+        return None
+
     def _handle_get_binary(self, message):
-        # TODO: Get data from the `message` to decide which archetecture
+        # TODO(cianlr): Get data from the `message` to decide which platform
         # to send a binary for
         path = self.binary_paths['win32']
         with open(path, 'rb') as binary:
@@ -39,9 +32,29 @@ class Server:
     def _handle_get_data_instructions(self, message):
         return self.task_queue.pop_task().data_instructions
 
+
+class Server:
+
+    def __init__(self, task_queue, binary_paths, services=None):
+        """
+        task_queue is a TaskQueue object that tasks to be run are taken from
+
+        binary_paths is a dictionary where the keys are the architecures and
+        the values are the paths to the binaries to run on those platforms.
+        E.g. {'win32':'/binaries/win_bin.exe'}
+
+        services is an instance of ServerServices that is used to lookup
+        functions for handling client requests. If this is not provided a
+        default instance is used.
+        """
+        self.task_queue = task_queue
+        self.connected = {}
+        self.binary_paths = binary_paths
+        self.services = services if services else ServerServices()
+
     async def _reject_user(self, user_id, websocket):
-        print("User ID '{}' requsted but already exists".format(user_id))
-        # TODO: Send this in a standard format
+        # TODO(cianlr): Log something here indicating the error
+        # TODO(cianlr): Send this in a standard format
         await websocket.send("Sorry, this User ID is taken")
 
     async def _process_user(self, user_id, websocket):
@@ -51,16 +64,19 @@ class Server:
             # disconnects, which breaks out of the while True loop.
             while True:
                 message = await websocket.recv()
-                # TODO: Parse the message into some format rather than taking
-                # as a string (to allow other params to be included in the
-                # request)
+                # TODO(cianlr): Parse the message into some format rather than
+                # taking as a string (to allow other params to be included in
+                # the request)
                 response = {
                     'status': 'ok',
                     'data': {},
                 }
-                # TODO: Error handling
-                if message in self.services:
-                    response['data'] = self.services[message](message)
+                # TODO(cianlr): Error handling
+                service = self.services.get_service(message)
+                if not service:
+                    response['status'] = 'error'
+                else:
+                    response['data'] = service(message)
                 await websocket.send(json.dumps(response))
 
         except websockets.exceptions.ConnectionClosed:
