@@ -14,10 +14,10 @@ class Client(object):
 
         address, string: The address of the websocket server to connect to,
                 eg. 'ws://localhost:8765'."""
-        self.websocket_connection = websockets.connect(address)
+        self.server_address = address
 
         # Create a queue of messages to be sent to the server.
-        # must be thread-safe, as the communications run in their own thread.
+        # Must be thread-safe, as the communications run in their own thread.
         # queue.Queue is the thread-safe queue from the standard library.
         self.queue = Queue()
 
@@ -83,6 +83,8 @@ class Client(object):
     def start(self):
         """Get the websocket to connect to the server, send the new_client message,
         and start the communication loop in a new thread."""
+        # Make the connection to the server.
+        self.websocket_connection = websockets.connect(address)
         # Add the new_client message to the queue to be sent to the server.
         self.send({'label': 'new_client', 'data': {}})
         # Create a new thread to run the websocket communications in.
