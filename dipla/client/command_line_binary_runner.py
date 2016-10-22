@@ -13,13 +13,16 @@ class CommandLineBinaryRunner(object):
         if self._binary_exists(filepath):
             return self._run_binary(filepath, arguments)
         else:
-            self._logger.error("Cannot run binary: %s not found" % filepath)
-            raise FileNotFoundError
+            error_message = "Attempted to run binary, '%s', " +
+                            "that could not be found." % filepath
+            self._logger.error(error_message)
+            raise FileNotFoundError(error_message)
 
     def _binary_exists(self, filepath):
         return isfile(filepath)
 
     def _run_binary(self, filepath, arguments):
+        self._logger.debug("About to run binary %s" % filepath)
         process = Popen(
             args=[filepath] + arguments,
             stdin=PIPE,
@@ -27,4 +30,5 @@ class CommandLineBinaryRunner(object):
             stderr=PIPE,
             shell=False
         )
-        return process.communicate(None)[0].strip().decode()
+        process_output = process.communicate(None)[0]
+        return process_output.strip().decode()
