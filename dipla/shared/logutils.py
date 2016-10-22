@@ -1,4 +1,7 @@
-from logging import *
+from logging import getLogger
+from logging import DEBUG
+from logging import FileHandler
+from logging import Formatter
 import threading
 
 
@@ -12,7 +15,8 @@ import threading
 #
 def init(level=DEBUG,
          handler=FileHandler("DIPLA.log"),
-         format_="%(asctime)s - %(levelname)s - %(name)s - %(message)s)"):
+         format_="%(asctime)s - %(levelname)s - %(name)s - %(message)s"):
+    logger = getLogger()
     logger.setLevel(level)
     formatter = Formatter(format_)
     handler.setFormatter(formatter)
