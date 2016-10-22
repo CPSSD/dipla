@@ -4,12 +4,14 @@ import asyncio
 import websockets
 import json
 import threading
+from logging import FileHandler
 from queue import Queue
+from dipla.shared import logutils
 
 
 class Client(object):
 
-    def __init__(self, address):
+    def __init__(self, address, logfile_handler=FileHandler('DIPLA.log')):
         """Create the client.
 
         address, string: The address of the websocket server to connect to,
@@ -21,13 +23,18 @@ class Client(object):
         # queue.Queue is the thread-safe queue from the standard library.
         self.queue = Queue()
 
+        self.logger = logutils.init(handler=logfile_handler)
+
+    def get_logger():
+        return self.logger
+
     def send(self, message):
         """Send a message to the server.
 
         message, dict: the message to be sent, a dict with a 'label' field
             and a 'data' field."""
 
-        print('Adding message to queue: %s.' % message)
+        self.logger.debug('Adding message to queue: %s.' % message)
 
         if not ('label' in message and 'data' in message):
             raise ValueError(
@@ -44,7 +51,7 @@ class Client(object):
         raw_message, string: the raw data received from the server."""
 
         message = json.loads(raw_message)
-        print("Received: %s." % message)
+        self.logger.debug("Received: %s." % message)
 
     async def _start_websocket(self):
         """Run the send and receive websocket communication loop."""
@@ -67,7 +74,7 @@ class Client(object):
                 # The connection with the server has been dropped.
                 # Probably the server quit the connection, or the network has
                 # failed.
-                print("Connection closed.")
+                self.logger.warning("Connection closed.")
 
     def _start_websocket_in_new_event_loop(self):
         """Creates an event loop & runs the websocket communicationss in it."""
@@ -84,7 +91,7 @@ class Client(object):
         """Get the websocket to connect to the server, send the new_client message,
         and start the communication loop in a new thread."""
         # Make the connection to the server.
-        self.websocket_connection = websockets.connect(address)
+        self.websocket_connection = websockets.connect(self.server_address)
         # Add the new_client message to the queue to be sent to the server.
         self.send({'label': 'new_client', 'data': {}})
         # Create a new thread to run the websocket communications in.
@@ -94,8 +101,3 @@ class Client(object):
         t.start()
 
 
-if __name__ == '__main__':
-    c = Client('ws://localhost:8765')
-    c.start()
-    c.send({'label': 'hi', 'data': {}})
-    c.send({'label': 'ho', 'data': {}})
