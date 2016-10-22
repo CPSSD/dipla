@@ -1,11 +1,5 @@
-# Built Executable Files
-*.exe
-
-# Dipla log files
-DIPLA.LOG
-
-# Vim swap files
-*.swp
+# Ignore log files
+*.log
 
 # Ignore executable files
 *.exe
