@@ -99,5 +99,3 @@ class Client(object):
                              name='websocket_thread')
         # Start the thread.
         t.start()
-
-
