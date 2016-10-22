@@ -16,9 +16,8 @@ import threading
 def init(level=DEBUG,
          handler=FileHandler("DIPLA.log"),
          format_="%(asctime)s - %(levelname)s - %(name)s - %(message)s"):
+    handler.setFormatter(Formatter(format_))
     logger = getLogger()
     logger.setLevel(level)
-    formatter = Formatter(format_)
-    handler.setFormatter(formatter)
     logger.addHandler(handler)
     return logger
