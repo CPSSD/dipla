@@ -2,8 +2,8 @@ import sys
 import json
 import asyncio
 import websockets
-import worker_group
 
+from worker_group import WorkerGroup, Worker
 from base64 import b64encode
 
 
@@ -53,7 +53,7 @@ class Server:
     def __init__(self,
                  task_queue,
                  binary_paths,
-                 w_group=None,
+                 worker_group=None,
                  services=None):
         """
         task_queue is a TaskQueue object that tasks to be run are taken from
@@ -62,7 +62,7 @@ class Server:
         the values are the paths to the binaries to run on those platforms.
         E.g. {'win32':'/binaries/win_bin.exe'}
 
-        w_group is the WorkerGroup class used to manage and sort workers
+        worker_group is the WorkerGroup class used to manage and sort workers
 
         services is an instance of ServerServices that is used to lookup
         functions for handling client requests. If this is not provided a
@@ -71,9 +71,9 @@ class Server:
         self.task_queue = task_queue
         self.binary_paths = binary_paths
 
-        self.worker_group = w_group
+        self.worker_group = worker_group
         if not self.worker_group:
-            self.worker_group = worker_group.WorkerGroup()
+            self.worker_group = WorkerGroup()
 
         self.services = services
         if not self.services:
@@ -119,7 +119,7 @@ class Server:
         user_id = path[1:]
         try:
             self.worker_group.add_worker(
-                worker_group.Worker(user_id, websocket, quality=0.5))
+                Worker(user_id, websocket, quality=0.5))
             # This is kind of unusual, we add a new worker to the group and
             # then pull out whatever is at the top of the group and repurpose
             # the thread to handle that worker, but it works for now.
