@@ -15,6 +15,7 @@ class Client(object):
         self.server_address = server_address
         self.websocket = None
         self.logger = logging.getLogger(__name__)
+        self.client_services = client_services
 
     def get_logger():
         return self.logger
