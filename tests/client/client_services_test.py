@@ -1,8 +1,6 @@
-import unittest.mock as mock
 from unittest import TestCase
 from dipla.client.command_line_binary_runner import CommandLineBinaryRunner
 from dipla.client.client_services import BinaryRunnerService
-from dipla.environment import PROJECT_DIRECTORY
 
 
 class BinaryRunnerServiceTest(TestCase):
