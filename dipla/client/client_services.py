@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 
 # This is an interface that all client services must implement.
 class ClientService(ABC):
- 
+
     # Pass any dependencies of the service in through the constructor
     @abstractmethod
     def __init__(self):
