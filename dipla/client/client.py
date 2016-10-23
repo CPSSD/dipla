@@ -59,7 +59,6 @@ class Client(object):
 
         self.logger.debug("Received: %s." % raw_message)
         message = json.loads(raw_message)
-
         service = self.services
         service.execute(message[data])
 
