@@ -7,7 +7,7 @@ from logging import FileHandler
 
 def main(argv):
     init_logger(argv)
-    client = Client('ws://localhost:8765', services)
+    client = Client('ws://localhost:8765')
     services = create_services(client)
     client.inject_services(services)
     client.start()
