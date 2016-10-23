@@ -7,7 +7,7 @@ import logging
 
 class Client(object):
 
-    def __init__(self, server_address, services):
+    def __init__(self, server_address):
         """Create the client.
 
         server_address, string: The address of the websocket server to
@@ -15,6 +15,15 @@ class Client(object):
         self.server_address = server_address
         self.websocket = None
         self.logger = logging.getLogger(__name__)
+
+    def inject_services(self, services):
+        # TODO: Refactor Client
+        #
+        # This method is a very hacky workaround to a circular dependency.
+        #
+        # This can be avoided by splitting the Client class up into smaller
+        # areas of functionality. After doing that, the entire client will not
+        # need to be passed into all of the ClientServices.
         self.services = services
 
     def get_logger(self):

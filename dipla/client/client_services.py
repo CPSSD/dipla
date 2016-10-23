@@ -5,8 +5,12 @@ from abc import ABC, abstractmethod
 class ClientService(ABC):
 
     # Pass any dependencies of the service in through the constructor
+    #
+    # The first parameter should be the client, so that bi-directional
+    # communication is possible. This parameter must change in the future,
+    # as it introduces a circular dependency.
     @abstractmethod
-    def __init__(self):
+    def __init__(self, client):
         pass
 
     # Decide what happens when the service is executed.

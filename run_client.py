@@ -7,8 +7,9 @@ from logging import FileHandler
 
 def main(argv):
     init_logger(argv)
-    services = create_services()
     client = Client('ws://localhost:8765', services)
+    services = create_services(client)
+    client.inject_services(services)
     client.start()
 
 
@@ -20,13 +21,13 @@ def init_logger(argv):
 
 
 def create_services():
-    services = {"run_binary": _create_binary_runner_service()}
+    services = {"run_binary": _create_binary_runner_service(client)}
     return services
 
 
-def _create_binary_runner_service():
+def _create_binary_runner_service(client):
     binary_runner = CommandLineBinaryRunner()
-    return BinaryRunnerService(binary_runner)
+    return BinaryRunnerService(client, binary_runner)
 
 
 if __name__ == '__main__':
