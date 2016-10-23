@@ -7,7 +7,7 @@ import logging
 
 class Client(object):
 
-    def __init__(self, server_address):
+    def __init__(self, server_address, client_services):
         """Create the client.
 
         server_address, string: The address of the websocket server to
@@ -56,6 +56,9 @@ class Client(object):
 
         self.logger.debug("Received: %s." % raw_message)
         message = json.loads(raw_message)
+
+        service = self.services
+        service.execute(message[data])
 
     async def _start_websocket(self):
         """Run the loop receiving websocket messages."""
