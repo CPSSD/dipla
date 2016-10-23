@@ -2,6 +2,7 @@ import sys
 import json
 import asyncio
 import websockets
+import task_queue
 
 from worker_group import WorkerGroup, Worker
 from base64 import b64encode
@@ -41,10 +42,12 @@ class ServerServices:
         return data
 
     def _handle_get_data_instructions(self, message, server):
-        task = server.task_queue.pop_task()
-        data = {
-            'data_instructions': task.data_instructions,
-        }
+        data = {}
+        try:
+            task = server.task_queue.pop_task()
+            data['data_instructions'] = task.data_instructions
+        except task_queue.TaskQueueEmpty as e:
+            data['command'] = 'quit'
         return data
 
 

@@ -18,14 +18,20 @@ class TaskQueue:
     # Return the task at the front of the queue, removing it from the
     # queue in the process
     def pop_task(self):
+        if self.queue.qsize() == 0:
+            raise TaskQueueEmpty("Could not pop task from empty TaskQueue")
         return self.queue.get()
 
     # Return the task at the front of the queue without removing it
     # from the queue
     def peek_task(self):
         if self.queue.qsize() == 0:
-            raise queue.Empty("Queue was empty and could not peek item")
+            raise TaskQueueEmpty("Queue was empty and could not peek item")
         return self.queue.queue[0]
+
+
+class TaskQueueEmpty(queue.Empty):
+    pass
 
 
 # Abstraction of the information necessary to represent a task
