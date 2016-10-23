@@ -14,15 +14,15 @@ class BinaryRunnerServiceTest(TestCase):
 
     def given_sample_json_data(self):
         self.json_data = {
-            "filepath" : "foo",
-            "arguments" : "bar"
+            "filepath": "foo",
+            "arguments": "bar"
         }
 
     def given_a_binary_runner_service(self):
         self.mock_binary_runner = MockBinaryRunner()
         self.service = BinaryRunnerService(self.mock_binary_runner)
 
-    def when_the_service_is_executed(self): 
+    def when_the_service_is_executed(self):
         self.service.execute(self.json_data)
 
     def then_the_binary_runner_will_receive_the_correct_arguments(self):
