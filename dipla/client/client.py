@@ -59,8 +59,14 @@ class Client(object):
 
         self.logger.debug("Received: %s." % raw_message)
         message = json.loads(raw_message)
-        service = self.services[message[label]]
-        service.execute(message[data])
+        self._run_service(message[label], message[data])
+
+    def _run_service(self, label, data):
+        try:
+            service = self.services[label]
+            service.execute(data)
+        except KeyError:
+            self.logger.error("Failed to find service: {}".format(label))
 
     async def _start_websocket(self):
         """Run the loop receiving websocket messages."""
