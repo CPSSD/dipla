@@ -1,3 +1,11 @@
+# Ignore vim files
+[._]*.s[a-w][a-z]
+[._]s[a-w][a-z]
+Session.vim
+.netrwhist
+*~
+tags
+
 # Ignore log files
 *.log
 
