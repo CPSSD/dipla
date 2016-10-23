@@ -12,7 +12,7 @@ def main(argv):
     client.start()
 
 
-def init_logger():
+def init_logger(argv):
     loc = 'DIPLA.log'
     if len(argv) == 2:
         loc = argv[1]
