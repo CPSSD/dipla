@@ -17,7 +17,7 @@ class Client(object):
         self.logger = logging.getLogger(__name__)
         self.client_services = client_services
 
-    def get_logger():
+    def get_logger(self):
         return self.logger
 
     async def _get_websocket(self):
@@ -49,6 +49,8 @@ class Client(object):
         # run the coroutine to send the message
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self._get_connection_and_send(json_message))
+        # TODO(iandioch): Investigate ways of closing this loop automatically
+        # once the connection is dropped and the client is shutting down.
 
     def _handle(self, raw_message):
         """Do something with a message received from the server.
@@ -91,6 +93,3 @@ class Client(object):
             target=self._start_websocket_in_new_event_loop,
             name='websocket_thread')
         thread.start()
-
-    def __del__(self):
-        asyncio.get_event_loop().close()
