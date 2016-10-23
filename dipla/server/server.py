@@ -79,14 +79,20 @@ class Server:
         if not self.services:
             self.services = ServerServices()
 
-    async def _reject_worker(self, user_id, websocket):
-        # TODO(cianlr): Log something here indicating the error
-        data = {'details': 'UserID already taken'}
-        await self._send_message(websocket,
-                                 'general_error',
-                                 data)
-
-    async def _process_worker(self, worker):
+    async def websocket_handler(self, websocket, path):
+        user_id = path[1:]
+        try:
+            self.worker_group.add_worker(
+                Worker(user_id, websocket, quality=0.5))
+        except ValueError:
+            # TODO(cianlr): Log something here indicating the error
+            data = {'details': 'UserID already taken'}
+            await self._send_message(websocket, 'general_error', data)
+            return
+        # This is kind of unusual, we add a new worker to the group and
+        # then pull out whatever is at the top of the group and repurpose
+        # the thread to handle that worker, but it works for now.
+        worker = self.worker_group.lease_worker()
         try:
             # recv() raises a ConnectionClosed exception when the client
             # disconnects, which breaks out of the while True loop.
@@ -108,25 +114,11 @@ class Server:
                     await self._send_message(worker.websocket,
                                              'general_error',
                                              data)
-
-        except websockets.exceptions.ConnectionClosed:
+        except websockets.exceptions.ConnectionClosed as e:
             print(worker.uid + " has closed the connection")
         finally:
             self.worker_group.return_worker(worker.uid)
             self.worker_group.remove_worker(worker.uid)
-
-    async def websocket_handler(self, websocket, path):
-        user_id = path[1:]
-        try:
-            self.worker_group.add_worker(
-                Worker(user_id, websocket, quality=0.5))
-            # This is kind of unusual, we add a new worker to the group and
-            # then pull out whatever is at the top of the group and repurpose
-            # the thread to handle that worker, but it works for now.
-            new_worker = self.worker_group.lease_worker()
-            await self._process_worker(new_worker)
-        except ValueError:
-            await self._reject_worker(user_id, websocket)
 
     def _decode_message(self, message):
         message_dict = json.loads(message)
