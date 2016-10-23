@@ -1,25 +1,20 @@
-#!/usr/bin/env python
-
 import asyncio
 import websockets
 import json
 import threading
-from logging import FileHandler
-from dipla.shared import logutils
+import logging
 
 
 class Client(object):
 
-    def __init__(self,
-                 server_address,
-                 logfile_handler=FileHandler('DIPLA.log')):
+    def __init__(self, server_address):
         """Create the client.
 
-        address, string: The address of the websocket server to connect to,
-                eg. 'ws://localhost:8765'."""
+        server_address, string: The address of the websocket server to
+            connect to, eg. 'ws://localhost:8765'."""
         self.server_address = server_address
         self.websocket = None
-        self.logger = logutils.init(handler=logfile_handler)
+        self.logger = logging.getLogger(__name__)
 
     def get_logger():
         return self.logger
@@ -59,8 +54,8 @@ class Client(object):
 
         raw_message, string: the raw data received from the server."""
 
+        self.logger.debug("Received: %s." % raw_message)
         message = json.loads(raw_message)
-        self.logger.debug("Received: %s." % message)
 
     async def _start_websocket(self):
         """Run the loop receiving websocket messages."""
@@ -88,9 +83,10 @@ class Client(object):
         in a new thread."""
         self.send({'label': 'new_client', 'data': {}})
         # Create a new thread to run the websocket communications in.
-        t = threading.Thread(target=self._start_websocket_in_new_event_loop,
-                             name='websocket_thread')
-        t.start()
+        thread = threading.Thread(
+            target=self._start_websocket_in_new_event_loop,
+            name='websocket_thread')
+        thread.start()
 
     def __del__(self):
         asyncio.get_event_loop().close()
