@@ -16,7 +16,7 @@ class Client(object):
         self.websocket = None
         self.logger = logging.getLogger(__name__)
 
-    def get_logger():
+    def get_logger(self):
         return self.logger
 
     async def _get_websocket(self):
