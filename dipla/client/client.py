@@ -16,6 +16,16 @@ class Client(object):
         self.websocket = None
         self.logger = logging.getLogger(__name__)
 
+    def inject_services(self, services):
+        # TODO: Refactor Client
+        #
+        # This method is a very hacky workaround to a circular dependency.
+        #
+        # This can be avoided by splitting the Client class up into smaller
+        # areas of functionality. After doing that, the entire client will not
+        # need to be passed into all of the ClientServices.
+        self.services = services
+
     def get_logger(self):
         return self.logger
 
@@ -48,6 +58,8 @@ class Client(object):
         # run the coroutine to send the message
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self._get_connection_and_send(json_message))
+        # TODO(iandioch): Investigate ways of closing this loop automatically
+        # once the connection is dropped and the client is shutting down.
 
     def _handle(self, raw_message):
         """Do something with a message received from the server.
@@ -56,6 +68,14 @@ class Client(object):
 
         self.logger.debug("Received: %s." % raw_message)
         message = json.loads(raw_message)
+        self._run_service(message[label], message[data])
+
+    def _run_service(self, label, data):
+        try:
+            service = self.services[label]
+            service.execute(data)
+        except KeyError:
+            self.logger.error("Failed to find service: {}".format(label))
 
     async def _start_websocket(self):
         """Run the loop receiving websocket messages."""
@@ -87,6 +107,3 @@ class Client(object):
             target=self._start_websocket_in_new_event_loop,
             name='websocket_thread')
         thread.start()
-
-    def __del__(self):
-        asyncio.get_event_loop().close()
