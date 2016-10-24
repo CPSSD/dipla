@@ -40,8 +40,8 @@ class BinaryReceiverService(ClientService):
         self.client = client
         self._filepath = filepath
 
-    def execute(self, json_data):
-        base64_data = json_data['base64_binary']
+    def execute(self, data):
+        base64_data = data['base64_binary']
         raw_data = b64decode(base64_data)
         with open(self._filepath, 'wb') as file_writer:
             file_writer.write(raw_data)
