@@ -44,7 +44,7 @@ class BinaryReceiverServiceTest(TestCase):
     def setUp(self):
         self.message = b"banana"
         self.json_data = {"base64_binary": "YmFuYW5h"}
-        self.service = BinaryReceiverService(filepath="tmp.exe")
+        self.service = BinaryReceiverService(None, filepath="tmp.exe")
 
     def test_that_receiver_decodes_and_saves_to_file(self):
         self.service.execute(self.json_data)
