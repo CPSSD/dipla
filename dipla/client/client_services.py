@@ -16,12 +16,9 @@ class ClientService(ABC):
 
     # Decide what happens when the service is executed.
     #
-    # The json_data will be passed into this.
-    #
-    # The json_data is the "data" section of the json message
-    # received from the server.
+    # The data field from the decoded JSON will be passed into this.
     @abstractmethod
-    def execute(self, json_data):
+    def execute(self, data):
         pass
 
 
@@ -31,7 +28,7 @@ class BinaryRunnerService(ClientService):
         super().__init__(client)
         self._binary_runner = binary_runner
 
-    def execute(self, json_data):
-        filepath = json_data["filepath"]
-        arguments = json_data["arguments"]
+    def execute(self, data):
+        filepath = data["filepath"]
+        arguments = data["arguments"]
         self._binary_runner.run(filepath, arguments)
