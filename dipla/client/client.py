@@ -3,6 +3,7 @@ import websockets
 import json
 import threading
 import logging
+import os
 
 
 class Client(object):
