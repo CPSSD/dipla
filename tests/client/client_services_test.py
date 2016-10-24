@@ -19,8 +19,10 @@ class BinaryRunnerServiceTest(TestCase):
         }
 
     def given_a_binary_runner_service(self):
+        mock_client = None
         self.mock_binary_runner = MockBinaryRunner()
-        self.service = BinaryRunnerService(self.mock_binary_runner)
+        self.service = BinaryRunnerService(mock_client,
+                                           self.mock_binary_runner)
 
     def when_the_service_is_executed(self):
         self.service.execute(self.json_data)
