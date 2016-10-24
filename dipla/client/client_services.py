@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from base64 import b64decode
 
 
 # This is an interface that all client services must implement.
@@ -33,3 +34,14 @@ class BinaryRunnerService(ClientService):
         filepath = json_data["filepath"]
         arguments = json_data["arguments"]
         self._binary_runner.run(filepath, arguments)
+
+class BinaryReceiverService(ClientService):
+
+    def __init__(self, filepath):
+        self._filepath = filepath
+
+    def execute(self, json_data):
+        base64_data = json_data['base64_binary']
+        raw_data = b64decode(base64_data)
+        with open(self._filepath, 'wb') as file_writer:
+            file_writer.write(raw_data)
