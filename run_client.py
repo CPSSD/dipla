@@ -20,7 +20,7 @@ def init_logger(argv):
     logutils.init(handler=FileHandler(loc))
 
 
-def create_services():
+def create_services(client):
     services = {"run_binary": _create_binary_runner_service(client)}
     return services
 

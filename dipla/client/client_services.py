@@ -26,7 +26,8 @@ class ClientService(ABC):
 
 class BinaryRunnerService(ClientService):
 
-    def __init__(self, binary_runner):
+    def __init__(self, client, binary_runner):
+        self._client = client
         self._binary_runner = binary_runner
 
     def execute(self, json_data):
