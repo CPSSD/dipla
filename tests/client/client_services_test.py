@@ -1,3 +1,4 @@
+import os
 from unittest import TestCase
 from dipla.client.command_line_binary_runner import CommandLineBinaryRunner
 from dipla.client.client_services import BinaryRunnerService, BinaryReceiverService
@@ -36,18 +37,21 @@ class BinaryRunnerServiceTest(TestCase):
         self.assertFalse(runner.received("incorrect_param", "incorrect_param"))
 
 
-def BinaryReceiverServiceTest(TestCase):
+class BinaryReceiverServiceTest(TestCase):
 
     def setUp(self):
-        self.message = "banana"
+        self.message = b"banana"
         self.json_data = {"base64_binary": "YmFuYW5h"}
-        self.service = BinaryReceiverService(filepath="tmp.bin")
+        self.service = BinaryReceiverService(filepath="tmp.exe")
 
     def test_that_receiver_decodes_and_saves_to_file(self):
         self.service.execute(self.json_data)
         with open(self.service._filepath, 'rb') as filereader:
             data = filereader.read()
-            assertEqual(self.message, data)
+            self.assertEqual(self.message, data)
+
+    def tearDown(self):
+        os.remove(self.service._filepath)
 
 
 class MockBinaryRunner(CommandLineBinaryRunner):
