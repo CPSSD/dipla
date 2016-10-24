@@ -37,7 +37,8 @@ class BinaryRunnerService(ClientService):
 
 class BinaryReceiverService(ClientService):
 
-    def __init__(self, filepath):
+    def __init__(self, client, filepath):
+        self.client = client
         self._filepath = filepath
 
     def execute(self, json_data):
