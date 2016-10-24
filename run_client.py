@@ -1,5 +1,5 @@
 from dipla.client.client import Client
-from dipla.client.client_services import BinaryRunnerService
+from dipla.client.client_services import BinaryRunnerService, BinaryReceiverService
 from dipla.shared import logutils
 import sys
 from logging import FileHandler
@@ -20,14 +20,19 @@ def init_logger(argv):
     logutils.init(handler=FileHandler(loc))
 
 
-def create_services():
-    services = {"run_binary": _create_binary_runner_service(client)}
+def create_services(client):
+    services = {
+        "run_binary": _create_binary_runner_service(client),
+        "get_binary": _create_binary_receiver_service(client)}
     return services
 
 
 def _create_binary_runner_service(client):
     binary_runner = CommandLineBinaryRunner()
     return BinaryRunnerService(client, binary_runner)
+
+def _create_binary_receiver_service(client):
+    return BinaryReceiverService(client, 'binary.exe')
 
 
 if __name__ == '__main__':
