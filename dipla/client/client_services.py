@@ -10,29 +10,28 @@ class ClientService(ABC):
     # The first parameter should be the client, so that bi-directional
     # communication is possible. This parameter must change in the future,
     # as it introduces a circular dependency.
-    @abstractmethod
+    #
+    # Don't forget to call the superconstructor.
     def __init__(self, client):
-        pass
+        self._client = client
 
     # Decide what happens when the service is executed.
     #
-    # The json_data will be passed into this.
-    #
-    # The json_data is the "data" section of the json message
-    # received from the server.
+    # The data field from the decoded JSON will be passed into this.
     @abstractmethod
-    def execute(self, json_data):
+    def execute(self, data):
         pass
 
 
 class BinaryRunnerService(ClientService):
 
-    def __init__(self, binary_runner):
+    def __init__(self, client, binary_runner):
+        super().__init__(client)
         self._binary_runner = binary_runner
 
-    def execute(self, json_data):
-        filepath = json_data["filepath"]
-        arguments = json_data["arguments"]
+    def execute(self, data):
+        filepath = data["filepath"]
+        arguments = data["arguments"]
         self._binary_runner.run(filepath, arguments)
 
 class BinaryReceiverService(ClientService):
