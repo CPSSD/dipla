@@ -32,6 +32,7 @@ def _create_binary_runner_service(client):
     binary_runner = CommandLineBinaryRunner()
     return BinaryRunnerService(client, binary_runner)
 
+
 def _create_binary_receiver_service(client):
     return BinaryReceiverService(client, 'binary.exe')
 

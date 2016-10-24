@@ -34,6 +34,7 @@ class BinaryRunnerService(ClientService):
         arguments = data["arguments"]
         self._binary_runner.run(filepath, arguments)
 
+
 class BinaryReceiverService(ClientService):
 
     def __init__(self, client, filepath):
