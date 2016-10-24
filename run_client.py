@@ -1,5 +1,6 @@
 from dipla.client.client import Client
 from dipla.client.client_services import BinaryRunnerService, BinaryReceiverService
+from dipla.client.command_line_binary_runner import CommandLineBinaryRunner
 from dipla.shared import logutils
 import sys
 from logging import FileHandler
