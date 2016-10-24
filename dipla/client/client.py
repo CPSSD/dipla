@@ -3,6 +3,7 @@ import websockets
 import json
 import threading
 import logging
+import os
 
 
 class Client(object):
@@ -98,12 +99,23 @@ class Client(object):
         loop.run_until_complete(self._start_websocket())
         loop.close()
 
+    def _get_platform(self):
+        """Get some information about the platform the client is running on."""
+        if os.name == 'posix':
+            return os.uname()
+        # TODO(ndonn): Add better info for Windows and Mac versions
+        return os.name
+
     def start(self):
-        """Send the new_client message, and start the communication loop
+        """Send the get_binary message, and start the communication loop
         in a new thread."""
-        self.send({'label': 'new_client', 'data': {}})
         # Create a new thread to run the websocket communications in.
         thread = threading.Thread(
             target=self._start_websocket_in_new_event_loop,
             name='websocket_thread')
         thread.start()
+
+        self.send({
+            'label': 'get_binary',
+            'data': {
+                 'platform': self._get_platform()}})
