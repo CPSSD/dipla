@@ -9,5 +9,7 @@ g++ -o dynamic_web_count/example.exe dynamic_web_count/example.cpp -lcurl
 
 g++ -o web_count/web_count.exe web_count/web_count.cpp -lcurl
 
+g++ -o sums/sums.exe sums/sums.cpp
+
 echo "Done."
 
