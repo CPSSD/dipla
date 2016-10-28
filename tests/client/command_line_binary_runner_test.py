@@ -20,40 +20,29 @@ class CommandLineBinaryRunnerTest(TestCase):
         self.then_no_exceptions_will_be_thrown()
 
     def test_that_binary_produces_valid_output(self):
-        self.given_a_web_count_binary()
-        self.given_using_a_github_resource()
-        self.given_searching_for("word")
+        self.given_a_sums_binary()
+        self.given_summing("3", "5")
+        self.when_the_binary_is_run()
+        self.then_the_result_will_be("8")
+
+    def test_that_binary_produces_valid_output_with_more_input(self):
+        self.given_a_sums_binary()
+        self.given_summing("1", "2")
         self.when_the_binary_is_run()
         self.then_the_result_will_be("3")
-
-    def test_that_binary_produces_valid_output_with_another_url(self):
-        self.given_a_web_count_binary()
-        self.given_using_another_github_resource()
-        self.given_searching_for("BLARG")
-        self.when_the_binary_is_run()
-        self.then_the_result_will_be("4")
 
     def given_a_non_existent_binary(self):
         self.filepath = "/dont_exist/binary"
 
     def given_an_existing_binary(self):
-        self.given_a_web_count_binary()
+        self.given_a_sums_binary()
 
-    def given_a_web_count_binary(self):
+    def given_a_sums_binary(self):
         self.filepath = PROJECT_DIRECTORY + \
-                        "tests/example_binaries/" + \
-                        "web_count/web_count.exe"
+                        "tests/example_binaries/sums/sums.exe"
 
-    def given_using_a_github_resource(self):
-        resource_url = github_resource("master/txt/word_count.txt")
-        self.arguments.append(resource_url)
-
-    def given_using_another_github_resource(self):
-        resource_url = github_resource("master/txt/word_count_again.txt")
-        self.arguments.append(resource_url)
-
-    def given_searching_for(self, word):
-        self.arguments.append(word)
+    def given_summing(self, num_a, num_b):
+        self.arguments = [num_a, num_b]
 
     def when_attempting_to_run_binary(self):
         pass
@@ -73,6 +62,5 @@ class CommandLineBinaryRunnerTest(TestCase):
         self.assertEqual(expected, self.result)
 
 
-def github_resource(resource_path):
-    repo_url = "https://raw.githubusercontent.com/byxor/resources-for-testing/"
-    return repo_url + resource_path
+if __name__ == "__main__":
+    unittest.main()
