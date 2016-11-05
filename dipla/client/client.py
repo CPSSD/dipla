@@ -29,7 +29,7 @@ class Client(object):
     def get_logger(self):
         return self.logger
 
-    def send(self, message, websocket): # I dont like passing the websocket here, queue approach was nicer
+    def send(self, message, websocket):
         if not ('label' in message and 'data' in message):
             raise ValueError(
                 'Missing label or data field in message %s.' % message)
@@ -51,7 +51,7 @@ class Client(object):
         try:
             while True:
                 message = await websocket.recv()
-                self._handle(message) 
+                self._handle(message)
         except websockets.exceptions.ConnectionClosed:
             self.logger.warning("Connection closed.")
 
@@ -73,7 +73,7 @@ class Client(object):
     async def _start_websocket(self):
         """Run the loop receiving websocket messages."""
         return await websockets.connect(self.server_address)
-        
+
     def _get_platform(self):
         """Get some information about the platform the client is running on."""
         if os.name == 'posix':
@@ -86,11 +86,11 @@ class Client(object):
         in a new thread."""
         loop = asyncio.get_event_loop()
         websocket = loop.run_until_complete(self._start_websocket())
-        
+
         asyncio.ensure_future(self.receive_loop(websocket))
         self.send({
             'label': 'get_binary',
             'data': {
                 'platform': self._get_platform()}}, websocket)
-        
+
         loop.run_forever()
