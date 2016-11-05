@@ -16,7 +16,7 @@ class ServerServices:
         # that indicates an error occured.
         self.services = {
             'get_binary': self._handle_get_binary,
-            'get_data_instructions': self._handle_get_data_instructions,
+            'get_instructions': self._handle_get_instructions,
         }
 
     def get_service(self, label):
@@ -41,10 +41,11 @@ class ServerServices:
         }
         return data
 
-    def _handle_get_data_instructions(self, message, server):
+    def _handle_get_instructions(self, message, server):
         data = {}
         try:
             task = server.task_queue.pop_task()
+			data['task_instructions'] = task.task_instructions
             data['data_instructions'] = task.data_instructions
         except task_queue.TaskQueueEmpty as e:
             data['command'] = 'quit'
