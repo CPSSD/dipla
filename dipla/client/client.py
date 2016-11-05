@@ -102,7 +102,7 @@ class Client(object):
         self.send({
             'label': 'get_binary',
             'data': {
-                'platform': self._get_platform()}},
+                 'platform': self._get_platform()}},
             websocket)
 
         loop.run_forever()
