@@ -72,7 +72,7 @@ class Client(object):
         raw_message, string: the raw data received from the server."""
         self.logger.debug("Received: %s." % raw_message)
         message = json.loads(raw_message)
-        self._run_service(message['label'], message['data'])
+        self._run_service(message["label"], message["data"])
 
     def _run_service(self, label, data):
         try:
