@@ -45,7 +45,7 @@ class ServerServices:
         data = {}
         try:
             task = server.task_queue.pop_task()
-			data['task_instructions'] = task.task_instructions
+            data['task_instructions'] = task.task_instructions
             data['data_instructions'] = task.data_instructions
         except task_queue.TaskQueueEmpty as e:
             data['command'] = 'quit'
