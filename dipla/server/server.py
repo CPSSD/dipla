@@ -2,9 +2,9 @@ import sys
 import json
 import asyncio
 import websockets
-import task_queue
+import dipla.server.task_queue
 
-from worker_group import WorkerGroup, Worker
+from dipla.server.worker_group import WorkerGroup, Worker
 from base64 import b64encode
 
 
@@ -20,7 +20,10 @@ class ServerServices:
         }
 
     def get_service(self, label):
-        if label in self.services:
+        print("Getting service with label: " + label + " Is it present? " + str(self.services.keys()))
+        print(label in self.services.keys())
+        if label in self.services.keys():
+            print("Returning " + str(self.services[label]))
             return self.services[label]
         raise KeyError("Label '{}' does not have a handler".format(label))
 
@@ -71,6 +74,7 @@ class Server:
         functions for handling client requests. If this is not provided a
         default instance is used.
         """
+        print("Services is: " + str(services))
         self.task_queue = task_queue
         self.binary_paths = binary_paths
 
@@ -84,6 +88,7 @@ class Server:
 
     async def websocket_handler(self, websocket, path):
         user_id = path[1:]
+        print(user_id + " has connected")
         try:
             self.worker_group.add_worker(
                 Worker(user_id, websocket, quality=0.5))
@@ -105,11 +110,15 @@ class Server:
                     # back the response.
                     message = self._decode_message(
                         await worker.websocket.recv())
+                    print(message)
                     service = self.services.get_service(message['label'])
+                    print("Got Service, calling " + str(message['data']) + " on it")
                     response_data = service(message['data'], self)
+                    print("Got Response data, sending message")
                     await self._send_message(worker.websocket,
                                              message['label'],
                                              response_data)
+                    print("Sent message")
                 except (ValueError, KeyError) as e:
                     # If there is a general error that isn't service specific
                     # then send a message with the 'general_error' label.
@@ -123,6 +132,9 @@ class Server:
             self.worker_group.return_worker(worker.uid)
             self.worker_group.remove_worker(worker.uid)
 
+    async def printp(self):
+        print("Potaot")
+
     def _decode_message(self, message):
         message_dict = json.loads(message)
         if 'label' not in message_dict or 'data' not in message_dict:
@@ -131,6 +143,7 @@ class Server:
         return message_dict
 
     async def _send_message(self, socket, label, data):
+        print("Sending message!")
         response = {
             'label': label,
             'data': data,
