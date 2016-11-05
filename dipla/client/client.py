@@ -30,6 +30,12 @@ class Client(object):
         return self.logger
 
     def send(self, message, websocket):
+        """Send a message to the server.
+
+        message, dict: the message to be sent, a dict with a 'label' field
+            and a 'data' field.
+        websocket, websockets.websocket: this client's websocket connected
+            to the server"""
         if not ('label' in message and 'data' in message):
             raise ValueError(
                 'Missing label or data field in message %s.' % message)
@@ -41,13 +47,18 @@ class Client(object):
         asyncio.ensure_future(self._send_async(websocket, json_message))
 
     async def _send_async(self, websocket, message):
-        """Send a message to the server.
+        """Asynchronous task for sending a message to the server.
 
-        message, dict: the message to be sent, a dict with a 'label' field
-            and a 'data' field."""
+        websocket, websockets.websocket: this client's websocket connected
+            to the server
+        message, string: the message to be sent"""
         await websocket.send(message)
 
     async def receive_loop(self, websocket):
+        """Task for handling messages received from server
+
+        websocket, websockets.websocket: this client's websocket connected
+            to the server"""
         try:
             while True:
                 message = await websocket.recv()
@@ -91,6 +102,7 @@ class Client(object):
         self.send({
             'label': 'get_binary',
             'data': {
-                'platform': self._get_platform()}}, websocket)
+                'platform': self._get_platform()}},
+            websocket)
 
         loop.run_forever()
