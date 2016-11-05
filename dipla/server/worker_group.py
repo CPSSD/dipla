@@ -6,6 +6,7 @@ available to start a new task, and which are currently running a task
 """
 
 import heapq
+import itertools
 
 
 class WorkerGroup:
@@ -60,6 +61,18 @@ class WorkerGroup:
 
     def _all_workers(self):
         return self.ready_workers + list(self.busy_workers.values())
+
+    def generate_uid(length, safe=True, choices='abcdefghijklmnopqrstuvwxyz'):
+        worker_uids = self.worker_uids()
+
+        def get_random_uid():
+            return ''.join(random.choice(choices) for i in range(length))
+
+        suggested_uid = get_random_uid()
+        while uuid in worker_uids:
+            suggested_uid = get_random_uid()
+
+        return suggested_uid
 
 
 # Abstraction of the information necessary to represent a Worker in the
