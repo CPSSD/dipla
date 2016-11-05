@@ -8,7 +8,6 @@ import os
 
 class Client(object):
 
-    
     def __init__(self, server_address):
         """Create the client.
 
@@ -24,7 +23,7 @@ class Client(object):
         #
         # This can be avoided by splitting the Client class up into smaller
         # areas of functionality. After doing that, the entire client will not
-        # need to be pased into all of the ClientServices.
+        # need to be passed into all of the ClientServices.
         self.services = services
 
     def get_logger(self):
@@ -39,10 +38,7 @@ class Client(object):
         json_message = json.dumps(message)
 
         # run the coroutine to send the message
-        print("Sending " + json_message)
         asyncio.ensure_future(self._send_async(websocket, json_message))
-        # TODO(iandioch): Investigate ways of closing this loop automatically
-        # once the connection is dropped and the client is shutting down.
 
     async def _send_async(self, websocket, message):
         """Send a message to the server.
@@ -55,10 +51,8 @@ class Client(object):
         try:
             while True:
                 message = await websocket.recv()
-                print("Received message: " + message)
                 self._handle(message) 
         except websockets.exceptions.ConnectionClosed:
-            print("Disconnected from server")
             self.logger.warning("Connection closed.")
 
     def _handle(self, raw_message):
@@ -76,7 +70,7 @@ class Client(object):
         except KeyError:
             self.logger.error("Failed to find service: {}".format(label))
 
-    async def start_websocket(self):
+    async def _start_websocket(self):
         """Run the loop receiving websocket messages."""
         return await websockets.connect(self.server_address)
         
@@ -88,14 +82,15 @@ class Client(object):
         return os.name
 
     def start(self):
-        """Send the get_binary message, and start the communication loops
+        """Send the get_binary message, and start the communication loop
         in a new thread."""
         loop = asyncio.get_event_loop()
-        websocket = loop.run_until_complete(self.start_websocket())
+        websocket = loop.run_until_complete(self._start_websocket())
         
         asyncio.ensure_future(self.receive_loop(websocket))
         self.send({
             'label': 'get_binary',
-            'data': {'platform': self._get_platform()}}, websocket)
+            'data': {
+                'platform': self._get_platform()}}, websocket)
         
         loop.run_forever()
