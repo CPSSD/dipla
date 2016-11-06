@@ -68,7 +68,7 @@ class WorkerGroupTest(unittest.TestCase):
                 Worker(self.group.generate_uid(2, choices="ab"), None, 1))
 
         with self.assertRaises(worker_group.WorkerIDsExhausted):
-            self.assertRaises(self.group.generate_uid(2, choices="ab"))
+            self.group.generate_uid(2, choices="ab")
 
         # Reset the worker group to try a new edge case
         self.group = worker_group.WorkerGroup()
@@ -77,4 +77,4 @@ class WorkerGroupTest(unittest.TestCase):
                 Worker(self.group.generate_uid(2, choices="aa"), None, 1))
 
         with self.assertRaises(worker_group.WorkerIDsExhausted):
-            self.assertRaises(self.group.generate_uid(2, choices="aa"))
+            self.group.generate_uid(2, choices="aa")
