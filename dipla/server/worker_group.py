@@ -6,8 +6,10 @@ available to start a new task, and which are currently running a task
 """
 
 import heapq
-import itertools
+import random
+import operator
 
+from functools import reduce
 
 class WorkerGroup:
 
@@ -62,18 +64,29 @@ class WorkerGroup:
     def _all_workers(self):
         return self.ready_workers + list(self.busy_workers.values())
 
-    def generate_uid(length, safe=True, choices='abcdefghijklmnopqrstuvwxyz'):
+    def generate_uid(self, length, safe=True,
+                     choices='abcdefghijklmnopqrstuvwxyz'):
         worker_uids = self.worker_uids()
+
+        # If safe mode is activated, raise an error if it is possible
+        # that this search for a uid could run infintitely because 
+        # there are no unique IDs left to generate
+        if safe and len(worker_uids) == len(choices)**length: 
+            raise WorkerIDsExhausted("""Safe mode active and it is 
+                possible that all UIDs have been exhausted""")
 
         def get_random_uid():
             return ''.join(random.choice(choices) for i in range(length))
 
         suggested_uid = get_random_uid()
-        while uuid in worker_uids:
+        while suggested_uid in worker_uids:
             suggested_uid = get_random_uid()
 
         return suggested_uid
 
+
+class WorkerIDsExhausted(Exception):
+    pass
 
 # Abstraction of the information necessary to represent a Worker in the
 # worker group
