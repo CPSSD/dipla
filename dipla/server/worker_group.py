@@ -11,6 +11,7 @@ import operator
 
 from functools import reduce
 
+
 class WorkerGroup:
 
     # TODO(StefanKennedy): Add functionality to choose another
@@ -68,11 +69,14 @@ class WorkerGroup:
                      choices='abcdefghijklmnopqrstuvwxyz'):
         worker_uids = self.worker_uids()
 
+        # Remove duplicates from the choices string
+        choices = ''.join(set(choices))
+
         # If safe mode is activated, raise an error if it is possible
-        # that this search for a uid could run infintitely because 
+        # that this search for a uid could run infintitely because
         # there are no unique IDs left to generate
-        if safe and len(worker_uids) == len(choices)**length: 
-            raise WorkerIDsExhausted("""Safe mode active and it is 
+        if safe and len(worker_uids) == len(choices)**length:
+            raise WorkerIDsExhausted("""Safe mode active and it is
                 possible that all UIDs have been exhausted""")
 
         def get_random_uid():
@@ -87,6 +91,7 @@ class WorkerGroup:
 
 class WorkerIDsExhausted(Exception):
     pass
+
 
 # Abstraction of the information necessary to represent a Worker in the
 # worker group

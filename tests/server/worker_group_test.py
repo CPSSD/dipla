@@ -55,3 +55,26 @@ class WorkerGroupTest(unittest.TestCase):
 
         with self.assertRaises(KeyError):
             self.group.return_worker("Z")
+
+    def test_generate_uid(self):
+        self.assertEqual(2, len(self.group.generate_uid(2)))
+
+        uid = self.group.generate_uid(8, choices="abcdef")
+        # Check all characters in uid are present in the choices
+        self.assertTrue(set(uid) <= set("abcdef"))
+
+        for i in range(4):
+            self.group.add_worker(
+                Worker(self.group.generate_uid(2, choices="ab"), None, 1))
+
+        with self.assertRaises(worker_group.WorkerIDsExhausted):
+            self.assertRaises(self.group.generate_uid(2, choices="ab"))
+
+        # Reset the worker group to try a new edge case
+        self.group = worker_group.WorkerGroup()
+
+        self.group.add_worker(
+                Worker(self.group.generate_uid(2, choices="aa"), None, 1))
+
+        with self.assertRaises(worker_group.WorkerIDsExhausted):
+            self.assertRaises(self.group.generate_uid(2, choices="aa"))
