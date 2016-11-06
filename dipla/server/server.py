@@ -2,9 +2,9 @@ import sys
 import json
 import asyncio
 import websockets
-import dipla.server.task_queue
+import task_queue
 
-from dipla.server.worker_group import WorkerGroup, Worker
+from worker_group import WorkerGroup, Worker
 from base64 import b64encode
 
 
@@ -20,7 +20,7 @@ class ServerServices:
         }
 
     def get_service(self, label):
-        if label in self.services.keys():
+        if label in self.services:
             return self.services[label]
         raise KeyError("Label '{}' does not have a handler".format(label))
 
