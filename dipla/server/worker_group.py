@@ -79,14 +79,12 @@ class WorkerGroup:
             raise WorkerIDsExhausted("""Safe mode active and it is
                 possible that all UIDs have been exhausted""")
 
-        def get_random_uid():
-            return ''.join(random.choice(choices) for i in range(length))
 
-        suggested_uid = get_random_uid()
-        while suggested_uid in worker_uids:
-            suggested_uid = get_random_uid()
-
-        return suggested_uid
+        while True:
+            suggested_uid = ''.join(
+                    random.choice(choices) for i in range(length))
+            if not suggested_uid in worker_uids:
+                return suggested_uid
 
 
 class WorkerIDsExhausted(Exception):
