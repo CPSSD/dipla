@@ -1,9 +1,14 @@
-from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod, abstractstaticmethod
 from base64 import b64decode
 
 
 # This is an interface that all client services must implement.
 class ClientService(ABC):
+
+    # Get the label that identifies messages for this service
+    @abstractstaticmethod
+    def get_label():
+        pass
 
     # Pass any dependencies of the service in through the constructor
     #
@@ -25,7 +30,9 @@ class ClientService(ABC):
 
 class BinaryRunnerService(ClientService):
 
-    label = 'run_binary'
+    @staticmethod
+    def get_label():
+        return 'run_binary'
 
     def __init__(self, client, binary_runner):
         super().__init__(client)
@@ -45,7 +52,9 @@ class BinaryRunnerService(ClientService):
 
 class BinaryReceiverService(ClientService):
 
-    label = 'get_binary'
+    @staticmethod
+    def get_label():
+        return 'get_binary'
 
     def __init__(self, client, base_filepath):
         self.client = client
