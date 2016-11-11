@@ -34,19 +34,31 @@ class BinaryRunnerService(ClientService):
     def execute(self, data):
         task = data["task_instructions"]
         arguments = data["data_instructions"]
-        self._binary_runner.run(filepath, arguments)
+
+        if not hasattr(self.client, 'binary_paths'):
+        	raise ValueError('Client does not have any binaries')
+        if task not in self.client.binary_paths:
+        	raise ValueError('Task "' + task + '" does not exist')
+
+        self._binary_runner.run(self.client.binary_paths[task], arguments)
 
 
 class BinaryReceiverService(ClientService):
 
     label = 'get_binary'
 
-    def __init__(self, client, filepath):
+    def __init__(self, client, base_filepath):
         self.client = client
-        self._filepath = filepath
+        self._base_filepath = base_filepath
+   		self.client.binary_paths = {}
 
     def execute(self, data):
         base64_data = data['base64_binary']
+        binary_name = data['name']
+        binary_path = self._base_filepath + binary_name
+
+        self.client.binary_paths[binary_name] = binary_path
+
         raw_data = b64decode(base64_data)
-        with open(self._filepath, 'wb') as file_writer:
+        with open(binary_path, 'wb') as file_writer:
             file_writer.write(raw_data)
