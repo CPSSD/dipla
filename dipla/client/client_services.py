@@ -36,9 +36,9 @@ class BinaryRunnerService(ClientService):
         arguments = data["data_instructions"]
 
         if not hasattr(self.client, 'binary_paths'):
-        	raise ValueError('Client does not have any binaries')
+            raise ValueError('Client does not have any binaries')
         if task not in self.client.binary_paths:
-        	raise ValueError('Task "' + task + '" does not exist')
+            raise ValueError('Task "' + task + '" does not exist')
 
         self._binary_runner.run(self.client.binary_paths[task], arguments)
 
@@ -50,7 +50,7 @@ class BinaryReceiverService(ClientService):
     def __init__(self, client, base_filepath):
         self.client = client
         self._base_filepath = base_filepath
-   		self.client.binary_paths = {}
+        self.client.binary_paths = {}
 
     def execute(self, data):
         base64_data = data['base64_binary']
