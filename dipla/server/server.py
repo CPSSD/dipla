@@ -26,18 +26,24 @@ class ServerServices:
 
     def _handle_get_binary(self, message, server):
         platform = message['platform']
-        if platform not in server.binary_paths:
+        encoded_binaries = {}
+        for task_name, paths in server.binary_paths.items():
+            if platform not in paths:
+                continue
+            path = paths[platform]
+            with open(path, 'rb') as binary:
+                binary_bytes = binary.read()
+            encoded_bytes = b64encode(binary_bytes)
+            encoded_binaries[task_name] = encoded_bytes.decode('utf-8')
+
+        if not encoded_binaries:
             data = {
-                'error': 'No binary for platform: {}'.format(platform)
+                'error': 'No binaries for platform: {}'.format(platform)
             }
             return data
-        path = server.binary_paths[platform]
-        with open(path, 'rb') as binary:
-            binary_bytes = binary.read()
-
-        encoded_bytes = b64encode(binary_bytes)
+        
         data = {
-            'base64_binary': encoded_bytes.decode('utf-8'),
+            'base64_binaries': encoded_binaries,
         }
         return data
 
