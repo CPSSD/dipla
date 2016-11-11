@@ -20,7 +20,7 @@ class ServerServices:
         }
 
     def get_service(self, label):
-        if label in self.services.keys():
+        if label in self.services:
             return self.services[label]
         raise KeyError("Label '{}' does not have a handler".format(label))
 
