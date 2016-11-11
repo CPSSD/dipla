@@ -23,8 +23,9 @@ def init_logger(argv):
 
 def create_services(client):
     services = {
-        "run_binary": _create_binary_runner_service(client),
-        "get_binary": _create_binary_receiver_service(client)}
+        BinaryRunnerService.label: _create_binary_runner_service(client),
+        BinaryReceiverService.label: _create_binary_receiver_service(client),
+    }
     return services
 
 

@@ -25,17 +25,21 @@ class ClientService(ABC):
 
 class BinaryRunnerService(ClientService):
 
+    label = 'run_binary'
+
     def __init__(self, client, binary_runner):
         super().__init__(client)
         self._binary_runner = binary_runner
 
     def execute(self, data):
-        filepath = data["filepath"]
-        arguments = data["arguments"]
+        task = data["task_instructions"]
+        arguments = data["data_instructions"]
         self._binary_runner.run(filepath, arguments)
 
 
 class BinaryReceiverService(ClientService):
+
+    label = 'get_binary'
 
     def __init__(self, client, filepath):
         self.client = client
