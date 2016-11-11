@@ -14,7 +14,6 @@ class Client(object):
         server_address, string: The address of the websocket server to
             connect to, eg. 'ws://localhost:8765'."""
         self.server_address = server_address
-        self.websocket = None
         self.logger = logging.getLogger(__name__)
 
     def inject_services(self, services):
@@ -30,25 +29,13 @@ class Client(object):
     def get_logger(self):
         return self.logger
 
-    async def _get_websocket(self):
-        if self.websocket is None:
-            self.websocket = await websockets.connect(self.server_address)
-        return self.websocket
-
-    async def _get_connection_and_send(self, message):
-        """Get the websocket connection and send the given message to
-        the server.
-
-        message, json string: The message to be sent."""
-        websocket = await self._get_websocket()
-        await websocket.send(message)
-
-    def send(self, message):
+    def send(self, message, websocket):
         """Send a message to the server.
 
         message, dict: the message to be sent, a dict with a 'label' field
-            and a 'data' field."""
-
+            and a 'data' field.
+        websocket, websockets.websocket: this client's websocket connected
+            to the server"""
         if not ('label' in message and 'data' in message):
             raise ValueError(
                 'Missing label or data field in message %s.' % message)
@@ -57,16 +44,32 @@ class Client(object):
         json_message = json.dumps(message)
 
         # run the coroutine to send the message
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(self._get_connection_and_send(json_message))
-        # TODO(iandioch): Investigate ways of closing this loop automatically
-        # once the connection is dropped and the client is shutting down.
+        asyncio.ensure_future(self._send_async(websocket, json_message))
+
+    async def _send_async(self, websocket, message):
+        """Asynchronous task for sending a message to the server.
+
+        websocket, websockets.websocket: this client's websocket connected
+            to the server
+        message, string: the message to be sent"""
+        await websocket.send(message)
+
+    async def receive_loop(self, websocket):
+        """Task for handling messages received from server
+
+        websocket, websockets.websocket: this client's websocket connected
+            to the server"""
+        try:
+            while True:
+                message = await websocket.recv()
+                self._handle(message)
+        except websockets.exceptions.ConnectionClosed:
+            self.logger.warning("Connection closed.")
 
     def _handle(self, raw_message):
         """Do something with a message received from the server.
 
         raw_message, string: the raw data received from the server."""
-
         self.logger.debug("Received: %s." % raw_message)
         message = json.loads(raw_message)
         self._run_service(message["label"], message["data"])
@@ -80,24 +83,7 @@ class Client(object):
 
     async def _start_websocket(self):
         """Run the loop receiving websocket messages."""
-        # Must create different websocket here to that of send(), as they
-        # cannot be shared across threads.
-        async with websockets.connect(self.server_address) as websocket:
-            try:
-                while True:
-                    message = await websocket.recv()
-                    self._handle(message)
-            except websockets.exceptions.ConnectionClosed:
-                self.logger.warning("Connection closed.")
-
-    def _start_websocket_in_new_event_loop(self):
-        """Creates an event loop & runs the websocket communicationss in it."""
-        # The main thread already has an event loop, but we need
-        # to create a new one as we are running in a different thread.
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(self._start_websocket())
-        loop.close()
+        return await websockets.connect(self.server_address)
 
     def _get_platform(self):
         """Get some information about the platform the client is running on."""
@@ -109,13 +95,14 @@ class Client(object):
     def start(self):
         """Send the get_binary message, and start the communication loop
         in a new thread."""
-        # Create a new thread to run the websocket communications in.
-        thread = threading.Thread(
-            target=self._start_websocket_in_new_event_loop,
-            name='websocket_thread')
-        thread.start()
+        loop = asyncio.get_event_loop()
+        websocket = loop.run_until_complete(self._start_websocket())
 
+        asyncio.ensure_future(self.receive_loop(websocket))
         self.send({
             'label': 'get_binary',
             'data': {
-                 'platform': self._get_platform()}})
+                 'platform': self._get_platform()}},
+            websocket)
+
+        loop.run_forever()
