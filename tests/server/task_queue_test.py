@@ -29,3 +29,7 @@ class TaskQueueTest(unittest.TestCase):
         self.assertEqual("1", self.queue.peek_task().data_instructions)
         self.queue.pop_task()
         self.assertEqual("2", self.queue.peek_task().data_instructions)
+
+    def test_add_result(self):
+        self.queue.push_task(Task("1", ""))
+        self.queue.
