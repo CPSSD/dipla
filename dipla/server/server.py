@@ -15,7 +15,7 @@ class ServerServices:
         # to the client, the service should add a field to the dict it returns
         # that indicates an error occured.
         self.services = {
-            'get_binary': self._handle_get_binary,
+            'get_binaries': self._handle_get_binary,
             'get_instructions': self._handle_get_instructions,
         }
 
@@ -26,22 +26,19 @@ class ServerServices:
 
     def _handle_get_binary(self, message, server):
         platform = message['platform']
+        if platform not in server.binary_paths:
+            data = {
+                'error': 'No binaries for platform: {}'.format(platform)
+            }
+            return data
+
         encoded_binaries = {}
-        for task_name, paths in server.binary_paths.items():
-            if platform not in paths:
-                continue
-            path = paths[platform]
+        for task_name, path in server.binary_paths[platform].items():
             with open(path, 'rb') as binary:
                 binary_bytes = binary.read()
             encoded_bytes = b64encode(binary_bytes)
             encoded_binaries[task_name] = encoded_bytes.decode('utf-8')
 
-        if not encoded_binaries:
-            data = {
-                'error': 'No binaries for platform: {}'.format(platform)
-            }
-            return data
-        
         data = {
             'base64_binaries': encoded_binaries,
         }

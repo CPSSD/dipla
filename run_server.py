@@ -12,15 +12,15 @@ def main():
         tq.push_task(Task(data, label))
         print('Added data "' + data + '" for task', label)
 
-    # Paths are a dict of task binaries and then platforms 
+    # Paths are a dict platforms and then task binaries
     binary_paths = {
-        'add': {
-            'posix': '/posix/add/path',
-            'win32': '/win32/sub/path.exe',
+        'posix': {
+            'add': '/posix/add/path',
+            'sub': '/posix/sub/path',
         },
-        'sub': {
-            'posix': '/posix/sub/path',
-            'win32': '/win32/add/path.exe',
+        'win32': {
+            'add': '/win32/add/path.exe',
+            'sub': '/win32/sub/path.exe',
         },
     }
 
