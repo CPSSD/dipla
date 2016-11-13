@@ -56,7 +56,7 @@ class ServerServices:
     def _handle_get_binary(self, message, server):
         platform = message['platform']
         try:
-        	task_list = self.binary_manager.get_binaries(platform)
+        	task_list = server.binary_manager.get_binaries(platform)
         except KeyError as e:
         	data = {
         		'error': str(e),

@@ -54,7 +54,7 @@ class BinaryReceiverService(ClientService):
 
     @staticmethod
     def get_label():
-        return 'get_binary'
+        return 'get_binaries'
 
     def __init__(self, client, base_filepath):
         self.client = client

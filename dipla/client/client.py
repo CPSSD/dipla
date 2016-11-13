@@ -88,7 +88,7 @@ class Client(object):
     def _get_platform(self):
         """Get some information about the platform the client is running on."""
         if os.name == 'posix':
-            return os.uname()
+            return str(os.uname())
         # TODO(ndonn): Add better info for Windows and Mac versions
         return os.name
 
@@ -100,7 +100,7 @@ class Client(object):
 
         asyncio.ensure_future(self.receive_loop(websocket))
         self.send({
-            'label': 'get_binary',
+            'label': 'get_binaries',
             'data': {
                  'platform': self._get_platform()}},
             websocket)
