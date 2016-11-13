@@ -1,3 +1,4 @@
+import re
 import sys
 import json
 import asyncio
@@ -6,6 +7,28 @@ import dipla.server.task_queue
 
 from dipla.server.worker_group import WorkerGroup, Worker
 from base64 import b64encode
+
+
+class BinaryManager:
+
+	def __init__(self):
+		self.platform_re_list = []
+
+	def add_platform(self, platform_re, task_list):
+		# Ensure task_list a correcly formatted list of tuples containing a
+		# task name string and path string.
+		for task_tuple in task_list:
+			assert(isinstance(task_tuple, tuple))
+			task_name, binary_path = task_tuple
+			assert(isinstance(task_name, str) and isinstance(binary_path, str))
+
+		self.platform_re_list.append((re.compile(platform_re), task_list))
+
+	def get_binaries(self, platform):
+		for platform_re, task_list in self.platform_re_list:
+			if platform_re.match(platform):
+				return task_list
+		raise KeyError('No matching binaries found for this platform')
 
 
 class ServerServices:
@@ -26,14 +49,16 @@ class ServerServices:
 
     def _handle_get_binary(self, message, server):
         platform = message['platform']
-        if platform not in server.binary_paths:
-            data = {
-                'error': 'No binaries for platform: {}'.format(platform)
-            }
-            return data
+        try:
+        	task_list = self.binary_manager.get_binaries(platform)
+        except KeyError as e:
+        	data = {
+        		'error': str(e),
+        	}
+        	return data
 
         encoded_binaries = {}
-        for task_name, path in server.binary_paths[platform].items():
+        for task_name, path in task_list:
             with open(path, 'rb') as binary:
                 binary_bytes = binary.read()
             encoded_bytes = b64encode(binary_bytes)
@@ -59,15 +84,14 @@ class Server:
 
     def __init__(self,
                  task_queue,
-                 binary_paths,
+                 binary_manager,
                  worker_group=None,
                  services=None):
         """
         task_queue is a TaskQueue object that tasks to be run are taken from
 
-        binary_paths is a dictionary where the keys are the platforms and
-        the values are dictionaries with the paths to binaries to be run.
-        E.g. {'win32': {'add': '/binaries/add_bin.exe'}}
+        binary_manager is an instance of BinaryManager to be used to source
+        task binaries
 
         worker_group is the WorkerGroup class used to manage and sort workers
 
@@ -76,7 +100,7 @@ class Server:
         default instance is used.
         """
         self.task_queue = task_queue
-        self.binary_paths = binary_paths
+        self.binary_manager = binary_manager
 
         self.worker_group = worker_group
         if not self.worker_group:
