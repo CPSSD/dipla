@@ -109,7 +109,8 @@ class Task:
         on what task should be carried out on the data
 
         completion_check is a function that returns true if it can
-        determine that this task is complete
+        determine that this task is complete. This function should take
+        one argument which is the result that is received from the client
         """
         self.data_instructions = data_instructions
         self.task_instructions = task_instructions
