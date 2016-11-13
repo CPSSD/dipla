@@ -15,7 +15,7 @@ class TaskQueue:
 
     def _generate_node_id(self, length = 10,
             choices = "abcdefghijklmnopqrstuvwxyz0123456789"):
-        
+                pass 
 
     def push_task(self, item):
         if self.queue_head == None:

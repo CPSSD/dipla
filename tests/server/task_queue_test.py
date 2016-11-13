@@ -32,4 +32,4 @@ class TaskQueueTest(unittest.TestCase):
 
     def test_add_result(self):
         self.queue.push_task(Task("1", ""))
-        self.queue.
+        #self.queue.

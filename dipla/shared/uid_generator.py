@@ -1,13 +1,14 @@
+import random
 
-def generate_uids(existing_uids, length, safe = True,
-                  choices = "abcdefghijklmnopqrstuvwxyz0123456789"):
+def generate_uid(existing_uids, length, safe = True,
+                 choices = "abcdefghijklmnopqrstuvwxyz0123456789"):
     # Remove duplicates from the choices string
     choices = ''.join(set(choices))
 
     # If safe mode is activated, raise an error if it is possible
     # that this search for a uid could run infintitely because
     # there are no unique IDs left to generate
-    if safe and len(existing) == len(choices)**length:
+    if safe and len(existing_uids) == len(choices)**length:
         raise IDsExhausted("""Safe mode active and it is
             possible that all UIDs have been exhausted""")
 
