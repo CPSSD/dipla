@@ -18,9 +18,15 @@ class BinaryManager:
 		# Ensure task_list a correcly formatted list of tuples containing a
 		# task name string and path string.
 		for task_tuple in task_list:
-			assert(isinstance(task_tuple, tuple))
+			if not isinstance(task_tuple, tuple):
+				raise ValueError('task_list must be a list of tuples.')
 			task_name, binary_path = task_tuple
-			assert(isinstance(task_name, str) and isinstance(binary_path, str))
+			if not isinstance(task_name, str):
+				raise ValueError(
+					'The first element of each tuple must be a string.')
+			if not isinstance(binary_path, str):
+				raise ValueError(
+					'The second element of each tuple must be a string.')
 
 		self.platform_re_list.append((re.compile(platform_re), task_list))
 
