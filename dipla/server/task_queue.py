@@ -10,13 +10,19 @@ import queue
 class TaskQueue:
 
     def __init__(self):
+        # The queue head and tail represent the start and end nodes
+        # respectively of a LinkedList
         self.queue_head = None
+        self.queue_tail = None
 
     def push_task(self, item):
+        # If the LinkedList is empty
         if self.queue_head is None:
+            # Set this item as the head and tail of the list
             self.queue_head = TaskQueueNode(item, container_queue=self)
             self.queue_tail = self.queue_head
         else:
+            # Add an item to the end of the list
             new_node = TaskQueueNode(
                 item, container_queue=self, previous_node=self.queue_tail)
             self.queue_tail.next_node = new_node
@@ -51,6 +57,16 @@ class TaskQueueNode:
 
     def __init__(self, task_item, container_queue,
                  previous_node=None, next_node=None):
+        """
+        task_item is the value stored in this node
+
+        container_queue is the queue that this not was instantiated from.
+        This needs to be tracked in order to empty the queue if this is
+        the last existing node and it is deleted
+
+        previous_node/next_node point to the corresponding node in the
+        LinkedList
+        """
         self.container_queue = container_queue
         task_item.container_node = self
 
@@ -85,6 +101,16 @@ class Task:
 
     def __init__(self, data_instructions, task_instructions,
                  completion_check=complete_on_any_result):
+        """
+        data_instructons is an object used to determine how data should
+        be sent to a client
+
+        task_instructions is an object used to represent instructions
+        on what task should be carried out on the data
+
+        completion_check is a function that returns true if it can
+        determine that this task is complete
+        """
         self.data_instructions = data_instructions
         self.task_instructions = task_instructions
         self.completion_check = completion_check
