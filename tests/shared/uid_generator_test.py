@@ -1,6 +1,6 @@
 import unittest
 from dipla.shared.uid_generator import generate_uid
-from dipla.shared.uid_generator import IDsExhausted 
+from dipla.shared.uid_generator import IDsExhausted
 
 
 class UIDGeneratorTest(unittest.TestCase):
