@@ -65,9 +65,9 @@ class Server:
         """
         task_queue is a TaskQueue object that tasks to be run are taken from
 
-        binary_paths is a dictionary where the keys are the architecures and
-        the values are the paths to the binaries to run on those platforms.
-        E.g. {'win32':'/binaries/win_bin.exe'}
+        binary_paths is a dictionary where the keys are the platforms and
+        the values are dictionaries with the paths to binaries to be run.
+        E.g. {'win32': {'add': '/binaries/add_bin.exe'}}
 
         worker_group is the WorkerGroup class used to manage and sort workers
 
