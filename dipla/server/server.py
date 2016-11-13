@@ -15,7 +15,7 @@ class BinaryManager:
 		self.platform_re_list = []
 
 	def add_platform(self, platform_re, task_list):
-		# Ensure task_list a correcly formatted list of tuples containing a
+		# Ensure task_list is a correcly formatted list of tuples containing a
 		# task name string and path string.
 		for task_tuple in task_list:
 			if not isinstance(task_tuple, tuple):
@@ -44,7 +44,7 @@ class ServerServices:
         # to the client, the service should add a field to the dict it returns
         # that indicates an error occured.
         self.services = {
-            'get_binaries': self._handle_get_binary,
+            'get_binaries': self._handle_get_binaries,
             'get_instructions': self._handle_get_instructions,
         }
 
@@ -53,7 +53,7 @@ class ServerServices:
             return self.services[label]
         raise KeyError("Label '{}' does not have a handler".format(label))
 
-    def _handle_get_binary(self, message, server):
+    def _handle_get_binaries(self, message, server):
         platform = message['platform']
         try:
         	task_list = server.binary_manager.get_binaries(platform)
