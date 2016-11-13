@@ -11,18 +11,15 @@ class TaskQueue:
     
     def __init__(self):
         self.queue_head = None
-        self.task_nodes = {}
-
-    def _generate_node_id(self, length = 10,
-            choices = "abcdefghijklmnopqrstuvwxyz0123456789"):
-                pass 
 
     def push_task(self, item):
-        if self.queue_head == None:
-            self.queue_head = TaskQueueNode(item, None)
+        if self.queue_head == None:            
+            self.queue_head = TaskQueueNode(item, previous_node = None,
+                                            next_node = None)
             self.queue_tail = self.queue_head
         else:
-            new_node = TaskQueueNode(item, self.queue_tail)
+            new_node = TaskQueueNode(item, previous_node = self.queue_tail,
+                                     next_node = None)
             self.queue_tail.next_node = new_node 
             self.queue_tail = new_node
 
@@ -52,17 +49,19 @@ class TaskQueueEmpty(queue.Empty):
 # LinkedList Node containing the Task object
 class TaskQueueNode:
 
-    def __init__(self, task_item, previous_node, next_node = None):
-        task_item.containing_node = self
+    def __init__(self, task_item, previous_node, next_node):
+        task_item.container_node = self
 
         self.task_item = task_item
         self.previous_node = previous_node
         self.next_node = next_node
 
     def pop(self):
-        self.task_item.containing_node = None
+        del self.task_item.container_node
         if not self.previous_node == None:
             self.previous_node.next_node = self.next_node
+        if not self.next_node == None:
+            self.next_node.previous_node = self.previous_node
         return self.task_item
 
 
@@ -85,5 +84,5 @@ class Task:
     def _complete_task(self):
         if not self.container_node == None:
             # Take this element out of the LinkedList
-            self.container_node.delete()
+            self.container_node.pop()
 
