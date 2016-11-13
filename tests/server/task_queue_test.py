@@ -1,6 +1,7 @@
 import unittest
 from dipla.server import task_queue
 from dipla.server.task_queue import Task
+from dipla.server.task_queue import TaskQueueEmpty 
 
 
 class TaskQueueTest(unittest.TestCase):
@@ -35,5 +36,25 @@ class TaskQueueTest(unittest.TestCase):
         self.assertEqual("2", self.queue.peek_task().data_instructions)
 
     def test_add_result(self):
-        self.queue.push_task(Task("1", ""))
-        #self.queue.
+       	# Test task is marked as completed on any result if no check provided
+        test_task = Task("1", "")
+        test_task.add_result("test result")
+        self.assertTrue(test_task.completed)
+
+        def check_result_says_done(result):
+            return result == "done"
+
+        test_task = Task("2", "", check_result_says_done)
+        test_task.add_result("test result")
+        self.assertFalse(test_task.completed)
+        test_task.add_result("done")
+        self.assertTrue(test_task.completed)        
+
+        # Test that task is removed from queue on completion
+        self.queue.push_task(Task("3", ""))
+        queue_task = self.queue.peek_task()
+        queue_task.add_result("done")
+        self.assertTrue(queue_task.completed)
+        
+        with self.assertRaises(TaskQueueEmpty):
+            self.queue.peek_task()

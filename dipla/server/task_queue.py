@@ -14,12 +14,11 @@ class TaskQueue:
 
     def push_task(self, item):
         if self.queue_head == None:            
-            self.queue_head = TaskQueueNode(item, previous_node = None,
-                                            next_node = None)
+            self.queue_head = TaskQueueNode(item, container_queue = self)
             self.queue_tail = self.queue_head
         else:
-            new_node = TaskQueueNode(item, previous_node = self.queue_tail,
-                                     next_node = None)
+            new_node = TaskQueueNode(
+                item, container_queue = self, previous_node = self.queue_tail)
             self.queue_tail.next_node = new_node 
             self.queue_tail = new_node
 
@@ -29,8 +28,9 @@ class TaskQueue:
         if self.queue_head == None:
             raise TaskQueueEmpty("Could not pop task from empty TaskQueue")
 
+        next_head = self.queue_head.next_node
         popped = self.queue_head.pop()
-        self.queue_head = self.queue_head.next_node
+        self.queue_head = next_head
         return popped
 
     # Return the task at the front of the queue without removing it
@@ -49,7 +49,9 @@ class TaskQueueEmpty(queue.Empty):
 # LinkedList Node containing the Task object
 class TaskQueueNode:
 
-    def __init__(self, task_item, previous_node, next_node):
+    def __init__(self, task_item, container_queue,
+                 previous_node = None, next_node = None):
+        self.container_queue = container_queue
         task_item.container_node = self
 
         self.task_item = task_item
@@ -58,10 +60,20 @@ class TaskQueueNode:
 
     def pop(self):
         del self.task_item.container_node
+
+        # If this is the only item in the LinkedList
+        if self.previous_node == None and self.next_node == None:
+            self.container_queue.queue_head = None
+            self.container_queue.queue_tail = None
+            return self.task_item
+
+        # If there are other items in the LinkedList reassign the
+        # previous/next pointers of the neighbour items
         if not self.previous_node == None:
             self.previous_node.next_node = self.next_node
         if not self.next_node == None:
             self.next_node.previous_node = self.previous_node
+
         return self.task_item
 
 
@@ -76,13 +88,15 @@ class Task:
         self.data_instructions = data_instructions
         self.task_instructions = task_instructions
         self.completion_check = completion_check
+        self.completed = False
 
     def add_result(self, result):
         if self.completion_check(result):
-            self.complete_task()
+            self._complete_task()
 
     def _complete_task(self):
-        if not self.container_node == None:
+        if hasattr(self, "container_node"):
             # Take this element out of the LinkedList
             self.container_node.pop()
+        self.completed = True
 
