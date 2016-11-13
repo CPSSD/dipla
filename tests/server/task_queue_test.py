@@ -21,6 +21,10 @@ class TaskQueueTest(unittest.TestCase):
         self.assertEqual("2", self.queue.pop_task().data_instructions)
         self.queue.push_task(Task("3", ""))
         self.assertEqual("3", self.queue.pop_task().data_instructions)
+        
+        # Test that the container_node attribute is removed
+        self.queue.push_task(Task("4", ""))
+        self.assertFalse(hasattr(self.queue.pop_task(), "container_node"))
 
     def test_peek_tasks(self):
         self.queue.push_task(Task("1", ""))
