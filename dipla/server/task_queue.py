@@ -60,7 +60,7 @@ class TaskQueueNode:
         """
         task_item is the value stored in this node
 
-        container_queue is the queue that this not was instantiated from.
+        container_queue is the queue that this node was instantiated from.
         This needs to be tracked in order to empty the queue if this is
         the last existing node and it is deleted
 
@@ -68,14 +68,14 @@ class TaskQueueNode:
         LinkedList
         """
         self.container_queue = container_queue
-        task_item.container_node = self
+        task_item._container_node = self
 
         self.task_item = task_item
         self.previous_node = previous_node
         self.next_node = next_node
 
     def pop(self):
-        del self.task_item.container_node
+        del self.task_item._container_node
 
         # If this is the only item in the LinkedList
         if self.previous_node is None and self.next_node is None:
@@ -95,9 +95,6 @@ class TaskQueueNode:
 
 # Abstraction of the information necessary to represent a task
 class Task:
-
-    def complete_on_any_result(result):
-        return True
 
     def __init__(self, data_instructions, task_instructions,
                  completion_check=lambda x: True):
@@ -124,7 +121,7 @@ class Task:
             self._complete_task()
 
     def _complete_task(self):
-        if hasattr(self, "container_node"):
+        if hasattr(self, "_container_node"):
             # Take this element out of the LinkedList
-            self.container_node.pop()
+            self._container_node.pop()
         self.completed = True
