@@ -100,7 +100,7 @@ class Task:
         return True
 
     def __init__(self, data_instructions, task_instructions,
-                 completion_check=complete_on_any_result):
+                 completion_check=lambda x: True):
         """
         data_instructons is an object used to determine how data should
         be sent to a client
@@ -111,6 +111,8 @@ class Task:
         completion_check is a function that returns true if it can
         determine that this task is complete. This function should take
         one argument which is the result that is received from the client
+        The default lambda function used here causes the completion check
+        to return true when any result is received back from the server
         """
         self.data_instructions = data_instructions
         self.task_instructions = task_instructions
