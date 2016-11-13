@@ -1,11 +1,40 @@
+import re
 import sys
 import json
 import asyncio
 import websockets
-import task_queue
+import dipla.server.task_queue
 
-from worker_group import WorkerGroup, Worker
+from dipla.server.worker_group import WorkerGroup, Worker
 from base64 import b64encode
+
+
+class BinaryManager:
+
+	def __init__(self):
+		self.platform_re_list = []
+
+	def add_platform(self, platform_re, task_list):
+		# Ensure task_list is a correcly formatted list of tuples containing a
+		# task name string and path string.
+		for task_tuple in task_list:
+			if not isinstance(task_tuple, tuple):
+				raise ValueError('task_list must be a list of tuples.')
+			task_name, binary_path = task_tuple
+			if not isinstance(task_name, str):
+				raise ValueError(
+					'The first element of each tuple must be a string.')
+			if not isinstance(binary_path, str):
+				raise ValueError(
+					'The second element of each tuple must be a string.')
+
+		self.platform_re_list.append((re.compile(platform_re), task_list))
+
+	def get_binaries(self, platform):
+		for platform_re, task_list in self.platform_re_list:
+			if platform_re.match(platform):
+				return task_list
+		raise KeyError('No matching binaries found for this platform')
 
 
 class ServerServices:
@@ -15,8 +44,8 @@ class ServerServices:
         # to the client, the service should add a field to the dict it returns
         # that indicates an error occured.
         self.services = {
-            'get_binary': self._handle_get_binary,
-            'get_data_instructions': self._handle_get_data_instructions,
+            'get_binaries': self._handle_get_binaries,
+            'get_instructions': self._handle_get_instructions,
         }
 
     def get_service(self, label):
@@ -24,27 +53,33 @@ class ServerServices:
             return self.services[label]
         raise KeyError("Label '{}' does not have a handler".format(label))
 
-    def _handle_get_binary(self, message, server):
+    def _handle_get_binaries(self, message, server):
         platform = message['platform']
-        if platform not in server.binary_paths:
-            data = {
-                'error': 'No binary for platform: {}'.format(platform)
-            }
-            return data
-        path = server.binary_paths[platform]
-        with open(path, 'rb') as binary:
-            binary_bytes = binary.read()
+        try:
+        	task_list = server.binary_manager.get_binaries(platform)
+        except KeyError as e:
+        	data = {
+        		'error': str(e),
+        	}
+        	return data
 
-        encoded_bytes = b64encode(binary_bytes)
+        encoded_binaries = {}
+        for task_name, path in task_list:
+            with open(path, 'rb') as binary:
+                binary_bytes = binary.read()
+            encoded_bytes = b64encode(binary_bytes)
+            encoded_binaries[task_name] = encoded_bytes.decode('utf-8')
+
         data = {
-            'base64_binary': encoded_bytes.decode('utf-8'),
+            'base64_binaries': encoded_binaries,
         }
         return data
 
-    def _handle_get_data_instructions(self, message, server):
+    def _handle_get_instructions(self, message, server):
         data = {}
         try:
             task = server.task_queue.pop_task()
+            data['task_instructions'] = task.task_instructions
             data['data_instructions'] = task.data_instructions
         except task_queue.TaskQueueEmpty as e:
             data['command'] = 'quit'
@@ -55,15 +90,14 @@ class Server:
 
     def __init__(self,
                  task_queue,
-                 binary_paths,
+                 binary_manager,
                  worker_group=None,
                  services=None):
         """
         task_queue is a TaskQueue object that tasks to be run are taken from
 
-        binary_paths is a dictionary where the keys are the architecures and
-        the values are the paths to the binaries to run on those platforms.
-        E.g. {'win32':'/binaries/win_bin.exe'}
+        binary_manager is an instance of BinaryManager to be used to source
+        task binaries
 
         worker_group is the WorkerGroup class used to manage and sort workers
 
@@ -72,7 +106,7 @@ class Server:
         default instance is used.
         """
         self.task_queue = task_queue
-        self.binary_paths = binary_paths
+        self.binary_manager = binary_manager
 
         self.worker_group = worker_group
         if not self.worker_group:
@@ -83,7 +117,7 @@ class Server:
             self.services = ServerServices()
 
     async def websocket_handler(self, websocket, path):
-        user_id = path[1:]
+        user_id = self.worker_group.generate_uid(8)
         try:
             self.worker_group.add_worker(
                 Worker(user_id, websocket, quality=0.5))
