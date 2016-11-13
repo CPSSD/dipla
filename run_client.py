@@ -35,7 +35,7 @@ def _create_binary_runner_service(client):
 
 
 def _create_binary_receiver_service(client):
-    return BinaryReceiverService(client, 'binary.exe')
+    return BinaryReceiverService(client, 'binary')
 
 
 if __name__ == '__main__':
