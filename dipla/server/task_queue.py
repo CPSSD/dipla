@@ -3,6 +3,7 @@ This module is a queue implementation for organising distributable tasks
 using information such as the task identifier and input data
 """
 
+import queue # needed to inherit exception from
 
 class TaskQueue:
     """
@@ -70,8 +71,8 @@ class TaskQueue:
             if found:
                 del self.ready_data[i]
 
-         # Check for tasks that are ready to go
-         for i in range(len(self.waiting_tasks)-1, -1, -1):
+        # Check for tasks that are ready to go
+        for i in range(len(self.waiting_tasks)-1, -1, -1):
              if self.waiting_tasks[i].ready():
                  # Add this task to the live queue
                  self.push_task(self.waiting_tasks[i])
@@ -276,12 +277,12 @@ class DataInstruction:
         False if it is still waiting to be fulfilled."""
         return self._value is not None
 
-   def get_value(self):
+    def get_value(self):
         """Returns the underlying data of this container."""
         return self._value
 
-   def set_value(self, value):
+    def set_value(self, value):
         self._value = value
 
-   def get_type(self):
+    def get_type(self):
         return self._data_type
