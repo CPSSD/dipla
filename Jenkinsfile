@@ -20,7 +20,6 @@ node {
   
   	try {
   		stage ('Install Dependencies') {
-  			sh 'scripts/setup-env-ubuntu.sh'
   			sh 'sudo apt-get install -y python3==3.5.1*'
   			sh 'sudo apt-get install -y python-pip'
   			sh 'sudo pip install virtualenv'
