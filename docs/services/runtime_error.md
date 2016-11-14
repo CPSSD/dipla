@@ -1,10 +1,10 @@
-# error message format
+# runtime\_error message format
 
 All errors sent betweent the client and server should adhere to the following format.
 
 ```js
 {
-	"label": "error",
+	"label": "runtime_error",
 	"data": {
 		"details": "Exception occured trying to run binary X",
 		"code": 8,
