@@ -1,6 +1,7 @@
 #!groovy
 
 node {
+
   timeout(30) {
   
   	currentBuild.result = 'SUCCESS'
@@ -21,7 +22,7 @@ node {
   		stage ('Install Dependencies') {
   			sh 'sudo apt-get install --upgrade -y python3'
   			sh 'sudo apt-get install --upgrade -y python3-pip'
-  			sh 'sudo pip3 install virtualenv'
+  			#sh 'sudo pip3 install virtualenv'
   		}
   
   		stage ('Create Test Results Folder') {
@@ -29,8 +30,8 @@ node {
   		}
   
   		stage ('Setup virtualenv') {
-  			sh 'virtualenv -p python3 venv'
-  			sh 'source venv/bin/activate'
+  			#sh 'virtualenv -p python3 venv'
+  			#sh 'source venv/bin/activate'
   		}
   
   		stage ('Install pip dependencies') {
