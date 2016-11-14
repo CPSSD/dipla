@@ -11,3 +11,6 @@ All errors sent betweent the client and server should adhere to the following fo
 	}
 }
 ```
+
+The `details` field should contain some human-readable information giving a clue where to start looking for the cause of the error, eg. the contents of an exception.
+The `code` field should contain a unique numerical code for the given error type, that can be used by the receiver to figure out how to respond.
