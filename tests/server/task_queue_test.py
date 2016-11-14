@@ -22,11 +22,14 @@ class TaskQueueTest(unittest.TestCase):
         d2 = DataInstruction(name="lmao", value=2)
         self.queue.push_task(Task([d1], ""))
         self.queue.push_task(Task([d2], ""))
-        self.assertEqual(d1.name, self.queue.pop_task().data_instructions[0].name)
-        self.assertEqual(d2.name, self.queue.pop_task().data_instructions[0].name)
+        self.assertEqual(
+            d1.name, self.queue.pop_task().data_instructions[0].name)
+        self.assertEqual(
+            d2.name, self.queue.pop_task().data_instructions[0].name)
         d3 = DataInstruction(name="rofl", value=3)
         self.queue.push_task(Task([d3], ""))
-        self.assertEqual(d3.name, self.queue.pop_task().data_instructions[0].name)
+        self.assertEqual(
+            d3.name, self.queue.pop_task().data_instructions[0].name)
 
         # Test that the container_node attribute is removed
         d4 = DataInstruction(name="xD", value=4)
@@ -37,11 +40,14 @@ class TaskQueueTest(unittest.TestCase):
         d1 = DataInstruction(name="lol", value=1)
         d2 = DataInstruction(name="lmao", value=2)
         self.queue.push_task(Task([d1], ""))
-        self.assertEqual(d1.name, self.queue.peek_task().data_instructions[0].name)
+        self.assertEqual(
+            d1.name, self.queue.peek_task().data_instructions[0].name)
         self.queue.push_task(Task([d2], ""))
-        self.assertEqual(d1.name, self.queue.peek_task().data_instructions[0].name)
+        self.assertEqual(
+            d1.name, self.queue.peek_task().data_instructions[0].name)
         self.queue.pop_task()
-        self.assertEqual(d2.name, self.queue.peek_task().data_instructions[0].name)
+        self.assertEqual(
+            d2.name, self.queue.peek_task().data_instructions[0].name)
 
     def test_add_result(self):
         # Test task is marked as completed on any result if no check provided
