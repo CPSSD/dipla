@@ -38,10 +38,6 @@ node {
   			sh 'pip3 install --upgrade -r requirements.txt'
   		}
   
-  		stage ('Build Applications') {
-  			sh 'scripts/build.sh > test_results/build_app.txt'
-  		}
-  
   		stage ('Run python linter') {
   			sh 'pep8 dipla'
   			sh 'pep8 tests'
