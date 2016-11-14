@@ -136,8 +136,7 @@ class Task:
         Initalises the Task
 
         Params:
-         - data_instructions: An object used to determine how data should
-        be sent to a client
+         - data_instructions: A list of DataInstructions
          - task_instructions: An object used to represent instructions
         on what task should be carried out on the data
          - completion_check:  A function that returns true if it can
@@ -161,10 +160,15 @@ class Task:
             self.container_node.pop()
         self.completed = True
 
+    def ready(self):
+        """Returns True if the task has all the data it needs to run"""
+        return all([x.ready() for x in self.data_instructions])
+
 
 class DataInstruction:
     """
-    This is a class to hold either immediate data ready to be used, or a
+    This is a class to hold a data input to a client binary.
+    It can contain either immediate data ready to be used, or a
     piece of future data being waited on before being ready to be used.
     """
 
