@@ -22,7 +22,7 @@ def generate_uid(existing_uids, length, safe=True,
 
     while True:
         suggested_uid = ''.join(
-                random.choice(choices) for i in range(length))
+            random.choice(choices) for i in range(length))
         if suggested_uid not in existing_uids:
             return suggested_uid
 

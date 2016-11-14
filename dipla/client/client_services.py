@@ -74,6 +74,7 @@ class BinaryReceiverService(ClientService):
             with open(binary_path, 'wb') as file_writer:
                 file_writer.write(raw_data)
 
+
 class ServerErrorService(ClientService):
 
     @staticmethod

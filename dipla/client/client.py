@@ -8,6 +8,7 @@ import os
 
 from dipla.shared.services import ServiceError
 
+
 class Client(object):
 
     def __init__(self, server_address):
@@ -98,7 +99,7 @@ class Client(object):
         message = json.loads(raw_message)
         if not ('label' in message and 'data' in message):
             raise ServiceError('Missing field from message: %s' % message,
-                4)
+                               4)
         self._run_service(message["label"], message["data"])
 
     def _run_service(self, label, data):
