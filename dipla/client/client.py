@@ -93,8 +93,9 @@ class Client(object):
         num_tries = 0
         backoff = 1
         while num_tries < self.connect_tries_limit:
-            self.logger.warning('trying connection %d/%d' % (num_tries,
-                self.connect_tries_limit))
+            self.logger.warning(
+                'trying connection %d/%d' % (num_tries,
+                                             self.connect_tries_limit))
             try:
                 return await websockets.connect(self.server_address)
             except:
@@ -102,8 +103,7 @@ class Client(object):
                 time.sleep(backoff)
                 backoff *= 2
         return None
-        #return await websockets.connect(self.server_address)
-
+        # return await websockets.connect(self.server_address)
 
     def _get_platform(self):
         """Get some information about the platform the client is running on."""
@@ -126,7 +126,7 @@ class Client(object):
         self.send({
             'label': 'get_binaries',
             'data': {
-                 'platform': self._get_platform()}},
+                'platform': self._get_platform()}},
             websocket)
 
         loop.run_until_complete(receive_task)

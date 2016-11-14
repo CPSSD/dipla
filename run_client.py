@@ -1,5 +1,6 @@
 from dipla.client.client import Client
-from dipla.client.client_services import BinaryRunnerService, BinaryReceiverService
+from dipla.client.client_services import BinaryRunnerService
+from dipla.client.client_services import BinaryReceiverService
 from dipla.client.command_line_binary_runner import CommandLineBinaryRunner
 from dipla.shared import logutils
 import sys
@@ -23,18 +24,18 @@ def init_logger(argv):
 
 def create_services(client):
     services = {
-        BinaryRunnerService.get_label(): _create_binary_runner_service(client),
-        BinaryReceiverService.get_label(): _create_binary_receiver_service(client),
+        BinaryRunnerService.get_label(): _create_binary_runner(client),
+        BinaryReceiverService.get_label(): _create_binary_receiver(client),
     }
     return services
 
 
-def _create_binary_runner_service(client):
+def _create_binary_runner(client):
     binary_runner = CommandLineBinaryRunner()
     return BinaryRunnerService(client, binary_runner)
 
 
-def _create_binary_receiver_service(client):
+def _create_binary_receiver(client):
     return BinaryReceiverService(client, 'binary')
 
 
