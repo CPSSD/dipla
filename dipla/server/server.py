@@ -6,7 +6,6 @@ import websockets
 import dipla.server.task_queue
 
 from dipla.server.worker_group import WorkerGroup, Worker
-from dipla.shared.uid_generator import generate_uid
 from base64 import b64encode
 
 
