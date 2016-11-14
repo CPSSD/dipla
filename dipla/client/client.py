@@ -62,24 +62,33 @@ class Client(object):
         try:
             while True:
                 message = await websocket.recv()
-                self._handle(message)
+                self._handle(message, websocket)
         except websockets.exceptions.ConnectionClosed:
             self.logger.warning("Connection closed.")
 
-    def _handle(self, raw_message):
+    def _handle(self, raw_message, websocket):
         """Do something with a message received from the server.
 
         raw_message, string: the raw data received from the server."""
         self.logger.debug("Received: %s." % raw_message)
         message = json.loads(raw_message)
-        self._run_service(message["label"], message["data"])
+        result = self._run_service(message["label"], message["data"])
+        if result is not None:
+            # send the client_result back to the server
+            self.send({
+                'label': 'client_result',
+                'data': {
+                    'type': message['label'] + '_result',
+                    'value': result
+                 }}, websocket)
 
     def _run_service(self, label, data):
         try:
             service = self.services[label]
-            service.execute(data)
+            return service.execute(data)
         except KeyError:
             self.logger.error("Failed to find service: {}".format(label))
+            return None
 
     async def _start_websocket(self):
         """Run the loop receiving websocket messages."""

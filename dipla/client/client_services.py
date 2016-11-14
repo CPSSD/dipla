@@ -47,7 +47,7 @@ class BinaryRunnerService(ClientService):
         if task not in self.client.binary_paths:
             raise ValueError('Task "' + task + '" does not exist')
 
-        self._binary_runner.run(self.client.binary_paths[task], arguments)
+        return self._binary_runner.run(self.client.binary_paths[task], arguments)
 
 
 class BinaryReceiverService(ClientService):
@@ -71,3 +71,4 @@ class BinaryReceiverService(ClientService):
             raw_data = b64decode(encoded_bin)
             with open(binary_path, 'wb') as file_writer:
                 file_writer.write(raw_data)
+        return None
