@@ -1,6 +1,7 @@
 from dipla.server.server import Server, BinaryManager
 from dipla.server.task_queue import TaskQueue, Task
 
+
 def main():
     tq = TaskQueue()
     tasks = [

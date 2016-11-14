@@ -112,8 +112,8 @@ class WorkerGroup:
         return self.ready_workers + list(self.busy_workers.values())
 
     def generate_uid(self):
-        return uid_generator.generate_uid(length=8, existing_uids=self.worker_uids())
-        
+        return uid_generator.generate_uid(length=8,
+                                          existing_uids=self.worker_uids())
 
 
 class WorkerIDsExhausted(Exception):
@@ -152,7 +152,7 @@ class Worker:
         """
         # Squaring the values here is a placeholder until a more
         # relevant quality formula is determined
-        return self._quality*self._quality
+        return self._quality * self._quality
 
     def __eq__(self, other):
         return self.quality() == other.quality()

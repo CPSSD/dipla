@@ -12,30 +12,30 @@ from base64 import b64encode
 
 class BinaryManager:
 
-	def __init__(self):
-		self.platform_re_list = []
+    def __init__(self):
+        self.platform_re_list = []
 
-	def add_platform(self, platform_re, task_list):
-		# Ensure task_list is a correcly formatted list of tuples containing a
-		# task name string and path string.
-		for task_tuple in task_list:
-			if not isinstance(task_tuple, tuple):
-				raise ValueError('task_list must be a list of tuples.')
-			task_name, binary_path = task_tuple
-			if not isinstance(task_name, str):
-				raise ValueError(
-					'The first element of each tuple must be a string.')
-			if not isinstance(binary_path, str):
-				raise ValueError(
-					'The second element of each tuple must be a string.')
+    def add_platform(self, platform_re, task_list):
+        # Ensure task_list is a correcly formatted list of tuples containing a
+        # task name string and path string.
+        for task_tuple in task_list:
+            if not isinstance(task_tuple, tuple):
+                raise ValueError('task_list must be a list of tuples.')
+            task_name, binary_path = task_tuple
+            if not isinstance(task_name, str):
+                raise ValueError(
+                    'The first element of each tuple must be a string.')
+            if not isinstance(binary_path, str):
+                raise ValueError(
+                    'The second element of each tuple must be a string.')
 
-		self.platform_re_list.append((re.compile(platform_re), task_list))
+        self.platform_re_list.append((re.compile(platform_re), task_list))
 
-	def get_binaries(self, platform):
-		for platform_re, task_list in self.platform_re_list:
-			if platform_re.match(platform):
-				return task_list
-		raise KeyError('No matching binaries found for this platform')
+    def get_binaries(self, platform):
+        for platform_re, task_list in self.platform_re_list:
+            if platform_re.match(platform):
+                return task_list
+        raise KeyError('No matching binaries found for this platform')
 
 
 class ServerServices:
@@ -58,7 +58,7 @@ class ServerServices:
     def _handle_get_binaries(self, message, server):
         platform = message['platform']
         try:
-       	    task_list = server.binary_manager.get_binaries(platform)
+            task_list = server.binary_manager.get_binaries(platform)
         except KeyError as e:
             raise ServiceError(e, 2)
 
@@ -184,9 +184,9 @@ class Server:
 
     def start(self):
         start_server = websockets.serve(
-                self.websocket_handler,
-                "localhost",
-                8765)
+            self.websocket_handler,
+            "localhost",
+            8765)
 
         asyncio.get_event_loop().run_until_complete(start_server)
         asyncio.get_event_loop().run_forever()

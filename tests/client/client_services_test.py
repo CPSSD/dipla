@@ -1,7 +1,8 @@
 import os
 from unittest import TestCase
 from dipla.client.command_line_binary_runner import CommandLineBinaryRunner
-from dipla.client.client_services import BinaryRunnerService, BinaryReceiverService
+from dipla.client.client_services import BinaryRunnerService
+from dipla.client.client_services import BinaryReceiverService
 
 
 class BinaryRunnerServiceTest(TestCase):
