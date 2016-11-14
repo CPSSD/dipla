@@ -230,15 +230,18 @@ class DataInstruction:
     piece of future data being waited on before being ready to be used.
     """
 
-    def __init__(self, data_type="immediate", value=None):
+    def __init__(self, name, data_type="immediate", value=None):
         """Initialises the data instruction.
 
         Params:
+         - name: The key that will be used for this piece of data when
+        it is being passed to the binary.
          - data_type: A string with the type of data. This will be used
         to figure out if newly available data is relevant to a particular
         Task.
          - value: The actual value of this data instruction, of any type.
         """
+        self.name = name
         # private, with a get_(), as some data may be drawn from a stream,
         # database, or similar.
         self._data_type = data_type
