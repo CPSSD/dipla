@@ -149,8 +149,8 @@ class Worker:
         Initalises the worker.
 
         Params:
-         - uid: The workers Unique Identifier string.
-         - websocket: The workers connected websocket.
+         - uid: The worker's Unique Identifier string.
+         - websocket: The worker's connected websocket.
          - quality: A numeric indicator of how preferrable this worker is for
            running a task. This could depend on the hosts ping, reliability,
            processing power, etc.
