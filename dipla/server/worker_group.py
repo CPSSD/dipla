@@ -5,6 +5,8 @@ intended for this file to contain the code to manage the workers.
 import heapq
 import operator
 
+from dipla.shared import uid_generator
+
 
 class WorkerGroup:
     """
@@ -108,6 +110,10 @@ class WorkerGroup:
          - A list of all the ready workers and busy workers
         """
         return self.ready_workers + list(self.busy_workers.values())
+
+    def generate_uid(self):
+        return uid_generator.generate_uid(length=8, existing_uids=[x.uid for x in self._all_workers()])
+        
 
 
 class WorkerIDsExhausted(Exception):

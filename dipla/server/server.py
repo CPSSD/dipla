@@ -6,6 +6,7 @@ import websockets
 import dipla.server.task_queue
 
 from dipla.server.worker_group import WorkerGroup, Worker
+from dipla.shared.uid_generator import generate_uid
 from base64 import b64encode
 
 
@@ -117,7 +118,7 @@ class Server:
             self.services = ServerServices()
 
     async def websocket_handler(self, websocket, path):
-        user_id = self.worker_group.generate_uid(8)
+        user_id = self.worker_group.generate_uid()
         try:
             self.worker_group.add_worker(
                 Worker(user_id, websocket, quality=0.5))
