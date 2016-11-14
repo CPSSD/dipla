@@ -2,8 +2,11 @@ import asyncio
 import websockets
 import json
 import threading
+import time
 import logging
 import os
+
+from dipla.shared.services import ServiceError
 
 
 class Client(object):
@@ -15,6 +18,8 @@ class Client(object):
             connect to, eg. 'ws://localhost:8765'."""
         self.server_address = server_address
         self.logger = logging.getLogger(__name__)
+        # the number of times to try to connect before giving up
+        self.connect_tries_limit = 8
 
     def inject_services(self, services):
         # TODO: Refactor Client
@@ -46,6 +51,22 @@ class Client(object):
         # run the coroutine to send the message
         asyncio.ensure_future(self._send_async(websocket, json_message))
 
+    def send_error(self, details, code, websocket):
+        """Send an error to the server.
+
+        details, str: the error message.
+        code, int: the error code.
+        websocket, websockets.websocket: this client's websocket connected
+            to the server"""
+        message = {
+            'label': 'runtime_error',
+            'data': {
+                'details': details,
+                'code': code,
+            }
+        }
+        self.send(message, websocket)
+
     async def _send_async(self, websocket, message):
         """Asynchronous task for sending a message to the server.
 
@@ -61,8 +82,12 @@ class Client(object):
             to the server"""
         try:
             while True:
+                self.logger.warning('iter')
                 message = await websocket.recv()
-                self._handle(message, websocket)
+                try:
+                    self._handle(message, websocket)
+                except ServiceError as e:
+                    self.send_error(str(e), e.code, websocket)
         except websockets.exceptions.ConnectionClosed:
             self.logger.warning("Connection closed.")
 
@@ -72,6 +97,9 @@ class Client(object):
         raw_message, string: the raw data received from the server."""
         self.logger.debug("Received: %s." % raw_message)
         message = json.loads(raw_message)
+        if not ('label' in message and 'data' in message):
+            raise ServiceError('Missing field from message: %s' % message, 4)
+
         result = self._run_service(message["label"], message["data"])
         if result is not None:
             # send the client_result back to the server
@@ -80,7 +108,7 @@ class Client(object):
                 'data': {
                     'type': message['label'] + '_result',
                     'value': result
-                 }}, websocket)
+                }}, websocket)
 
     def _run_service(self, label, data):
         try:
@@ -88,11 +116,27 @@ class Client(object):
             return service.execute(data)
         except KeyError:
             self.logger.error("Failed to find service: {}".format(label))
-            return None
+            raise ServiceError('Failed to find service: {}'.format(label), 5)
 
     async def _start_websocket(self):
-        """Run the loop receiving websocket messages."""
-        return await websockets.connect(self.server_address)
+        """Run the loop receiving websocket messages. Makes use of
+        exponential backoff when trying to connect, waiting for longer
+        times each trial before giving up after self.connect_tries_limit
+        times."""
+        num_tries = 0
+        backoff = 1
+        while num_tries < self.connect_tries_limit:
+            self.logger.warning(
+                'trying connection %d/%d' % (num_tries,
+                                             self.connect_tries_limit))
+            try:
+                return await websockets.connect(self.server_address)
+            except:
+                num_tries += 1
+                time.sleep(backoff)
+                backoff *= 2
+        return None
+        # return await websockets.connect(self.server_address)
 
     def _get_platform(self):
         """Get some information about the platform the client is running on."""
@@ -106,12 +150,17 @@ class Client(object):
         in a new thread."""
         loop = asyncio.get_event_loop()
         websocket = loop.run_until_complete(self._start_websocket())
-
-        asyncio.ensure_future(self.receive_loop(websocket))
+        if not websocket:
+            self.logger.error(
+                'Could not connect to server after %d tries' %
+                self.connect_tries_limit)
+            return
+        receive_task = asyncio.ensure_future(self.receive_loop(websocket))
         self.send({
             'label': 'get_binaries',
             'data': {
-                 'platform': self._get_platform()}},
+                'platform': self._get_platform()}},
             websocket)
 
-        loop.run_forever()
+        loop.run_until_complete(receive_task)
+        self.start()
