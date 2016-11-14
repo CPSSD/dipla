@@ -31,7 +31,7 @@ node {
   
   		stage ('Setup virtualenv') {
   			sh 'virtualenv -p python3 venv'
-  			source 'venv/bin/activate'
+  			sh 'source venv/bin/activate'
   		}
   
   		stage ('Install pip dependencies') {
