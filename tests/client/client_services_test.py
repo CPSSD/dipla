@@ -49,7 +49,7 @@ class BinaryReceiverServiceTest(TestCase):
         self.base_filepath = "tmp_"
         self.binary_name = "add"
         self.json_data = {"base64_binaries": {"add": "YmFuYW5h"}}
-        self.service = BinaryReceiverService(DummyClient(), 
+        self.service = BinaryReceiverService(DummyClient(),
                                              base_filepath=self.base_filepath)
 
     def test_that_receiver_decodes_and_saves_to_file(self):
@@ -64,6 +64,7 @@ class BinaryReceiverServiceTest(TestCase):
 
 class DummyClient:
     pass
+
 
 class MockBinaryRunner(CommandLineBinaryRunner):
 
