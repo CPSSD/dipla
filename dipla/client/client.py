@@ -98,7 +98,7 @@ class Client(object):
         self.logger.debug("Received: %s." % raw_message)
         message = json.loads(raw_message)
         if not ('label' in message and 'data' in message):
-           raise ServiceError('Missing field from message: %s' % message, 4)
+            raise ServiceError('Missing field from message: %s' % message, 4)
 
         result = self._run_service(message["label"], message["data"])
         if result is not None:
