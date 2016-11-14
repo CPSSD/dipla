@@ -4,16 +4,22 @@ from dipla.server.task_queue import TaskQueue, Task
 def main():
     tq = TaskQueue()
     tasks = [
-        ('1 2', 'add'),
-        ('32 4', 'add'),
-        ('16 4', 'sub'),
+        Task.create('add', {'x':'int', 'y':'int'}),
+        Task.create('add', {'x':'int', 'y':'int'}),
+        Task.create('add', {'x':'int', 'y':'int'})
     ]
-    for data, label in tasks:
-        tq.push_task(Task(data, label))
-        print('Added data "' + data + '" for task', label)
+    for task in tasks:
+        tq.push_task(task)
+        print('Added task %s' % task.task_instructions)
+    tq.add_new_data('int', 1)
+    tq.add_new_data('int', 2)
+    tq.add_new_data('int', 32)
+    tq.add_new_data('int', 4)
+    tq.add_new_data('int', 16)
+    tq.add_new_data('int', 4)
 
     bm = BinaryManager()
-    bm.add_platform('.*posix.*', [
+    bm.add_platform('.*ix.*', [
         ('add', '/posix/add/path'),
         ('sub', '/posix/sub/path'),
     ])
