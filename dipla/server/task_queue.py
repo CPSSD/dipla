@@ -3,8 +3,6 @@ This module is a queue implementation for organising distributable tasks
 using information such as the task identifier and input data
 """
 
-import queue
-
 
 class TaskQueue:
     """
