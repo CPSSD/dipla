@@ -35,7 +35,7 @@ node {
   		}
   
   		stage ('Install pip dependencies') {
-  			sh 'pip install -r --upgrade requirements.txt'
+  			sh 'pip3 install -r --upgrade requirements.txt'
   		}
   
   		stage ('Build Applications') {
