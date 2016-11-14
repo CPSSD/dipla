@@ -160,3 +160,27 @@ class Task:
             # Take this element out of the LinkedList
             self.container_node.pop()
         self.completed = True
+
+
+class DataInstruction:
+    """
+    This is a class to hold either immediate data ready to be used, or a
+    piece of future data being waited on before being ready to be used.
+    """
+
+    def __init__(self, data_type="immediate", value=None):
+        """Initialises the data instruction.
+
+        Params:
+         - data_type: A string with the type of data. This will be used
+        to figure out if newly available data is relevant to a particular
+        Task.
+         - value: The actual value of this data instruction, of any type.
+        """
+        self.data_type = data_type
+        self.value = value
+
+    def ready(self):
+        """Returns True if this DataInstruction is ready to be sent, and
+        False if it is still waiting to be fulfilled."""
+        return self.value is not None
