@@ -90,7 +90,9 @@ class ServerServices:
     def _handle_client_result(self, message, server):
         data_type = message['type']
         value = message['value']
+        print('New client result of type "%s": %s' % (data_type, value))
         server.task_queue.add_new_data(data_type, value)
+        return None
 
 
 class Server:
@@ -148,6 +150,8 @@ class Server:
                         await worker.websocket.recv())
                     service = self.services.get_service(message['label'])
                     response_data = service(message['data'], self)
+                    if response_data is None:
+                        continue
                     await self._send_message(worker.websocket,
                                              message['label'],
                                              response_data)
