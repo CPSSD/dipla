@@ -85,6 +85,11 @@ class ServerServices:
             data['command'] = 'quit'
         return data
 
+    def _handle_runtime_error(self, message, server):
+        print('Client had an error (code %d): %s' % (message['code'],
+            message['details'])
+        return None
+
 
 class Server:
 
