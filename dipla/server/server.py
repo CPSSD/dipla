@@ -123,8 +123,8 @@ class Server:
                 Worker(user_id, websocket, quality=0.5))
         except ValueError:
             # TODO(cianlr): Log something here indicating the error
-            data = {'details': 'UserID already taken'}
-            await self._send_message(websocket, 'general_error', data)
+            data = {'details': 'UserID already taken', 'code': 0}
+            await self._send_message(websocket, 'runtime_error', data)
             return
         # This is kind of unusual, we add a new worker to the group and
         # then pull out whatever is at the top of the group and repurpose
@@ -147,9 +147,10 @@ class Server:
                 except (ValueError, KeyError) as e:
                     # If there is a general error that isn't service specific
                     # then send a message with the 'general_error' label.
-                    data = {'details': str(e)}
+                    data = {'details': 'Error during websocket loop: %s' % str(e),
+                        'code': 1}
                     await self._send_message(worker.websocket,
-                                             'general_error',
+                                             'runtime_error',
                                              data)
         except websockets.exceptions.ConnectionClosed as e:
             print(worker.uid + " has closed the connection")
