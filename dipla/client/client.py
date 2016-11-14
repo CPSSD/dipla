@@ -17,7 +17,7 @@ class Client(object):
         self.server_address = server_address
         self.logger = logging.getLogger(__name__)
         # the number of times to try to connect before giving up
-        self.connect_tries_limit = 3
+        self.connect_tries_limit = 8
 
     def inject_services(self, services):
         # TODO: Refactor Client
