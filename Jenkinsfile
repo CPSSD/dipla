@@ -45,6 +45,7 @@ node {
  
       stage ('Build example binaries') {
         sh 'tests/example_binaries/build_binaries.sh'
+      }
  
   		stage ('Run Tests') {
   			sh 'nosetests -v'
