@@ -1,9 +1,14 @@
-from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod, abstractstaticmethod
 from base64 import b64decode
 
 
 # This is an interface that all client services must implement.
 class ClientService(ABC):
+
+    # Get the label that identifies messages for this service
+    @abstractstaticmethod
+    def get_label():
+        pass
 
     # Pass any dependencies of the service in through the constructor
     #
@@ -25,24 +30,44 @@ class ClientService(ABC):
 
 class BinaryRunnerService(ClientService):
 
+    @staticmethod
+    def get_label():
+        return 'run_binary'
+
     def __init__(self, client, binary_runner):
         super().__init__(client)
         self._binary_runner = binary_runner
 
     def execute(self, data):
-        filepath = data["filepath"]
-        arguments = data["arguments"]
-        self._binary_runner.run(filepath, arguments)
+        task = data["task_instructions"]
+        arguments = data["data_instructions"]
+
+        if not hasattr(self.client, 'binary_paths'):
+            raise ValueError('Client does not have any binaries')
+        if task not in self.client.binary_paths:
+            raise ValueError('Task "' + task + '" does not exist')
+
+        self._binary_runner.run(self.client.binary_paths[task], arguments)
 
 
 class BinaryReceiverService(ClientService):
 
-    def __init__(self, client, filepath):
+    @staticmethod
+    def get_label():
+        return 'get_binaries'
+
+    def __init__(self, client, base_filepath):
         self.client = client
-        self._filepath = filepath
+        self._base_filepath = base_filepath
+        self.client.binary_paths = {}
 
     def execute(self, data):
-        base64_data = data['base64_binary']
-        raw_data = b64decode(base64_data)
-        with open(self._filepath, 'wb') as file_writer:
-            file_writer.write(raw_data)
+        binaries = data['base64_binaries']
+        for task_name, encoded_bin in binaries.items():
+            # Decode and save each binary in the response.
+            binary_path = self._base_filepath + task_name
+            self.client.binary_paths[task_name] = binary_path
+
+            raw_data = b64decode(encoded_bin)
+            with open(binary_path, 'wb') as file_writer:
+                file_writer.write(raw_data)
