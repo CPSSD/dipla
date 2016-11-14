@@ -1,7 +1,6 @@
 #!groovy
 
 node {
-
   timeout(30) {
   
   	currentBuild.result = 'SUCCESS'
