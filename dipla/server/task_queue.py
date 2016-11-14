@@ -9,7 +9,9 @@ import queue
 class TaskQueue:
     """
     The TaskQueue is, as the name suggests, a FIFO queue for storing Tasks that
-    should be executed by the workers.
+    should be executed by the workers. It also has a pool of waiting tasks that
+    have not received enough data inputs to be executed, and a pool of data
+    that is expecting to go into a task but no task is yet waiting for it.
     """
 
     def __init__(self):
@@ -18,12 +20,15 @@ class TaskQueue:
         self.queue_head = None
         self.queue_tail = None
 
+        # A list of (data_type, value) tuples
         self.ready_data = []
+        # A list of Tasks that do not have all the data they need yet
         self.waiting_tasks = []
 
     def push_task(self, item):
         """
-        Adds a task to the queue
+        Adds a task to the queue, or to the pool of waiting tasks if it
+        is still waiting on data.
 
         Params:
          - item: The Task to be executed by a worker
@@ -33,8 +38,8 @@ class TaskQueue:
         """
 
         if not item.ready():
-            # If the item is still waiting on data, then we want to add it to
-            # the store of waiting tasks
+            # If the item is still waiting on data, then we want to add
+            # it to the store of waiting tasks
             self.waiting_tasks.append(item)
             return
 
@@ -51,19 +56,33 @@ class TaskQueue:
             self.queue_tail = new_node 
 
     def update_waiting_tasks(self):
+        """Taking the newly received data, see if any tasks are now ready
+        to go."""
+        # Iterate backwards so we can delete things without messing up
+        # indexes
         for i in range(len(self.ready_data)-1, -1, -1):
             data_type, value = self.ready_data[i]
-            j = 0
             found = False
+            # Find a task that needs this data, and give it to it
             for j in range(len(self.waiting_tasks)):
                 if self.waiting_tasks[j].requires_type(data_type):
                     found = True
+                    self.waiting_tasks[j].give_data(data_type, value)
                     break
             if found:
-                self.waiting
-                
+                del self.ready_data[i]
 
+         # Check for tasks that are ready to go
+         for i in range(len(self.waiting_tasks)-1, -1, -1):
+             if self.waiting_tasks[i].ready():
+                 # Add this task to the live queue
+                 self.push_task(self.waiting_tasks[i])
+                 # Delete this task from the waiting list
+                 del self.waiting_tasks[i]
+                 
     def add_new_data(self, data_type, value):
+        """Add some new data to the pool and see if it makes any tasks
+        ready to go."""
         self.ready_data.append((data_type, value))
         self.update_waiting_tasks()
 
