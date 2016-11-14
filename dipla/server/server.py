@@ -6,6 +6,7 @@ import websockets
 import dipla.server.task_queue
 
 from dipla.server.worker_group import WorkerGroup, Worker
+from dipla.shared.services import ServiceError
 from base64 import b64encode
 
 
@@ -40,12 +41,13 @@ class BinaryManager:
 class ServerServices:
 
     def __init__(self):
-        # Raising an expection in these services will NOT return an error to
-        # to the client, the service should add a field to the dict it returns
-        # that indicates an error occured.
+        # Raising an exception will transmit it back to the client. A
+        # ServiceError lets you include a specific error code to allow
+        # the client to better choose what to do with it.
         self.services = {
             'get_binaries': self._handle_get_binaries,
             'get_instructions': self._handle_get_instructions,
+            'runtime_error': self._handle_runtime_error,
         }
 
     def get_service(self, label):
@@ -58,10 +60,7 @@ class ServerServices:
         try:
             task_list = server.binary_manager.get_binaries(platform)
         except KeyError as e:
-            data = {
-                'error': str(e),
-            }
-            return data
+            raise ServiceError(e, 2)
 
         encoded_binaries = {}
         for task_name, path in task_list:
@@ -84,6 +83,11 @@ class ServerServices:
         except task_queue.TaskQueueEmpty as e:
             data['command'] = 'quit'
         return data
+
+    def _handle_runtime_error(self, message, server):
+        print('Client had an error (code %d): %s' % (message['code'],
+            message['details']))
+        return None
 
 
 class Server:
@@ -123,8 +127,8 @@ class Server:
                 Worker(user_id, websocket, quality=0.5))
         except ValueError:
             # TODO(cianlr): Log something here indicating the error
-            data = {'details': 'UserID already taken'}
-            await self._send_message(websocket, 'general_error', data)
+            data = {'details': 'UserID already taken', 'code': 0}
+            await self._send_message(websocket, 'runtime_error', data)
             return
         # This is kind of unusual, we add a new worker to the group and
         # then pull out whatever is at the top of the group and repurpose
@@ -146,10 +150,17 @@ class Server:
                                              response_data)
                 except (ValueError, KeyError) as e:
                     # If there is a general error that isn't service specific
-                    # then send a message with the 'general_error' label.
-                    data = {'details': str(e)}
+                    # then send a message with the 'runtime_error' label.
+                    data = {'details': 'Error during websocket loop: %s' % str(e),
+                        'code': 1}
                     await self._send_message(worker.websocket,
-                                             'general_error',
+                                             'runtime_error',
+                                             data)
+                except ServiceError as e:
+                    # This error has a specific code to transmit attached to it
+                    data = {'details': str(e), 'code': e.code}
+                    await self._send_message(worker.websocket,
+                                             'runtime_error',
                                              data)
         except websockets.exceptions.ConnectionClosed as e:
             print(worker.uid + " has closed the connection")

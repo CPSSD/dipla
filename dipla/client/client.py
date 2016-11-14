@@ -6,6 +6,7 @@ import time
 import logging
 import os
 
+from dipla.shared.services import ServiceError
 
 class Client(object):
 
@@ -49,6 +50,22 @@ class Client(object):
         # run the coroutine to send the message
         asyncio.ensure_future(self._send_async(websocket, json_message))
 
+    def send_error(self, details, code, websocket):
+        """Send an error to the server.
+
+        details, str: the error message.
+        code, int: the error code.
+        websocket, websockets.websocket: this client's websocket connected
+            to the server"""
+        message = {
+            'label': 'runtime_error',
+            'data': {
+                'details': details,
+                'code': code,
+            }
+        }
+        self.send(message, websocket)
+
     async def _send_async(self, websocket, message):
         """Asynchronous task for sending a message to the server.
 
@@ -66,7 +83,10 @@ class Client(object):
             while True:
                 self.logger.warning('iter')
                 message = await websocket.recv()
-                self._handle(message)
+                try:
+                    self._handle(message)
+                except ServiceError as e:
+                    self.send_error(str(e), e.code, websocket)
         except websockets.exceptions.ConnectionClosed:
             self.logger.warning("Connection closed.")
 
@@ -76,6 +96,9 @@ class Client(object):
         raw_message, string: the raw data received from the server."""
         self.logger.debug("Received: %s." % raw_message)
         message = json.loads(raw_message)
+        if not ('label' in message and 'data' in message):
+            raise ServiceError('Missing field from message: %s' % message,
+                4)
         self._run_service(message["label"], message["data"])
 
     def _run_service(self, label, data):
@@ -84,6 +107,7 @@ class Client(object):
             service.execute(data)
         except KeyError:
             self.logger.error("Failed to find service: {}".format(label))
+            raise ServiceError('Failed to find service: {}'.format(label), 5)
 
     async def _start_websocket(self):
         """Run the loop receiving websocket messages. Makes use of

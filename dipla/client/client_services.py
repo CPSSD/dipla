@@ -1,3 +1,5 @@
+import logging
+
 from abc import ABC, abstractmethod, abstractstaticmethod
 from base64 import b64decode
 
@@ -71,3 +73,17 @@ class BinaryReceiverService(ClientService):
             raw_data = b64decode(encoded_bin)
             with open(binary_path, 'wb') as file_writer:
                 file_writer.write(raw_data)
+
+class ServerErrorService(ClientService):
+
+    @staticmethod
+    def get_label():
+        return 'runtime_error'
+
+    def __init__(self, client):
+        super().__init__(client)
+        self.logger = logging.getLogger(__name__)
+
+    def execute(self, data):
+        self.logger.error('Error from server (code %d): %s' % (
+            data['code'], data['details']))
