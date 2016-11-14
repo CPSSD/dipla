@@ -16,12 +16,14 @@ class BinaryRunnerServiceTest(TestCase):
 
     def given_sample_json_data(self):
         self.json_data = {
-            "filepath": "foo",
-            "arguments": "bar"
+            "task_instructions": "foo",
+            "data_instructions": "bar"
         }
 
     def given_a_binary_runner_service(self):
-        mock_client = None
+        mock_client = DummyClient()
+        self.path_that_should_be_run = 'test_path'
+        mock_client.binary_paths = {'foo': self.path_that_should_be_run}
         self.mock_binary_runner = MockBinaryRunner()
         self.service = BinaryRunnerService(mock_client,
                                            self.mock_binary_runner)
@@ -30,8 +32,8 @@ class BinaryRunnerServiceTest(TestCase):
         self.service.execute(self.json_data)
 
     def then_the_binary_runner_will_receive_the_correct_arguments(self):
-        correct_filepath = self.json_data["filepath"]
-        correct_arguments = self.json_data["arguments"]
+        correct_filepath = self.path_that_should_be_run
+        correct_arguments = self.json_data["data_instructions"]
         runner = self.mock_binary_runner
         self.assertTrue(runner.received(correct_filepath, correct_arguments))
 
@@ -44,17 +46,24 @@ class BinaryReceiverServiceTest(TestCase):
 
     def setUp(self):
         self.message = b"banana"
-        self.json_data = {"base64_binary": "YmFuYW5h"}
-        self.service = BinaryReceiverService(None, filepath="tmp.exe")
+        self.base_filepath = "tmp_"
+        self.binary_name = "add"
+        self.json_data = {"base64_binaries": {"add": "YmFuYW5h"}}
+        self.service = BinaryReceiverService(DummyClient(),
+                                             base_filepath=self.base_filepath)
 
     def test_that_receiver_decodes_and_saves_to_file(self):
         self.service.execute(self.json_data)
-        with open(self.service._filepath, 'rb') as filereader:
+        with open(self.base_filepath + self.binary_name, 'rb') as filereader:
             data = filereader.read()
             self.assertEqual(self.message, data)
 
     def tearDown(self):
-        os.remove(self.service._filepath)
+        os.remove(self.base_filepath + self.binary_name)
+
+
+class DummyClient:
+    pass
 
 
 class MockBinaryRunner(CommandLineBinaryRunner):
