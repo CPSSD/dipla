@@ -68,14 +68,14 @@ class TaskQueueNode:
         LinkedList
         """
         self.container_queue = container_queue
-        task_item._container_node = self
+        task_item.container_node = self
 
         self.task_item = task_item
         self.previous_node = previous_node
         self.next_node = next_node
 
     def pop(self):
-        del self.task_item._container_node
+        del self.task_item.container_node
 
         # If this is the only item in the LinkedList
         if self.previous_node is None and self.next_node is None:
@@ -121,7 +121,7 @@ class Task:
             self._complete_task()
 
     def _complete_task(self):
-        if hasattr(self, "_container_node"):
+        if hasattr(self, "container_node"):
             # Take this element out of the LinkedList
-            self._container_node.pop()
+            self.container_node.pop()
         self.completed = True
