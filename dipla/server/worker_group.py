@@ -112,7 +112,7 @@ class WorkerGroup:
         return self.ready_workers + list(self.busy_workers.values())
 
     def generate_uid(self):
-        return uid_generator.generate_uid(length=8, existing_uids=[x.uid for x in self._all_workers()])
+        return uid_generator.generate_uid(length=8, existing_uids=self.worker_uids())
         
 
 
