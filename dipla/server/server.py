@@ -6,6 +6,7 @@ import websockets
 import dipla.server.task_queue
 
 from dipla.server.worker_group import WorkerGroup, Worker
+from dipla.shared.services import ServiceError
 from base64 import b64encode
 
 
@@ -85,7 +86,7 @@ class ServerServices:
 
     def _handle_runtime_error(self, message, server):
         print('Client had an error (code %d): %s' % (message['code'],
-            message['details'])
+            message['details']))
         return None
 
 
@@ -189,8 +190,3 @@ class Server:
 
         asyncio.get_event_loop().run_until_complete(start_server)
         asyncio.get_event_loop().run_forever()
-
-class ServiceError(RuntimeError):
-    def __init__(self, message, code):
-        super(ServiceError, self).__init__(message)
-        self.code = code
