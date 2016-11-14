@@ -46,6 +46,7 @@ class ServerServices:
         self.services = {
             'get_binaries': self._handle_get_binaries,
             'get_instructions': self._handle_get_instructions,
+            'client_result': self._handle_client_result,
         }
 
     def get_service(self, label):
@@ -85,6 +86,11 @@ class ServerServices:
         except task_queue.TaskQueueEmpty as e:
             data['command'] = 'quit'
         return data
+
+    def _handle_client_result(self, message, server):
+        data_type = message['type']
+        value = message['value']
+        server.task_queue.add_new_data(data_type, value)
 
 
 class Server:
