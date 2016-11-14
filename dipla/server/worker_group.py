@@ -3,10 +3,9 @@ This module contains the WorkerGroup and other supporting classes. It is
 intended for this file to contain the code to manage the workers.
 """
 import heapq
-import random
 import operator
 
-from functools import reduce
+from dipla.shared import uid_generator
 
 
 class WorkerGroup:
@@ -112,26 +111,9 @@ class WorkerGroup:
         """
         return self.ready_workers + list(self.busy_workers.values())
 
-    def generate_uid(self, length, safe=True,
-                     choices='abcdefghijklmnopqrstuvwxyz'):
-        worker_uids = self.worker_uids()
-
-        # Remove duplicates from the choices string
-        choices = ''.join(set(choices))
-
-        # If safe mode is activated, raise an error if it is possible
-        # that this search for a uid could run infintitely because
-        # there are no unique IDs left to generate
-        if safe and len(worker_uids) == len(choices)**length:
-            raise WorkerIDsExhausted("""Safe mode active and it is
-                possible that all UIDs have been exhausted""")
-
-
-        while True:
-            suggested_uid = ''.join(
-                    random.choice(choices) for i in range(length))
-            if not suggested_uid in worker_uids:
-                return suggested_uid
+    def generate_uid(self):
+        return uid_generator.generate_uid(length=8, existing_uids=self.worker_uids())
+        
 
 
 class WorkerIDsExhausted(Exception):
