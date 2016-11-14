@@ -42,7 +42,10 @@ node {
   			sh 'pep8 dipla'
   			sh 'pep8 tests'
   		}
-  
+ 
+      stage ('Build example binaries') {
+        sh 'tests/example_binaries/build_binaries.sh'
+ 
   		stage ('Run Tests') {
   			sh 'nosetests -v'
   		}
