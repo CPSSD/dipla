@@ -177,10 +177,19 @@ class DataInstruction:
         Task.
          - value: The actual value of this data instruction, of any type.
         """
-        self.data_type = data_type
-        self.value = value
+        # private, with a get_(), as some data may be drawn from a stream,
+        # database, or similar.
+        self._data_type = data_type
+        self._value = value
 
     def ready(self):
         """Returns True if this DataInstruction is ready to be sent, and
         False if it is still waiting to be fulfilled."""
-        return self.value is not None
+        return self._value is not None
+
+   def get_value(self):
+        """Returns the underlying data of this container."""
+        return self._value
+
+   def get_type(self):
+        return self._data_type
