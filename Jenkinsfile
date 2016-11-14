@@ -20,10 +20,9 @@ node {
   
   	try {
   		stage ('Install Dependencies') {
-  			sh 'scripts/setup-env-ubuntu.sh'
-  			sh 'sudo apt-get install -y python3==3.5.1*'
-  			sh 'sudo apt-get install -y python-pip'
-  			sh 'sudo pip install virtualenv'
+  			sh 'sudo apt-get install --upgrade -y python3'
+  			sh 'sudo apt-get install --upgrade -y python3-pip'
+  			//sh 'sudo pip3 install virtualenv'
   		}
   
   		stage ('Create Test Results Folder') {
@@ -31,16 +30,12 @@ node {
   		}
   
   		stage ('Setup virtualenv') {
-  			sh 'virtualenv -p python3 venv'
-  			source venv/bin/activate
+  			//sh 'virtualenv -p python3 venv'
+  			//sh 'source venv/bin/activate'
   		}
   
   		stage ('Install pip dependencies') {
-  			sh 'pip install -r --upgrade requirements.txt'
-  		}
-  
-  		stage ('Build Applications') {
-  			sh 'scripts/build.sh > test_results/build_app.txt'
+  			sh 'pip3 install --upgrade -r requirements.txt'
   		}
   
   		stage ('Run python linter') {
