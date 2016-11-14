@@ -197,6 +197,32 @@ class Task:
         self.completion_check = completion_check
         self.completed = False
 
+    @staticmethod
+    def create(task_instructions,
+        expected_data,
+        completion_check=lambda x:True):
+        """Create a Task.
+
+        Params:
+         - task_instructions: See __init__
+         - expected_data: A dict in the form of {name:type}, where both
+        "name" and "type" are strings. "name" refers to the name of a
+        DataInstruction that this Task will need as input, and "type"
+        refers to the type of that DataInstruction.
+         - completion_check: See __init__
+
+        Example usage:
+        Task.create('add', {'a': 'number', 'b': 'number })
+
+        Returns:
+        A Task.
+        """
+        data_instructions = [DataInstruction(k, expected_data[k])
+            for k in expected_data.keys()]
+        return Task(data_instructions,
+            task_instructions,
+            completion_check)
+
     def add_result(self, result):
         if self.completion_check(result):
             self._complete_task()
