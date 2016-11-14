@@ -38,7 +38,7 @@ class TaskQueue:
             new_node = TaskQueueNode(
                 item, container_queue=self, previous_node=self.queue_tail)
             self.queue_tail.next_node = new_node
-            self.queue_tail = new_node 
+            self.queue_tail = new_node
 
     def pop_task(self):
         """
