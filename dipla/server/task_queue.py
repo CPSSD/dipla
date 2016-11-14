@@ -18,6 +18,9 @@ class TaskQueue:
         self.queue_head = None
         self.queue_tail = None
 
+        self.ready_data = []
+        self.waiting_tasks = []
+
     def push_task(self, item):
         """
         Adds a task to the queue
@@ -28,6 +31,13 @@ class TaskQueue:
         Returns
          - None
         """
+
+        if not item.ready():
+            # If the item is still waiting on data, then we want to add it to
+            # the store of waiting tasks
+            self.waiting_tasks.append(item)
+            return
+
         # If the LinkedList is empty
         if self.queue_head is None:
             # Set this item as the head and tail of the list
@@ -40,6 +50,23 @@ class TaskQueue:
             self.queue_tail.next_node = new_node
             self.queue_tail = new_node 
 
+    def update_waiting_tasks(self):
+        for i in range(len(self.ready_data)-1, -1, -1):
+            data_type, value = self.ready_data[i]
+            j = 0
+            found = False
+            for j in range(len(self.waiting_tasks)):
+                if self.waiting_tasks[j].requires_type(data_type):
+                    found = True
+                    break
+            if found:
+                self.waiting
+                
+
+    def add_new_data(self, data_type, value):
+        self.ready_data.append((data_type, value))
+        self.update_waiting_tasks()
+
     def pop_task(self):
         """
         Removes a Task from the queue and returns it
@@ -50,6 +77,7 @@ class TaskQueue:
         Returns:
          - A Task object from the top of the queue
         """
+
         if self.queue_head is None:
             raise TaskQueueEmpty("Could not pop task from empty TaskQueue")
 
@@ -164,6 +192,17 @@ class Task:
         """Returns True if the task has all the data it needs to run"""
         return all([x.ready() for x in self.data_instructions])
 
+    def requires_type(self, data_type):
+        return [x for x in self.data_instructions if (
+            not x.ready() and x.get_type() == data_type)]
+
+    def give_data(self, data_type, value):
+        for i in range(len(self.data_instructions)):
+            if ((not self.data_instructions[i].ready()) and
+                self.data_instructions[i].get_type() == data_type):
+                self.data_instructions[i].set_value(value) 
+                return
+
 
 class DataInstruction:
     """
@@ -194,6 +233,9 @@ class DataInstruction:
    def get_value(self):
         """Returns the underlying data of this container."""
         return self._value
+
+   def set_value(self, value):
+        self._value = value
 
    def get_type(self):
         return self._data_type
