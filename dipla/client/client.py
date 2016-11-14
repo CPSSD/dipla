@@ -8,6 +8,7 @@ import os
 
 from dipla.shared.services import ServiceError
 
+
 class Client(object):
 
     def __init__(self, server_address):
@@ -84,27 +85,35 @@ class Client(object):
                 self.logger.warning('iter')
                 message = await websocket.recv()
                 try:
-                    self._handle(message)
+                    self._handle(message, websocket)
                 except ServiceError as e:
                     self.send_error(str(e), e.code, websocket)
         except websockets.exceptions.ConnectionClosed:
             self.logger.warning("Connection closed.")
 
-    def _handle(self, raw_message):
+    def _handle(self, raw_message, websocket):
         """Do something with a message received from the server.
 
         raw_message, string: the raw data received from the server."""
         self.logger.debug("Received: %s." % raw_message)
         message = json.loads(raw_message)
         if not ('label' in message and 'data' in message):
-            raise ServiceError('Missing field from message: %s' % message,
-                4)
-        self._run_service(message["label"], message["data"])
+            raise ServiceError('Missing field from message: %s' % message, 4)
+
+        result = self._run_service(message["label"], message["data"])
+        if result is not None:
+            # send the client_result back to the server
+            self.send({
+                'label': 'client_result',
+                'data': {
+                    'type': message['label'] + '_result',
+                    'value': result
+                }}, websocket)
 
     def _run_service(self, label, data):
         try:
             service = self.services[label]
-            service.execute(data)
+            return service.execute(data)
         except KeyError:
             self.logger.error("Failed to find service: {}".format(label))
             raise ServiceError('Failed to find service: {}'.format(label), 5)

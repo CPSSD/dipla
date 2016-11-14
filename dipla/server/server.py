@@ -47,6 +47,7 @@ class ServerServices:
         self.services = {
             'get_binaries': self._handle_get_binaries,
             'get_instructions': self._handle_get_instructions,
+            'client_result': self._handle_client_result,
             'runtime_error': self._handle_runtime_error,
         }
 
@@ -79,14 +80,22 @@ class ServerServices:
         try:
             task = server.task_queue.pop_task()
             data['task_instructions'] = task.task_instructions
-            data['data_instructions'] = task.data_instructions
+            data['data_instructions'] = json.dumps(
+                {d.name: d.get_value() for d in task.data_instructions})
         except task_queue.TaskQueueEmpty as e:
             data['command'] = 'quit'
         return data
 
+    def _handle_client_result(self, message, server):
+        data_type = message['type']
+        value = message['value']
+        print('New client result of type "%s": %s' % (data_type, value))
+        server.task_queue.add_new_data(data_type, value)
+        return None
+
     def _handle_runtime_error(self, message, server):
         print('Client had an error (code %d): %s' % (message['code'],
-            message['details']))
+                                                     message['details']))
         return None
 
 
@@ -145,14 +154,18 @@ class Server:
                         await worker.websocket.recv())
                     service = self.services.get_service(message['label'])
                     response_data = service(message['data'], self)
+                    if response_data is None:
+                        continue
                     await self._send_message(worker.websocket,
                                              message['label'],
                                              response_data)
                 except (ValueError, KeyError) as e:
                     # If there is a general error that isn't service specific
                     # then send a message with the 'runtime_error' label.
-                    data = {'details': 'Error during websocket loop: %s' % str(e),
-                        'code': 1}
+                    data = {
+                        'details': 'Error during websocket loop: %s' % str(e),
+                        'code': 1,
+                    }
                     await self._send_message(worker.websocket,
                                              'runtime_error',
                                              data)
