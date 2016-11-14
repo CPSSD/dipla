@@ -22,7 +22,7 @@ node {
   		stage ('Install Dependencies') {
   			sh 'sudo apt-get install --upgrade -y python3'
   			sh 'sudo apt-get install --upgrade -y python3-pip'
-  			sh 'sudo pip install virtualenv'
+  			sh 'sudo pip3 install virtualenv'
   		}
   
   		stage ('Create Test Results Folder') {
