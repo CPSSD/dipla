@@ -6,7 +6,8 @@ All errors sent betweent the client and server should adhere to the following fo
 {
 	"label": "error",
 	"data": {
-		"details": "Exception occured trying to run binary X"
+		"details": "Exception occured trying to run binary X",
+		"code": 8,
 	}
 }
 ```
