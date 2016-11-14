@@ -1,15 +1,19 @@
-""" Worker Group
-
-A representation of a group of workers, which is used to manage the
-order in which workers are chosen. This should track which workers are
-available to start a new task, and which are currently running a task
 """
-
+This module contains the WorkerGroup and other supporting classes. It is
+intended for this file to contain the code to manage the workers.
+"""
 import heapq
 import operator
 
 
 class WorkerGroup:
+    """
+    A representation of a group of workers which is used to manage the
+    order in which workers are chosen.
+
+    This tracks which workers are available to start a new task, and which are
+    currently running a task.
+    """
 
     # TODO(StefanKennedy): Add functionality to choose another
     # worker when a busy worker disconnects
@@ -21,11 +25,32 @@ class WorkerGroup:
         self.busy_workers = {}
 
     def add_worker(self, worker):
+        """
+        Add a worker to the group in the 'ready' state.
+
+        Params:
+         - worker: The Worker object to be added.
+
+        Raises:
+         - ValueError when a worker with the same uid already exists in the
+           group.
+        """
         if worker.uid in self.worker_uids():
             raise ValueError("Unique ID " + worker.uid + " is already in use")
         heapq.heappush(self.ready_workers, worker)
 
     def remove_worker(self, uid):
+        """
+        Removes a worker (identified by it's uid) from the group, irregardless
+        of its state.
+
+        Params:
+         - uid: The unique ID of the worker to be removed.
+
+        Raises:
+         - KeyError if the uid provided does not match any of the workers in
+           the group.
+        """
         if uid in self.busy_workers:
             self.busy_workers.pop(uid)
             return
@@ -38,28 +63,50 @@ class WorkerGroup:
 
         raise KeyError("No worker was found with the ID: " + uid)
 
-    # Choose a worker to mark leased, so that this will not be used by
-    # another task at the same time. This must be returned later using
-    # return_worker so that the worker can be reused
     def lease_worker(self):
+        """
+        Choose a worker to mark leased so that this will not be used by another
+        task at the same time. This must be returned later using return_worker
+        so that the worker can be reused.
+
+        Returns:
+         - The highest quality available Worker
+        """
         if len(self.ready_workers) == 0:
             raise IndexError("No workers available to lease")
         chosen = heapq.heappop(self.ready_workers)
         self.busy_workers[chosen.uid] = chosen
         return chosen
 
-    # Indicate that a leased worker is no longer needed and can now be
-    # used by other tasks.
     def return_worker(self, uid):
+        """
+        Indicate that a leased Worker is no longer needed and can now be used
+        by other tasks. The Worker object must not be used after it is
+        returned.
+
+        Params:
+         - uid: The uid of the worker to be returned and marked as available
+
+        Raises:
+         - KeyError if the uid doesn't correspond to any leased workers
+        """
         if uid not in self.busy_workers.keys():
             raise KeyError("No busy workers with the provided key")
         worker = self.busy_workers.pop(uid)
         heapq.heappush(self.ready_workers, worker)
 
     def worker_uids(self):
+        """
+        Returns:
+         - The uids of all workers, regardless of state
+        """
         return [x.uid for x in self._all_workers()]
 
     def _all_workers(self):
+        """
+        Returns:
+         - A list of all the ready workers and busy workers
+        """
         return self.ready_workers + list(self.busy_workers.values())
 
 
@@ -67,27 +114,36 @@ class WorkerIDsExhausted(Exception):
     pass
 
 
-# Abstraction of the information necessary to represent a Worker in the
-# worker group
 class Worker:
+    """
+    Abstraction of the information necessary to represent a worker in the
+    WorkerGroup.
+    """
 
     def __init__(self, uid, websocket, quality):
         """
-        uid is the workers Unique Identifier string
+        Initalises the worker.
 
-        websocket is the workers connected websocket
-
-        quality is a numeric indicator of how preferrable this worker is
-        for running a task. This could depend on the hosts ping,
-        reliability, processing power, etc.
+        Params:
+         - uid: The worker's Unique Identifier string.
+         - websocket: The worker's connected websocket.
+         - quality: A numeric indicator of how preferrable this worker is for
+           running a task. This could depend on the hosts ping, reliability,
+           processing power, etc.
         """
         self.uid = uid
         self._quality = quality
         self.websocket = websocket
 
-    # The closer to zero the quality value is, the more preferable the
-    # worker is
     def quality(self):
+        """
+        Provides a value for the quality of the worker. The closer to 0 the
+        value is, the more preferable the worker. This value may differ from
+        what was provided in the constructor.
+
+        Returns:
+         - An integer 'quality' value.
+        """
         # Squaring the values here is a placeholder until a more
         # relevant quality formula is determined
         return self._quality*self._quality

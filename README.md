@@ -25,6 +25,12 @@
 
 You can now write code for the project!
 
+### Documentation
+
+To generate documentation we use [pydoc](https://docs.python.org/3.2/library/pydoc.html).
+
+It can be run with `python3 -m pydoc dipla/server/task_queue.py` where `task_queue.py` can be replaced by the file you want documentation on.
+
 ### Notes
 
 * If you install additional dependencies with pip, you can update the requirements file using `pip freeze > requirements.txt`

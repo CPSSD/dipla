@@ -1,5 +1,4 @@
-""" Task Queue
-
+"""
 This module is a queue implementation for organising distributable tasks
 using information such as the task identifier and input data
 """
@@ -8,6 +7,10 @@ import queue
 
 
 class TaskQueue:
+    """
+    The TaskQueue is, as the name suggests, a FIFO queue for storing Tasks that
+    should be executed by the workers.
+    """
 
     def __init__(self):
         # The queue head and tail represent the start and end nodes
@@ -16,6 +19,15 @@ class TaskQueue:
         self.queue_tail = None
 
     def push_task(self, item):
+        """
+        Adds a task to the queue
+
+        Params:
+         - item: The Task to be executed by a worker
+
+        Returns
+         - None
+        """
         # If the LinkedList is empty
         if self.queue_head is None:
             # Set this item as the head and tail of the list
@@ -26,11 +38,18 @@ class TaskQueue:
             new_node = TaskQueueNode(
                 item, container_queue=self, previous_node=self.queue_tail)
             self.queue_tail.next_node = new_node
-            self.queue_tail = new_node
+            self.queue_tail = new_node 
 
-    # Return the task at the front of the queue, removing it from the
-    # queue in the process
     def pop_task(self):
+        """
+        Removes a Task from the queue and returns it
+
+        Raises
+         - TaskQueueEmpty exception if there are no tasks
+
+        Returns:
+         - A Task object from the top of the queue
+        """
         if self.queue_head is None:
             raise TaskQueueEmpty("Could not pop task from empty TaskQueue")
 
@@ -39,9 +58,17 @@ class TaskQueue:
         self.queue_head = next_head
         return popped
 
-    # Return the task at the front of the queue without removing it
-    # from the queue
     def peek_task(self):
+        """
+        Returns the task at the front of the queue without removing it from
+        the queue
+
+        Raises:
+         - TaskQueueEmpty exception is there's no tasks in the queue
+
+        Returns:
+         - The Task object at the top of the queue
+        """
         if self.queue_head is None:
             raise TaskQueueEmpty("Queue was empty and could not peek item")
 
@@ -49,6 +76,9 @@ class TaskQueue:
 
 
 class TaskQueueEmpty(queue.Empty):
+    """
+    An expection to be thrown if the TaskQueue is unexpectedly empty
+    """
     pass
 
 
@@ -95,17 +125,22 @@ class TaskQueueNode:
 
 # Abstraction of the information necessary to represent a task
 class Task:
+    """
+    This is a class that should encapsulate all the information a client needs
+    to excecute a piece of work.
+    """
 
     def __init__(self, data_instructions, task_instructions,
                  completion_check=lambda x: True):
         """
-        data_instructons is an object used to determine how data should
+        Initalises the Task
+
+        Params:
+         - data_instructions: An object used to determine how data should
         be sent to a client
-
-        task_instructions is an object used to represent instructions
+         - task_instructions: An object used to represent instructions
         on what task should be carried out on the data
-
-        completion_check is a function that returns true if it can
+         - completion_check:  A function that returns true if it can
         determine that this task is complete. This function should take
         one argument which is the result that is received from the client
         The default lambda function used here causes the completion check

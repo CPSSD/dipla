@@ -54,7 +54,7 @@ class BinaryReceiverService(ClientService):
 
     @staticmethod
     def get_label():
-        return 'get_binary'
+        return 'get_binaries'
 
     def __init__(self, client, base_filepath):
         self.client = client
@@ -62,12 +62,12 @@ class BinaryReceiverService(ClientService):
         self.client.binary_paths = {}
 
     def execute(self, data):
-        base64_data = data['base64_binary']
-        binary_name = data['name']
-        binary_path = self._base_filepath + binary_name
+        binaries = data['base64_binaries']
+        for task_name, encoded_bin in binaries.items():
+            # Decode and save each binary in the response.
+            binary_path = self._base_filepath + task_name
+            self.client.binary_paths[task_name] = binary_path
 
-        self.client.binary_paths[binary_name] = binary_path
-
-        raw_data = b64decode(base64_data)
-        with open(binary_path, 'wb') as file_writer:
-            file_writer.write(raw_data)
+            raw_data = b64decode(encoded_bin)
+            with open(binary_path, 'wb') as file_writer:
+                file_writer.write(raw_data)

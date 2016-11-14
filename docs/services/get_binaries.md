@@ -1,14 +1,14 @@
-# get_binary service
+# get_binaries service
 
 ## client to server
 
-This is the message from the client to the server asking for it to send a binary.
+This is the message from the client to the server asking for it to send the binaries.
 
 The format of the message is as follows:
 
 ```js
 {
-    "label": "get_binary",
+    "label": "get_binaries",
     "data": {
         "platform":"win32",
     }
@@ -23,11 +23,14 @@ The server sends the following to the client in response:
 
 ```js
 {
-    "label":"get_binary",
+    "label":"get_binaries",
     "data": {
-         "base64_binary": "sdfskfhlskfh",
+        "base64_binaries": {
+        	"add": "QVlZWVkgbG1hbw==",
+        	"sub": "ZnVjayBhbGwgdGhlIG90aGVyIHRlYW1zLCBkaXBsYSBpcyB0b3A="
+     	}
      }
 }
 ```
 
-The field `base64_binary` here holds the raw binary data encoded in base64.
+The field `base64_binaries` here holds a dictionary that contains the task name paired with the base64'd binary.
