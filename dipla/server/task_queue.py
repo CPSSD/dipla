@@ -77,7 +77,7 @@ class TaskQueue:
 
 class TaskQueueEmpty(queue.Empty):
     """
-    An expection to be thrown if the TaskQueue is unexpectedly empty
+    An exception to be thrown if the TaskQueue is unexpectedly empty
     """
     pass
 
