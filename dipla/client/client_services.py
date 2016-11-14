@@ -49,7 +49,8 @@ class BinaryRunnerService(ClientService):
         if task not in self._client.binary_paths:
             raise ValueError('Task "' + task + '" does not exist')
 
-        return self._binary_runner.run(self.client.binary_paths[task], arguments)
+        return self._binary_runner.run(self.client.binary_paths[task],
+                                       arguments)
 
 
 class BinaryReceiverService(ClientService):

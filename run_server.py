@@ -5,9 +5,9 @@ from dipla.server.task_queue import TaskQueue, Task
 def main():
     tq = TaskQueue()
     tasks = [
-        Task.create('add', {'x':'int', 'y':'int'}),
-        Task.create('add', {'x':'int', 'y':'int'}),
-        Task.create('add', {'x':'int', 'y':'int'})
+        Task.create('add', {'x': 'int', 'y': 'int'}),
+        Task.create('add', {'x': 'int', 'y': 'int'}),
+        Task.create('add', {'x': 'int', 'y': 'int'})
     ]
     for task in tasks:
         tq.push_task(task)

@@ -162,8 +162,10 @@ class Server:
                 except (ValueError, KeyError) as e:
                     # If there is a general error that isn't service specific
                     # then send a message with the 'runtime_error' label.
-                    data = {'details': 'Error during websocket loop: %s' % str(e),
-                            'code': 1}
+                    data = {
+                        'details': 'Error during websocket loop: %s' % str(e),
+                        'code': 1,
+                    }
                     await self._send_message(worker.websocket,
                                              'runtime_error',
                                              data)

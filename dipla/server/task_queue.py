@@ -3,7 +3,8 @@ This module is a queue implementation for organising distributable tasks
 using information such as the task identifier and input data
 """
 
-import queue # needed to inherit exception from
+import queue  # needed to inherit exception from
+
 
 class TaskQueue:
     """
@@ -59,7 +60,7 @@ class TaskQueue:
         to go."""
         # Iterate backwards so we can delete things without messing up
         # indexes
-        for i in range(len(self.ready_data)-1, -1, -1):
+        for i in range(len(self.ready_data) - 1, -1, -1):
             data_type, value = self.ready_data[i]
             found = False
             # Find a task that needs this data, and give it to it
@@ -72,13 +73,13 @@ class TaskQueue:
                 del self.ready_data[i]
 
         # Check for tasks that are ready to go
-        for i in range(len(self.waiting_tasks)-1, -1, -1):
-             if self.waiting_tasks[i].ready():
-                 # Add this task to the live queue
-                 self.push_task(self.waiting_tasks[i])
-                 # Delete this task from the waiting list
-                 del self.waiting_tasks[i]
-                 
+        for i in range(len(self.waiting_tasks) - 1, -1, -1):
+            if self.waiting_tasks[i].ready():
+                # Add this task to the live queue
+                self.push_task(self.waiting_tasks[i])
+                # Delete this task from the waiting list
+                del self.waiting_tasks[i]
+
     def add_new_data(self, data_type, value):
         """Add some new data to the pool and see if it makes any tasks
         ready to go."""
@@ -198,8 +199,8 @@ class Task:
 
     @staticmethod
     def create(task_instructions,
-        expected_data,
-        completion_check=lambda x:True):
+               expected_data,
+               completion_check=lambda x: True):
         """Create a Task.
 
         Params:
@@ -217,10 +218,10 @@ class Task:
         A Task.
         """
         data_instructions = [DataInstruction(k, expected_data[k])
-            for k in expected_data.keys()]
+                             for k in expected_data.keys()]
         return Task(data_instructions,
-            task_instructions,
-            completion_check)
+                    task_instructions,
+                    completion_check)
 
     def add_result(self, result):
         if self.completion_check(result):
@@ -243,8 +244,8 @@ class Task:
     def give_data(self, data_type, value):
         for i in range(len(self.data_instructions)):
             if ((not self.data_instructions[i].ready()) and
-                self.data_instructions[i].get_type() == data_type):
-                self.data_instructions[i].set_value(value) 
+                    self.data_instructions[i].get_type() == data_type):
+                self.data_instructions[i].set_value(value)
                 return
 
 
