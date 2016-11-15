@@ -39,7 +39,7 @@ class CommandLineBinaryRunnerTest(TestCase):
 
     def given_a_sums_binary(self):
         self.filepath = PROJECT_DIRECTORY + \
-                        "tests/example_binaries/sums/sums.exe"
+            "tests/example_binaries/sums/sums.exe"
 
     def given_summing(self, num_a, num_b):
         self.arguments = [num_a, num_b]
