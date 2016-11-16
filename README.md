@@ -49,3 +49,37 @@ You can check if your code complies with the PEP8 style guide using `pep8`.
 
 * Checking all of the production code: `pep8 dipla`
 
+### Code Example
+
+Here's an example of some code you could write and distribute.
+
+'''pythoni
+import functools
+from dipla.api.decorators import distributable
+from dipla.api.decorators import task_input
+
+@distributable
+def square(number):
+    return number**2
+
+@distributable
+def remove_large(result, output_values):
+    if result > 1000000:
+        return
+    else:
+        output_values.append(result)
+
+
+@task_input
+def fetch_number_from(database):
+    next_number = int(database.get_next())
+    return next_number
+
+
+def driver():
+    database = get_database()
+    input_instructions = functools.partial(fetch_number_from, database)
+    result = square(input_instructions)
+    filtered = []
+    filter(result, filtered)
+    dipla.api.run()
