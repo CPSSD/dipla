@@ -53,7 +53,8 @@ You can check if your code complies with the PEP8 style guide using `pep8`.
 
 Here's an example of some code you could write and distribute.
 
-'''pythoni
+'''python
+
 import functools
 from dipla.api.decorators import distributable
 from dipla.api.decorators import task_input
