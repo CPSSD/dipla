@@ -1,4 +1,6 @@
-# dipla
+<h1 align="center">
+	<img src="docs/logo.bmp" alt="Dipla Logo" />
+</h1>
 
 ## Setting Up your Development Environment
 
