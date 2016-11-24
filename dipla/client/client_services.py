@@ -34,7 +34,7 @@ class BinaryRunnerService(ClientService):
 
     @staticmethod
     def get_label():
-        return 'run_binary'
+        return 'get_instructons'
 
     def __init__(self, client, binary_runner):
         super().__init__(client)
