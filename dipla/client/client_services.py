@@ -76,7 +76,8 @@ class BinaryReceiverService(ClientService):
                 file_writer.write(raw_data)
 
         message = {
-            "label":"get_instructions"
+            "label":"get_instructions",
+            "data":""
         }
         self.client.send(message)
         return None
