@@ -38,7 +38,7 @@ class Client(object):
         """Send a message to the server.
 
         message, dict: the message to be sent, a dict with a 'label' field
-            and a 'data' field."""
+            to the server"""
         if not ('label' in message and 'data' in message):
             raise ValueError(
                 'Missing label or data field in message %s.' % message)
