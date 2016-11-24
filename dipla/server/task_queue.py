@@ -20,11 +20,6 @@ class TaskQueue:
         self.queue_head = None
         self.queue_tail = None
 
-        # A list of (data_type, value) tuples
-        self.ready_data = []
-        # A list of Tasks that do not have all the data they need yet
-        self.waiting_tasks = []
-
     def push_task(self, item):
         """
         Adds a task to the queue, or to the pool of waiting tasks if it
