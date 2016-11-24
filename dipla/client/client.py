@@ -38,9 +38,7 @@ class Client(object):
         """Send a message to the server.
 
         message, dict: the message to be sent, a dict with a 'label' field
-            and a 'data' field.
-        websocket, websockets.websocket: this client's websocket connected
-            to the server"""
+            and a 'data' field."""
         if not ('label' in message and 'data' in message):
             raise ValueError(
                 'Missing label or data field in message %s.' % message)
@@ -68,16 +66,11 @@ class Client(object):
     async def _send_async(self, message):
         """Asynchronous task for sending a message to the server.
 
-        websocket, websockets.websocket: this client's websocket connected
-            to the server
         message, string: the message to be sent"""
         await self.websocket.send(message)
 
     async def receive_loop(self):
-        """Task for handling messages received from server
-
-        websocket, websockets.websocket: this client's websocket connected
-            to the server"""
+        """Task for handling messages received from server"""
         try:
             while True:
                 self.logger.warning('iter')
