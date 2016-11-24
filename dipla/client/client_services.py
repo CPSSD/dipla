@@ -42,7 +42,7 @@ class BinaryRunnerService(ClientService):
 
     def execute(self, data):
         task = data["task_instructions"]
-        arguments = data["data_instructions"]
+        arguments = data["data"]
 
         if not hasattr(self._client, 'binary_paths'):
             raise ValueError('Client does not have any binaries')

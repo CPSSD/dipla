@@ -80,8 +80,9 @@ class ServerServices:
         try:
             task = server.task_queue.pop_task()
             data['task_instructions'] = task.task_instructions
-            data['data_source'] = json.dumps(
-                {d.name: d.get_value() for d in task.data_source})
+            # In the current version the data_source is not yet created
+            # Instead the placeholder of the actual data values is used
+            data['data'] = task.data_source
         except task_queue.TaskQueueEmpty as e:
             data['command'] = 'quit'
         return data
