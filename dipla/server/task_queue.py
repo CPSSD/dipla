@@ -135,7 +135,7 @@ class Task:
     to excecute a piece of work.
     """
 
-    def __init__(self, data_source, task_runnable,
+    def __init__(self, data_source, task_instructions,
                  completion_check=lambda x: True):
         """
         Initalises the Task
@@ -152,7 +152,7 @@ class Task:
         to return true when any result is received back from the server
         """
         self.data_source = data_source
-        self.task_runnable = task_runnable
+        self.task_instructions = task_instructions
         self.completion_check = completion_check
         self.completed = False
 
