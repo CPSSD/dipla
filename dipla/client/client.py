@@ -106,7 +106,9 @@ class Client(object):
             service = self.services[label]
             return service.execute(data)
         except KeyError:
-            self.logger.error("Failed to find service: {}".format(label))
+            self.logger.error(
+                "Failed to find service: {}, services are: {}"
+                     .format(label, services.keys()))
             raise ServiceError('Failed to find service: {}'.format(label), 5)
 
     async def _start_websocket(self):
@@ -152,4 +154,4 @@ class Client(object):
                 'platform': self._get_platform()}})
 
         loop.run_until_complete(receive_task)
-        self.start()
+        #self.start()
