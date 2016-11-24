@@ -11,7 +11,7 @@ def main():
     tq.push_task(Task(source, 'fibonacci'))
 
     bm = BinaryManager()
-    bm.add_platform('.*ix.*', [
+    bm.add_platform('.*x.*', [
         ('fibonacci', 'fibonacci')
     ])
     bm.add_platform('.*win32.*', [
