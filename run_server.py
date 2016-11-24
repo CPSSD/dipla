@@ -12,8 +12,7 @@ def main():
 
     bm = BinaryManager()
     bm.add_platform('.*ix.*', [
-        ('add', '/posix/add/path'),
-        ('sub', '/posix/sub/path'),
+        ('fibonacci', 'fibonacci')
     ])
     bm.add_platform('.*win32.*', [
         ('add', '/win32/add/path'),
