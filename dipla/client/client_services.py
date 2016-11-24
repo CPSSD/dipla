@@ -74,6 +74,11 @@ class BinaryReceiverService(ClientService):
             raw_data = b64decode(encoded_bin)
             with open(binary_path, 'wb') as file_writer:
                 file_writer.write(raw_data)
+
+        message = {
+            "label":"get_instructions"
+        }
+        self.client.send(message)
         return None
 
 
