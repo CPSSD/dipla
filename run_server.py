@@ -20,7 +20,7 @@ def main():
     tq.add_new_data('int', 4)
 
     bm = BinaryManager()
-    bm.add_platform('.*ix.*', [
+    bm.add_platform('.*x.*', [
         ('add', '/posix/add/path'),
         ('sub', '/posix/sub/path'),
     ])
