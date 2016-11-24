@@ -144,8 +144,8 @@ class Task:
         Params:
          - data_source: An iteratable object that can be used to read
         the input for this task
-         - task_runnable: A runnable function that this task uses to
-        process the data
+         - task_instructions: An object used to represent instructions
+        on what task should be carried out on the data
          - completion_check:  A function that returns true if it can
         determine that this task is complete. This function should take
         one argument which is the result that is received from the client
