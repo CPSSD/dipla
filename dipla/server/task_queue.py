@@ -32,12 +32,6 @@ class TaskQueue:
          - None
         """
 
-        if not item.ready():
-            # If the item is still waiting on data, then we want to add
-            # it to the store of waiting tasks
-            self.waiting_tasks.append(item)
-            return
-
         # If the LinkedList is empty
         if self.queue_head is None:
             # Set this item as the head and tail of the list
@@ -115,7 +109,7 @@ class TaskQueueNode:
         self.previous_node = previous_node
         self.next_node = next_node
 
-    def pop(self):
+    def consume(self):
         del self.task_item.container_node
 
         # If this is the only item in the LinkedList
@@ -141,23 +135,24 @@ class Task:
     to excecute a piece of work.
     """
 
-    def __init__(self, data_instructions, task_instructions,
+    def __init__(self, data_source, task_runnable,
                  completion_check=lambda x: True):
         """
         Initalises the Task
 
         Params:
-         - data_instructions: A list of DataInstructions
-         - task_instructions: An object used to represent instructions
-        on what task should be carried out on the data
+         - data_source: An iteratable object that can be used to read
+        the input for this task
+         - task_runnable: A runnable function that this task uses to
+        process the data
          - completion_check:  A function that returns true if it can
         determine that this task is complete. This function should take
         one argument which is the result that is received from the client
         The default lambda function used here causes the completion check
         to return true when any result is received back from the server
         """
-        self.data_instructions = data_instructions
-        self.task_instructions = task_instructions
+        self.data_source = data_source
+        self.task_runnable = task_runnable
         self.completion_check = completion_check
         self.completed = False
 
