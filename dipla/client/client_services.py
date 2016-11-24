@@ -1,4 +1,5 @@
 import logging
+import os
 
 from abc import ABC, abstractmethod, abstractstaticmethod
 from base64 import b64decode
@@ -34,7 +35,7 @@ class BinaryRunnerService(ClientService):
 
     @staticmethod
     def get_label():
-        return 'get_instructons'
+        return 'get_instructions'
 
     def __init__(self, client, binary_runner):
         super().__init__(client)
@@ -42,7 +43,7 @@ class BinaryRunnerService(ClientService):
 
     def execute(self, data):
         task = data["task_instructions"]
-        arguments = data["data"]
+        arguments = str(data["data"])
 
         if not hasattr(self._client, 'binary_paths'):
             raise ValueError('Client does not have any binaries')
@@ -74,6 +75,7 @@ class BinaryReceiverService(ClientService):
             raw_data = b64decode(encoded_bin)
             with open(binary_path, 'wb') as file_writer:
                 file_writer.write(raw_data)
+            os.chmod(binary_path, 511)
 
         message = {
             "label":"get_instructions",
