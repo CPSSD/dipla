@@ -8,7 +8,7 @@ def main():
     tq = TaskQueue()
 
     source = [1, 2, 3, 4, 5]
-    tq.push_task(Task(source, distributable_squarer))
+    tq.push_task(Task(source, 'fibonacci'))
 
     bm = BinaryManager()
     bm.add_platform('.*ix.*', [
