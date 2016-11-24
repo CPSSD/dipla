@@ -4,6 +4,7 @@ using information such as the task identifier and input data
 """
 
 import queue  # needed to inherit exception from
+import sys
 
 
 class TaskQueue:
@@ -59,7 +60,7 @@ class TaskQueue:
             raise TaskQueueEmpty("Could not pop task from empty TaskQueue")
 
         next_head = self.queue_head.next_node
-        popped = self.queue_head.pop()
+        popped = self.queue_head.consume()
         self.queue_head = next_head
         return popped
 
@@ -163,5 +164,5 @@ class Task:
     def _complete_task(self):
         if hasattr(self, "container_node"):
             # Take this element out of the LinkedList
-            self.container_node.pop()
+            self.container_node.consume()
         self.completed = True
