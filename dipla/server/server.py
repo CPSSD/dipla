@@ -79,7 +79,7 @@ class ServerServices:
     def _handle_get_instructions(self, message, params):
         data = {}
         try:
-            task = params['server'].task_queue.pop_task()
+            task = params['server'].task_queue.peek_task()
             data['task_instructions'] = task.task_instructions
             # In the current version the data_source is not yet created
             # Instead the placeholder of the actual data values is used

@@ -6,6 +6,8 @@ using information such as the task identifier and input data
 import queue  # needed to inherit exception from
 import sys
 
+from dipla.shared import uid_generator
+
 
 class TaskQueue:
     """
@@ -16,10 +18,11 @@ class TaskQueue:
     """
 
     def __init__(self):
-        # The queue head and tail represent the start and end nodes
-        # respectively of a LinkedList
+        # The queue head and tail represent the uids of the start and
+        # end nodes respectively of a LinkedList
         self.queue_head = None
         self.queue_tail = None
+        self.nodes = {}
 
     def push_task(self, item):
         """
@@ -32,18 +35,21 @@ class TaskQueue:
         Returns
          - None
         """
+        task_uid = uid_generator.generate_uid(
+            length = 8, existing_uids=self.nodes.keys())
 
         # If the LinkedList is empty
         if self.queue_head is None:
             # Set this item as the head and tail of the list
-            self.queue_head = TaskQueueNode(item, container_queue=self)
-            self.queue_tail = self.queue_head
+            self.nodes[task_uid] = TaskQueueNode(item, task_uid)
+            self.queue_head = task_uid
+            self.queue_tail = task_uid
         else:
             # Add an item to the end of the list
-            new_node = TaskQueueNode(
-                item, container_queue=self, previous_node=self.queue_tail)
-            self.queue_tail.next_node = new_node
-            self.queue_tail = new_node
+            self.nodes[task_uid] = TaskQueueNode(
+                item, uid=task_uid, previous_node=self.queue_tail)
+            self.queue_tail.next_node = task_uid
+            self.queue_tail = task_uid
 
     def pop_task(self):
         """
@@ -59,8 +65,8 @@ class TaskQueue:
         if self.queue_head is None:
             raise TaskQueueEmpty("Could not pop task from empty TaskQueue")
 
-        next_head = self.queue_head.next_node
-        popped = self.queue_head.consume()
+        next_head = self.nodes[queue_head].next_node
+        popped = self.nodes[queue_head].consume()
         self.queue_head = next_head
         return popped
 
@@ -78,7 +84,7 @@ class TaskQueue:
         if self.queue_head is None:
             raise TaskQueueEmpty("Queue was empty and could not peek item")
 
-        return self.queue_head.task_item
+        return self.nodes[queue_head].task_item
 
 
 class TaskQueueEmpty(queue.Empty):
@@ -91,7 +97,7 @@ class TaskQueueEmpty(queue.Empty):
 # LinkedList Node containing the Task object
 class TaskQueueNode:
 
-    def __init__(self, task_item, container_queue,
+    def __init__(self, task_item, uid,
                  previous_node=None, next_node=None):
         """
         task_item is the value stored in this node
@@ -103,7 +109,7 @@ class TaskQueueNode:
         previous_node/next_node point to the corresponding node in the
         LinkedList
         """
-        self.container_queue = container_queue
+        self.uid = uid
         task_item.container_node = self
 
         self.task_item = task_item
