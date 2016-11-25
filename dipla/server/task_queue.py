@@ -115,7 +115,6 @@ class TaskQueueNode:
         LinkedList
         """
         self.uid = uid
-        task_item.container_node = self
 
         self.task_item = task_item
         self.previous_node = previous_node
