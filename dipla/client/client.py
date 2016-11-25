@@ -107,8 +107,7 @@ class Client(object):
             return service.execute(data)
         except KeyError:
             self.logger.error(
-                "Failed to find service: {}, services are: {}"
-                     .format(label, services.keys()))
+                "Failed to find service: {}".format(label))
             raise ServiceError('Failed to find service: {}'.format(label), 5)
 
     async def _start_websocket(self):

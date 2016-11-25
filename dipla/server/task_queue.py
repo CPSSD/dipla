@@ -168,6 +168,7 @@ class Task:
         self.completed = False
 
     def add_result(self, result):
+        print("Added result to task" + result)
         if self.completion_check(result):
             self._complete_task()
 
