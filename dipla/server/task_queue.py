@@ -86,6 +86,11 @@ class TaskQueue:
 
         return self.nodes[queue_head].task_item
 
+    def add_result(self, task_id, result):
+        self.nodes[task_id].task_item.add_result(result)
+        if self.nodes[task_id].completed:
+            self.nodes[task_id].consume()
+
 
 class TaskQueueEmpty(queue.Empty):
     """
@@ -168,7 +173,4 @@ class Task:
             self._complete_task()
 
     def _complete_task(self):
-        if hasattr(self, "container_node"):
-            # Take this element out of the LinkedList
-            self.container_node.consume()
         self.completed = True
