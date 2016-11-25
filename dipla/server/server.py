@@ -48,6 +48,7 @@ class ServerServices:
             'get_binaries': self._handle_get_binaries,
             'get_instructions': self._handle_get_instructions,
             'client_result': self._handle_client_result,
+            'get_instructions_result': self._handle_client_result,
             'runtime_error': self._handle_runtime_error,
         }
 
@@ -56,10 +57,10 @@ class ServerServices:
             return self.services[label]
         raise KeyError("Label '{}' does not have a handler".format(label))
 
-    def _handle_get_binaries(self, message, server):
+    def _handle_get_binaries(self, message, params):
         platform = message['platform']
         try:
-            task_list = server.binary_manager.get_binaries(platform)
+            task_list = params['server'].binary_manager.get_binaries(platform)
         except KeyError as e:
             raise ServiceError(e, 2)
 
@@ -75,10 +76,10 @@ class ServerServices:
         }
         return data
 
-    def _handle_get_instructions(self, message, server):
+    def _handle_get_instructions(self, message, params):
         data = {}
         try:
-            task = server.task_queue.pop_task()
+            task = params['server'].task_queue.pop_task()
             data['task_instructions'] = task.task_instructions
             # In the current version the data_source is not yet created
             # Instead the placeholder of the actual data values is used
@@ -87,14 +88,15 @@ class ServerServices:
             data['command'] = 'quit'
         return data
 
-    def _handle_client_result(self, message, server):
+    def _handle_client_result(self, message, params):
+        print("Got result!")
         data_type = message['type']
         value = message['value']
         print('New client result of type "%s": %s' % (data_type, value))
-        server.task_queue.add_new_data(data_type, value)
+        params['server'].task_queue.add_new_data(data_type, value)
         return None
 
-    def _handle_runtime_error(self, message, server):
+    def _handle_runtime_error(self, message, params):
         print('Client had an error (code %d): %s' % (message['code'],
                                                      message['details']))
         return None
@@ -153,8 +155,14 @@ class Server:
                     # back the response.
                     message = self._decode_message(
                         await worker.websocket.recv())
+                    print("Message label is: " + message['label'])
                     service = self.services.get_service(message['label'])
-                    response_data = service(message['data'], self)
+                    params = {
+                        'server':self,
+                        'worker':worker
+                    }
+                    response_data = service(
+                        message['data'], params=params)
                     if response_data is None:
                         continue
                     await self._send_message(worker.websocket,
