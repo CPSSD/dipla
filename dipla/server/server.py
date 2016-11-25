@@ -89,11 +89,9 @@ class ServerServices:
         return data
 
     def _handle_client_result(self, message, params):
-        print("Got result!")
-        data_type = message['type']
+        task_id = message['task_id']
         value = message['value']
-        print('New client result of type "%s": %s' % (data_type, value))
-        params['server'].task_queue.add_new_data(data_type, value)
+        params['server'].task_queue.add_result(task_id, value)
         return None
 
     def _handle_runtime_error(self, message, params):
