@@ -10,7 +10,7 @@ class TaskQueueTest(unittest.TestCase):
         self.queue = task_queue.TaskQueue()
 
     def test_push_task(self):
-        self.queue.push_task(Task([1, 2, 3], "task instructions"))
+        self.queue.push_task(Task("a", [1, 2, 3], "task instructions"))
         popped = self.queue.pop_task()
         self.assertEqual([1, 2, 3], popped.data_source)
         self.assertEqual("task instructions", popped.task_instructions)
