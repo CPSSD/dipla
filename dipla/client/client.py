@@ -91,15 +91,10 @@ class Client(object):
         if not ('label' in message and 'data' in message):
             raise ServiceError('Missing field from message: %s' % message, 4)
 
-        result = self._run_service(message["label"], message["data"])
-        if result is not None:
+        result_message = self._run_service(message["label"], message["data"])
+        if result_message is not None:
             # send the client_result back to the server
-            self.send({
-                'label': 'client_result',
-                'data': {
-                    'type': message['label'] + '_result',
-                    'value': result
-                }})
+            self.send(result_message)
 
     def _run_service(self, label, data):
         try:
