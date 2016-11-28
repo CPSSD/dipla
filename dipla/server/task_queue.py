@@ -65,8 +65,8 @@ class TaskQueue:
         if self.queue_head is None:
             raise TaskQueueEmpty("Could not pop task from empty TaskQueue")
 
-        next_head = self.nodes[queue_head].next_node
-        popped = self.nodes[queue_head].consume()
+        next_head = self.nodes[self.queue_head].next_node
+        popped = self.nodes[self.queue_head].consume()
         self.queue_head = next_head
         return popped
 
@@ -84,7 +84,7 @@ class TaskQueue:
         if self.queue_head is None:
             raise TaskQueueEmpty("Queue was empty and could not peek item")
 
-        return self.nodes[queue_head].task_item
+        return self.nodes[self.queue_head].task_item
 
     def add_result(self, task_id, result):
         self.nodes[task_id].task_item.add_result(result)
