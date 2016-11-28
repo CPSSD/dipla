@@ -60,7 +60,7 @@ class TaskQueue:
             raise TaskQueueEmpty("Could not pop task from empty TaskQueue")
 
         next_head = self.nodes[self.queue_head].next_node
-        popped = self.nodes[self.queue_head].consume()
+        popped = self._consume_node(self.queue_head)
         self.queue_head = next_head
         return popped
 
@@ -86,12 +86,29 @@ class TaskQueue:
             self.nodes[task_id].task_item.add_result(result)
             print("Result added")
             if self.nodes[task_id].task_item.completed:
-                self.nodes[task_id].consume()
+                self._consume_node(task_id)
                 print("Completed!")
         except Exception as e:
             print("Exception: " + str(e))
             print("task_id " + task_id + " result " + str(result))
+    
+    def _consume_node(self, task_id):
+        node = self.nodes[task_id]
 
+        # If this is the only item in the LinkedList
+        if node.previous_node is None and node.next_node is None:
+            self.queue_head = None
+            self.queue_tail = None
+            return node
+
+        # If there are other items in the LinkedList reassign the
+        # previous/next pointers of the neighbour items
+        if node.previous_node is not None:
+            node.previous_node.next_node = node.next_node
+        if node.next_node is not None:
+            node.next_node.previous_node = node.previous_node
+
+        return node
 
 class TaskQueueEmpty(queue.Empty):
     """
@@ -114,28 +131,9 @@ class TaskQueueNode:
         previous_node/next_node point to the corresponding node in the
         LinkedList
         """
-
         self.task_item = task_item
         self.previous_node = previous_node
-        self.next_node = next_node
-
-    def consume(self):
-        del self.task_item.container_node
-
-        # If this is the only item in the LinkedList
-        if self.previous_node is None and self.next_node is None:
-            self.container_queue.queue_head = None
-            self.container_queue.queue_tail = None
-            return self.task_item
-
-        # If there are other items in the LinkedList reassign the
-        # previous/next pointers of the neighbour items
-        if self.previous_node is not None:
-            self.previous_node.next_node = self.next_node
-        if self.next_node is not None:
-            self.next_node.previous_node = self.previous_node
-
-        return self.task_item
+        self.next_node = next_node 
 
 
 # Abstraction of the information necessary to represent a task
