@@ -99,7 +99,7 @@ class TaskQueue:
         if node.previous_node is None and node.next_node is None:
             self.queue_head = None
             self.queue_tail = None
-            return node
+            return node.task_item
 
         # If there are other items in the LinkedList reassign the
         # previous/next pointers of the neighbour items
@@ -108,7 +108,7 @@ class TaskQueue:
         if node.next_node is not None:
             self.nodes[node.next_node].previous_node = node.previous_node
 
-        return node
+        return node.task_item
 
 class TaskQueueEmpty(queue.Empty):
     """
