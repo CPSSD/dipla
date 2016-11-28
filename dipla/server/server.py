@@ -89,6 +89,7 @@ class ServerServices:
         return data
 
     def _handle_client_result(self, message, params):
+        print("Received client result: " + message['value'])
         task_id = message['task_id']
         value = message['value']
         params['server'].task_queue.add_result(task_id, value)

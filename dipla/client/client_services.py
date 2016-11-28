@@ -1,5 +1,6 @@
 import logging
 import os
+from dipla.shared import message_generator
 
 from abc import ABC, abstractmethod, abstractstaticmethod
 from base64 import b64decode
@@ -50,8 +51,14 @@ class BinaryRunnerService(ClientService):
         if task not in self._client.binary_paths:
             raise ValueError('Task "' + task + '" does not exist')
 
-        return self._binary_runner.run(self._client.binary_paths[task],
-                                       arguments)
+        data = {
+                'task_id' : 'a',
+                'value' : self._binary_runner.run(
+                    self._client.binary_paths[task], arguments)
+            }
+
+        message = message_generator.generate_message( 'client_result', data)
+        return message
 
 
 class BinaryReceiverService(ClientService):
@@ -77,12 +84,8 @@ class BinaryReceiverService(ClientService):
                 file_writer.write(raw_data)
             os.chmod(binary_path, 511)
 
-        message = {
-            "label":"get_instructions",
-            "data":""
-        }
-        self.client.send(message)
-        return None
+        return message_generator.generate_message(
+            "get_instructions", "")
 
 
 class ServerErrorService(ClientService):
@@ -98,3 +101,4 @@ class ServerErrorService(ClientService):
     def execute(self, data):
         self.logger.error('Error from server (code %d): %s' % (
             data['code'], data['details']))
+        return None
