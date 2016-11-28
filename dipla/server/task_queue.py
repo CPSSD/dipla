@@ -108,7 +108,7 @@ class TaskQueue:
         if node.next_node is not None:
             self.nodes[node.next_node].previous_node = node.previous_node
 
-        return node
+        return node.task_item
 
 class TaskQueueEmpty(queue.Empty):
     """
