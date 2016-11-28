@@ -33,24 +33,15 @@ class TaskQueueTest(unittest.TestCase):
 
     def test_add_result(self):
         # Test task is marked as completed on any result if no check provided
-        test_task = Task("a", [], "")
-        test_task.add_result("test result")
-        self.assertTrue(test_task.completed)
+        self.queue.push_task(Task("a", [], ""))
+        self.queue.add_result("a", "test result")
+        self.assertIsNone(self.queue.queue_head)
 
         def check_result_says_done(result):
             return result == "done"
 
-        test_task = Task("b", [], "", check_result_says_done)
-        test_task.add_result("test result")
-        self.assertFalse(test_task.completed)
-        test_task.add_result("done")
-        self.assertTrue(test_task.completed)
-
-        # Test that task is removed from queue on completion
-        self.queue.push_task(Task("c", [], ""))
-        queue_task = self.queue.peek_task()
-        queue_task.add_result("done")
-        self.assertTrue(queue_task.completed)
-
-        with self.assertRaises(TaskQueueEmpty):
-            self.queue.peek_task()
+        self.queue.push_task(Task("b", [], "", check_result_says_done))
+        self.queue.add_result("b", "test result")
+        self.assertIsNotNone(self.queue.queue_head)
+        self.queue.add_result("b", "done")
+        self.assertIsNone(self.queue.queue_head)
