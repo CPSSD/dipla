@@ -81,6 +81,9 @@ class ServerServices:
         try:
             task = params['server'].task_queue.peek_task()
             data['task_instructions'] = task.task_instructions
+            # We need a unique task id incase the same task is used in
+            # multiple places
+            data['task_uid'] = task.task_uid
             # In the current version the data_source is not yet created
             # Instead the placeholder of the actual data values is used
             data['data'] = task.data_source
@@ -89,7 +92,7 @@ class ServerServices:
         return data
 
     def _handle_client_result(self, message, params):
-        task_id = message['task_id']
+        task_id = message['task_uid']
         value = message['results']
         params['server'].task_queue.add_result(task_id, value)
         return None
@@ -189,6 +192,7 @@ class Server:
             self.worker_group.remove_worker(worker.uid)
 
     def _decode_message(self, message):
+        print(message)
         message_dict = json.loads(message)
         if 'label' not in message_dict or 'data' not in message_dict:
             raise ValueError('Message missing "label" or "data": {}'.format(

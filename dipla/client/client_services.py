@@ -55,7 +55,7 @@ class BinaryRunnerService(ClientService):
             results.append(self._binary_runner.run(
                     self._client.binary_paths[task], str(input_value)))
         data = {
-                'task_id' : task,
+                'task_uid' : data["task_uid"],
                 'results' : results
             }
 
