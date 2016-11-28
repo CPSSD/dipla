@@ -95,6 +95,9 @@ class TaskQueue:
         except Exception as e:
             print("Exception: " + str(e))
             print("task_id " + task_id + " result " + str(result))
+
+    def get_task_completed(self, task_uid):
+        return self.nodes[task_uid].task_item.completed
     
     def _consume_node(self, task_id):
         node = self.nodes[task_id]
