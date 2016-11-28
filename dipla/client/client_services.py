@@ -44,20 +44,22 @@ class BinaryRunnerService(ClientService):
 
     def execute(self, data):
         task = data["task_instructions"]
-        arguments = str(data["data"])
 
         if not hasattr(self._client, 'binary_paths'):
             raise ValueError('Client does not have any binaries')
         if task not in self._client.binary_paths:
             raise ValueError('Task "' + task + '" does not exist')
 
+        results = []
+        for input_value in data['data']:
+            results.append(self._binary_runner.run(
+                    self._client.binary_paths[task], str(input_value)))
         data = {
                 'task_id' : 'a',
-                'value' : self._binary_runner.run(
-                    self._client.binary_paths[task], arguments)
+                'results' : results
             }
 
-        message = message_generator.generate_message( 'client_result', data)
+        message = message_generator.generate_message('client_result', data)
         return message
 
 
