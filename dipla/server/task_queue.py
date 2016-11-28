@@ -6,9 +6,6 @@ using information such as the task identifier and input data
 import queue  # needed to inherit exception from
 import sys
 
-from dipla.shared import uid_generator
-
-
 class TaskQueue:
     """
     The TaskQueue is, as the name suggests, a FIFO queue for storing Tasks that
@@ -35,21 +32,18 @@ class TaskQueue:
         Returns
          - None
         """
-        task_uid = uid_generator.generate_uid(
-            length = 8, existing_uids=self.nodes.keys())
-
         # If the LinkedList is empty
         if self.queue_head is None:
             # Set this item as the head and tail of the list
-            self.nodes[task_uid] = TaskQueueNode(item, task_uid)
-            self.queue_head = task_uid
-            self.queue_tail = task_uid
+            self.nodes[item.task_uid] = TaskQueueNode(item)
+            self.queue_head = item.task_uid
+            self.queue_tail = item.task_uid
         else:
             # Add an item to the end of the list
-            self.nodes[task_uid] = TaskQueueNode(
-                item, uid=task_uid, previous_node=self.queue_tail)
-            self.queue_tail.next_node = task_uid
-            self.queue_tail = task_uid
+            self.nodes[item.task_uid] = TaskQueueNode(
+                item, previous_node=self.queue_tail)
+            self.queue_tail.next_node = item.task_uid
+            self.queue_tail = item.task_uid
 
     def pop_task(self):
         """
@@ -87,9 +81,16 @@ class TaskQueue:
         return self.nodes[self.queue_head].task_item
 
     def add_result(self, task_id, result):
-        self.nodes[task_id].task_item.add_result(result)
-        if self.nodes[task_id].completed:
-            self.nodes[task_id].consume()
+        try:
+            print("Adding result")
+            self.nodes[task_id].task_item.add_result(result)
+            print("Result added")
+            if self.nodes[task_id].task_item.completed:
+                self.nodes[task_id].consume()
+                print("Completed!")
+        except Exception as e:
+            print("Exception: " + str(e))
+            print("task_id " + task_id + " result " + str(result))
 
 
 class TaskQueueEmpty(queue.Empty):
@@ -102,8 +103,7 @@ class TaskQueueEmpty(queue.Empty):
 # LinkedList Node containing the Task object
 class TaskQueueNode:
 
-    def __init__(self, task_item, uid,
-                 previous_node=None, next_node=None):
+    def __init__(self, task_item, previous_node=None, next_node=None):
         """
         task_item is the value stored in this node
 
@@ -114,7 +114,6 @@ class TaskQueueNode:
         previous_node/next_node point to the corresponding node in the
         LinkedList
         """
-        self.uid = uid
 
         self.task_item = task_item
         self.previous_node = previous_node
@@ -146,7 +145,7 @@ class Task:
     to excecute a piece of work.
     """
 
-    def __init__(self, data_source, task_instructions,
+    def __init__(self, uid, data_source, task_instructions,
                  completion_check=lambda x: True):
         """
         Initalises the Task
@@ -162,13 +161,14 @@ class Task:
         The default lambda function used here causes the completion check
         to return true when any result is received back from the server
         """
+        self.task_uid = uid
         self.data_source = data_source
         self.task_instructions = task_instructions
         self.completion_check = completion_check
         self.completed = False
 
     def add_result(self, result):
-        print("Added result to task" + result)
+        print("Added result to task" + str(result))
         if self.completion_check(result):
             self._complete_task()
 
