@@ -21,7 +21,7 @@ class TaskQueue:
         self.queue_tail = None
         self.nodes = {}
 
-    def push_task(self, item):
+    def push_task(self, item, dependencies=None):
         """
         Adds a task to the queue, or to the pool of waiting tasks if it
         is still waiting on data.
@@ -32,6 +32,10 @@ class TaskQueue:
         Returns
          - None
         """
+
+        for dependency in dependencies:
+            self.nodes[dependency].dependees.append(item.task_uid)
+
         # If the LinkedList is empty
         if self.queue_head is None:
             # Set this item as the head and tail of the list
@@ -134,6 +138,10 @@ class TaskQueueNode:
         self.task_item = task_item
         self.previous_node = previous_node
         self.next_node = next_node 
+        self.dependees = []
+
+    def add_dependee(self, dependee_uid):
+        self.dependees.append(dependee_uid)
 
 
 # Abstraction of the information necessary to represent a task

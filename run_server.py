@@ -8,11 +8,16 @@ def distributable_squarer(value):
 def main():
     tq = TaskQueue()
     
-    task_uid = uid_generator.generate_uid(
+    first_task_uid = uid_generator.generate_uid(
         length = 8, existing_uids=[])
+    second_task_uid = uid_generator.generate_uid(
+        length = 8, existing_uids=[first_task_uid])
     source = [1, 2, 3, 4, 5]
 
-    tq.push_task(Task(task_uid, source, 'fibonacci'))
+    tq.push_task(Task(first_task_uid, source, 'fibonacci'))
+    tq.push_task(
+        Task(second_task_uid, source, 'fibonacci'),
+        dependencies=[first_task_uid])
 
     bm = BinaryManager()
     bm.add_platform('.*ix.*', [
