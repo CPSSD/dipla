@@ -21,7 +21,7 @@ class TaskQueue:
         self.queue_tail = None
         self.nodes = {}
 
-    def push_task(self, item, dependencies=None):
+    def push_task(self, item, dependencies=[]):
         """
         Adds a task to the queue, or to the pool of waiting tasks if it
         is still waiting on data.
