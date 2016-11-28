@@ -42,7 +42,7 @@ class TaskQueue:
             # Add an item to the end of the list
             self.nodes[item.task_uid] = TaskQueueNode(
                 item, previous_node=self.queue_tail)
-            self.queue_tail.next_node = item.task_uid
+            self.nodes[self.queue_tail].next_node = item.task_uid
             self.queue_tail = item.task_uid
 
     def pop_task(self):
@@ -104,9 +104,9 @@ class TaskQueue:
         # If there are other items in the LinkedList reassign the
         # previous/next pointers of the neighbour items
         if node.previous_node is not None:
-            node.previous_node.next_node = node.next_node
+            self.nodes[node.previous_node].next_node = node.next_node
         if node.next_node is not None:
-            node.next_node.previous_node = node.previous_node
+            self.nodes[node.next_node].previous_node = node.previous_node
 
         return node
 
