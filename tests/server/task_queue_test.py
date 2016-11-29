@@ -124,7 +124,16 @@ class TaskQueueTest(unittest.TestCase):
         self.assertEqual("d", popped.task_uid)
         self.assertEqual("second task", popped.task_instructions)
         self.assertEqual([1, 2], popped.values)
-        #TODO(StefanKennedy) Test that correct exceptions are raised
+
+        # Test that popping data from empty task throws error
+        self.queue = task_queue.TaskQueue()
+        sample_task3 = Task("e", "sample task 3")
+        sample_task3.add_data_source(
+            DataSource.create_source_from_iterable([]))
+        self.queue.push_task(sample_task3)
+
+        with self.assertRaises(TaskQueueEmpty):
+            self.queue.pop_task_input()
 
     def test_node_has_next_input(self):
         # Task with input returns true

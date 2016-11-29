@@ -23,9 +23,8 @@ class TaskQueue:
     def push_task(self, item):
         """
         Adds a task to the queue, connecting it with the tasks that it
-        depends on. Some tasks will be input tasks, in which case they
-        depend on nothing. A task is connected to something it depends
-        on using a DataSource, which tracks the task that the data is
+        depends on. A task is connected to something it depends on 
+        using a DataSource, which tracks the task that the data is
         coming from and the iterator that is used to stream the data
 
         Params:
@@ -36,8 +35,7 @@ class TaskQueue:
         """
         self.nodes[item.task_uid] = TaskQueueNode(item)
 
-        # This task does not do anything, it has no inputs so dont make
-        # it active (It must be an input task)
+        # This task does not do anything, raise an error 
         if len(item.data_instructions) == 0:
            raise NoTaskDependencyError(
                "Attempted to add a task that did not have any data source") 
@@ -77,6 +75,7 @@ class TaskQueue:
         for task_uid in self.active_tasks:
             if self.nodes[task_uid].has_next_input():
                 return self.nodes[task_uid].next_input()
+        raise TaskQueueEmpty("No input values available for any tasks")
 
     def add_result(self, task_id, result):
         self.nodes[task_id].task_item.add_result(result)
