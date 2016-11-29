@@ -1,5 +1,5 @@
 from dipla.server.server import Server, BinaryManager
-from dipla.server.task_queue import TaskQueue, Task
+from dipla.server.task_queue import TaskQueue, Task, DataSource
 from dipla.shared import uid_generator
 
 def distributable_squarer(value):
@@ -21,7 +21,7 @@ def main():
     # Create a second task that depends on the first task's output
     second_task_uid = uid_generator.generate_uid(
         length = 8, existing_uids=[first_task_uid])
-    second_task = Task(secound_task_uid, 'fibonacci')
+    second_task = Task(second_task_uid, 'fibonacci')
     second_task.add_data_source(
         DataSource.create_source_from_task(first_task))
 
