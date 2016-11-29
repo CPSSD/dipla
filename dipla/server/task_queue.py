@@ -57,8 +57,8 @@ class TaskQueue:
         if active:
             self.active_tasks.add(item.task_uid)
 
-    # TODO(StefanKennedy) Add fallback incase a client popped values are
-    # lost and we need to redistribute them
+    # TODO(StefanKennedy) Add fallback incase popped values are lost
+    # and we need to redistribute them
     def pop_task_input(self):
         """
         Returns the task at the front of the queue without removing it from
@@ -185,6 +185,20 @@ class DataIterator:
 class TaskInput:
 
     def __init__(self, task_uid, task_instructions, values):
+        """
+        This is what is given out by the task queue when some values
+        are requested from a pop/peek etc. The values attribute
+        is real data (as opposed to a promise) that will be sent to
+        clients who then run it
+
+        task_uid is the unique identifier of this instance of the task
+
+        task_instructions are used to inform clients which runnable to
+        execute
+
+        values are the actual data values (not a promise) that are sent
+        to clients to execute the task and return the results
+        """
         self.task_uid = task_uid
         self.task_instructions = task_instructions
         self.values = values
