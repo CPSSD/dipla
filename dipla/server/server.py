@@ -79,14 +79,14 @@ class ServerServices:
     def _handle_get_instructions(self, message, params):
         data = {}
         try:
-            task = params['server'].task_queue.peek_task()
-            data['task_instructions'] = task.task_instructions
+            task_input = params['server'].task_queue.pop_task_input()
+            data['task_instructions'] = task_input.task_instructions
             # We need a unique task id incase the same task is used in
             # multiple places
-            data['task_uid'] = task.task_uid
+            data['task_uid'] = task_input.task_uid
             # In the current version the data_source is not yet created
             # Instead the placeholder of the actual data values is used
-            data['data'] = task.data_source
+            data['data'] = task_input.values
         except task_queue.TaskQueueEmpty as e:
             data['command'] = 'quit'
         return data
@@ -94,7 +94,11 @@ class ServerServices:
     def _handle_client_result(self, message, params):
         task_id = message['task_uid']
         value = message['results']
-        params['server'].task_queue.add_result(task_id, value)
+        server = params['server']
+        server.task_queue.add_result(task_id, value)
+        # TODO(StefanKennedy) Make client automatically obtain more
+        # input values if there are more available for the current task
+        server.worker_group.return_worker(params['worker'].uid)
         return None
 
     def _handle_runtime_error(self, message, params):
