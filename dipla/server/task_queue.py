@@ -39,7 +39,8 @@ class TaskQueue:
         # This task does not do anything, it has no inputs so dont make
         # it active (It must be an input task)
         if len(item.data_instructions) == 0:
-            return
+           raise NoTaskDependencyError(
+               "Attempted to add a task that did not have any data source") 
 
         # Inform all tasks that this one depends on about the dependancy
         active = True
@@ -85,13 +86,12 @@ class TaskQueue:
     # TODO(StefanKennedy) Add functionality to close a task (take out of
     # active task set) This would happen if reading an input hit EOF
 
-    # TODO(StefanKennedy) Test this
     def activate_new_tasks(self, ids):
         for id in ids:
             # Check to see if the task still needs to wait on anything
             can_activate = True
             for dependency in self.nodes[id].dependencies:
-                if not self.get_task_open(dependency.task_uid):
+                if not self.get_task_open(dependency.source_task_uid):
                     can_activate = False
                     break
 
@@ -244,3 +244,11 @@ class Task:
 
     def _open_task(self):
         self.open = True
+
+class NoTaskDependencyError(Exception):
+    """
+    An exception to be thrown if the a task is added that depends on
+    nothing. If this was possible, the task would never do anything
+    """
+    pass
+

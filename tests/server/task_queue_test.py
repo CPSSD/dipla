@@ -1,7 +1,7 @@
 import unittest
 from dipla.server import task_queue
 from dipla.server.task_queue import Task, DataSource
-from dipla.server.task_queue import TaskQueueEmpty
+from dipla.server.task_queue import TaskQueueEmpty, NoTaskDependencyError
 
 
 class TaskQueueTest(unittest.TestCase):
@@ -9,7 +9,6 @@ class TaskQueueTest(unittest.TestCase):
     def setUp(self):
         self.queue = task_queue.TaskQueue()
 
-    # TODO(StefanKennedy) Test push task
     def test_push_task(self):
         sample_task = Task("a", "sample task")
         sample_task.add_data_source(
@@ -25,25 +24,47 @@ class TaskQueueTest(unittest.TestCase):
         self.assertEqual({"a"}, self.queue.active_tasks)
         self.assertEqual({"a", "b"}, self.queue.nodes.keys())
 
-        sample_task3 = Task("c", "sample task 3")
-        self.queue.push_task(sample_task3)
-        self.assertEqual({"a"}, self.queue.active_tasks)
-        self.assertEqual({"a", "b", "c"}, self.queue.nodes.keys())
+        with self.assertRaises(NoTaskDependencyError):
+            sample_task3 = Task("c", "sample task 3")
+            self.queue.push_task(sample_task3)
     
     def test_add_result(self):
         # Test task is marked as open on any result if no check provided
-        self.queue.push_task(Task("a", ""))
+        sample_task = Task("a", "")
+        sample_task.add_data_source(
+            DataSource.create_source_from_iterable([]))
+        self.queue.push_task(sample_task)
         self.queue.add_result("a", "test result")
         self.assertTrue(self.queue.get_task_open("a"))
 
         def check_result_says_done(result):
             return result == "done"
 
-        self.queue.push_task(Task("b", "", check_result_says_done))
+        sample_task2 = Task("b", "", check_result_says_done)
+        sample_task2.add_data_source(
+            DataSource.create_source_from_iterable([]))
+        self.queue.push_task(sample_task2)
         self.queue.add_result("b", "test result")
         self.assertFalse(self.queue.get_task_open("b"))
         self.queue.add_result("b", "done")
         self.assertTrue(self.queue.get_task_open("b"))
+
+    def test_activate_new_tasks(self):
+        root_task = Task("root", "root task")
+        root_task.add_data_source(
+            DataSource.create_source_from_iterable([]))
+        self.queue.push_task(root_task)
+
+        next_task = Task("next", "next task")
+        next_task.add_data_source(
+            DataSource.create_source_from_task(root_task))
+        self.queue.push_task(next_task)
+        
+        self.assertEquals({"root"}, self.queue.active_tasks)
+
+        self.queue.add_result("root", 100)
+
+        self.assertEquals({"root", "next"}, self.queue.active_tasks)
 
     def test_pop_task_input(self):
         # Test default reading all values from data source
@@ -82,6 +103,8 @@ class TaskQueueTest(unittest.TestCase):
         def completion_check(result):
             return result == 2
         first_task = Task("c", "first task", completion_check)
+        first_task.add_data_source(
+            DataSource.create_source_from_iterable([]))
         self.queue.push_task(first_task)
         self.queue.add_result("c", 1)
         self.queue.add_result("c", 2)
