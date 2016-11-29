@@ -9,9 +9,10 @@ import sys
 class TaskQueue:
     """
     The TaskQueue is, as the name suggests, a FIFO queue for storing Tasks that
-    should be executed by the workers. It also has a pool of waiting tasks that
-    have not received enough data inputs to be executed, and a pool of data
-    that is expecting to go into a task but no task is yet waiting for it.
+    should be executed by the workers. It has a set of active tasks that can be
+    used to pop task values for clients to operate on. The active tasks set can
+    build up as more tasks become available, and can decrease in size if some
+    tasks are marked as completely finished receiving input
     """
 
     def __init__(self):
@@ -60,14 +61,17 @@ class TaskQueue:
     # and we need to redistribute them
     def pop_task_input(self):
         """
-        Returns the task at the front of the queue without removing it from
-        the queue
+        Returns some values that can be used to run a task as a
+        TaskValues object. These values will be taken from a task
+        with its id present in the active_tasks set
 
         Raises:
-         - TaskQueueEmpty exception is there's no tasks in the queue
+         - TaskQueueEmpty exception is there's no available tasks or
+        no data available to return for any of the available tasks
 
         Returns:
-         - The Task object at the top of the queue
+         - The TaskValue object representing some of the data from an
+        active task
         """
         if len(self.active_tasks) == 0:
             raise TaskQueueEmpty("Queue was empty and could not pop input")
@@ -86,6 +90,11 @@ class TaskQueue:
     # active task set) This would happen if reading an input hit EOF
 
     def activate_new_tasks(self, ids):
+        """
+        Checks the tasks using the set of ids to try to move some more
+        tasks into the active_tasks set. If a task has a dependency
+        that is not open, it will not make the task open
+        """
         for id in ids:
             # Check to see if the task still needs to wait on anything
             can_activate = True
@@ -107,19 +116,15 @@ class TaskQueueEmpty(queue.Empty):
     pass
 
 
-# LinkedList Node containing the Task object
 class TaskQueueNode:
 
     def __init__(self, task_item):
         """
         task_item is the value stored in this node
 
-        container_queue is the queue that this node was instantiated from.
-        This needs to be tracked in order to empty the queue if this is
-        the last existing node and it is deleted
-
-        previous_node/next_node point to the corresponding node in the
-        LinkedList
+        This class acts as a node in a linked list using it's
+        dependencies as the previous nodes and it's dependees as the
+        next nodes
         """
         self.task_item = task_item
         self.dependencies = task_item.data_instructions
@@ -145,8 +150,6 @@ class TaskQueueNode:
                 return False
         return True
 
-# A class composed of a DataIterator, which also contains information
-# about what task the data is sourced from (if sourced from a task)
 class DataSource:
 
     def read_all_values(stream):
@@ -174,12 +177,39 @@ class DataSource:
             None, DataIterator(iterable, read_function, availability_check))
 
     def __init__(self, source_task_uid, data_iterator):
+        """
+        This is a class composed of a DataIterator, which also contains
+        information about what task the data is sourced from (if sourced
+        from a task)
+
+        source_task_uid is the unique identifier of the task that this
+        data is sourced from. (For that task, the data is it's output)
+
+        data_iterator is the DataIterator object that contains the
+        stream used to read the data
+        """
         self.source_task_uid = source_task_uid
         self.data_iterator = data_iterator
 
 class DataIterator:
 
     def __init__(self, stream, read_function, availability_check):
+        """
+        This is singly responsible for acting as the bridge between a 
+        reader and a outputter of a stream of data. It should be
+        composed by the reader, where the outputter has access to output
+        on the stream
+
+        stream is the collection of data that can be mutated by the
+        reader as it consumes the values in it
+        
+        read_function is the defined way of reading values and returning
+        the to the reader
+
+        availability_check is the defined way of returning True or False
+        depending on whether a call to read_function is possible on the
+        stream
+        """
         self.stream = stream
         self.read_function = read_function
         self.availability_check = availability_check
@@ -231,11 +261,11 @@ class Task:
         the input for this task
          - task_instructions: An object used to represent instructions
         on what task should be carried out on the data
-         - completion_check:  A function that returns true if it can
-        determine that this task is complete. This function should take
-        one argument which is the result that is received from the client
-        The default lambda function used here causes the completion check
-        to return true when any result is received back from the server
+         - open_check:  A function that returns true if it can determine
+        that this task is open. This function should take one argument 
+        which is the result that is received from the client The default
+        lambda function used here causes the completion check to return
+        true when any result is received back from the server
         """
         self.task_uid = uid
         self.task_instructions = task_instructions
