@@ -17,11 +17,10 @@ class TaskQueue:
     def __init__(self):
         # The queue head and tail represent the uids of the start and
         # end nodes respectively of a LinkedList
-        self.queue_head = None
-        self.queue_tail = None
+        self.active_tasks = set()
         self.nodes = {}
 
-    def push_task(self, item, dependencies=[]):
+    def push_task(self, item):
         """
         Adds a task to the queue, or to the pool of waiting tasks if it
         is still waiting on data.
@@ -32,22 +31,18 @@ class TaskQueue:
         Returns
          - None
         """
+        self.nodes[item.task_uid] = TaskQueueNode(item)
 
-        for dependency in dependencies:
-            self.nodes[dependency].dependees.append(item.task_uid)
+        active = True
+        for instruction in item.data_instructions:
+            # If Instruction is from a raw input
+            if instruction.source_task_uid == None:
+                continue
+            self.nodes[instruction.source_task_uid].add_dependee(item.task_uid)
+            active = False
 
-        # If the LinkedList is empty
-        if self.queue_head is None:
-            # Set this item as the head and tail of the list
-            self.nodes[item.task_uid] = TaskQueueNode(item)
-            self.queue_head = item.task_uid
-            self.queue_tail = item.task_uid
-        else:
-            # Add an item to the end of the list
-            self.nodes[item.task_uid] = TaskQueueNode(
-                item, previous_node=self.queue_tail)
-            self.nodes[self.queue_tail].next_node = item.task_uid
-            self.queue_tail = item.task_uid
+        if active:
+            self.active_tasks.add(item.task_uid)
 
     def pop_task(self):
         """
@@ -55,6 +50,7 @@ class TaskQueue:
 
         Raises
          - TaskQueueEmpty exception if there are no tasks
+
 
         Returns:
          - A Task object from the top of the queue
@@ -68,7 +64,7 @@ class TaskQueue:
         self.queue_head = next_head
         return popped
 
-    def peek_task(self):
+    def pop_task_input(self):
         """
         Returns the task at the front of the queue without removing it from
         the queue
@@ -79,43 +75,20 @@ class TaskQueue:
         Returns:
          - The Task object at the top of the queue
         """
-        if self.queue_head is None:
-            raise TaskQueueEmpty("Queue was empty and could not peek item")
+        if len(self.active_tasks) == 0:
+            raise TaskQueueEmpty("Queue was empty and could not pop input")
 
-        return self.nodes[self.queue_head].task_item
+        for task_uid in self.active_tasks:
+            if self.nodes[task_uid].has_next_input():
+                return self.nodes[task_uid].next_input()
 
     def add_result(self, task_id, result):
-        try:
-            print("Adding result")
-            self.nodes[task_id].task_item.add_result(result)
-            print("Result added")
-            if self.nodes[task_id].task_item.completed:
-                self._consume_node(task_id)
-                print("Completed!")
-        except Exception as e:
-            print("Exception: " + str(e))
-            print("task_id " + task_id + " result " + str(result))
+        self.nodes[task_id].task_item.add_result(result)
+        if self.nodes[task_id].task_item.completed:
+            self.active_tasks.remove(task_id)
 
     def get_task_completed(self, task_uid):
         return self.nodes[task_uid].task_item.completed
-    
-    def _consume_node(self, task_id):
-        node = self.nodes[task_id]
-
-        # If this is the only item in the LinkedList
-        if node.previous_node is None and node.next_node is None:
-            self.queue_head = None
-            self.queue_tail = None
-            return node.task_item
-
-        # If there are other items in the LinkedList reassign the
-        # previous/next pointers of the neighbour items
-        if node.previous_node is not None:
-            self.nodes[node.previous_node].next_node = node.next_node
-        if node.next_node is not None:
-            self.nodes[node.next_node].previous_node = node.previous_node
-
-        return node.task_item
 
 class TaskQueueEmpty(queue.Empty):
     """
@@ -127,7 +100,7 @@ class TaskQueueEmpty(queue.Empty):
 # LinkedList Node containing the Task object
 class TaskQueueNode:
 
-    def __init__(self, task_item, previous_node=None, next_node=None):
+    def __init__(self, task_item):
         """
         task_item is the value stored in this node
 
@@ -139,13 +112,69 @@ class TaskQueueNode:
         LinkedList
         """
         self.task_item = task_item
-        self.previous_node = previous_node
-        self.next_node = next_node 
+        self.dependencies = task_item.data_instructions
         self.dependees = []
 
     def add_dependee(self, dependee_uid):
         self.dependees.append(dependee_uid)
 
+    def next_input(self):
+        # TODO(StefanKennedy) Add functionality so that this can handle
+        # multiple input dependencies
+        return TaskInput(
+            self.task_item.task_uid,
+            self.task_item.task_instructions,
+            self.dependencies[0].data_iterator.read())
+
+    def has_next_input(self):
+        # TODO(StefanKennedy) Add functionality so that this can check
+        # that it can get input from all dependencies
+        return self.dependencies[0].data_iterator.has_available_data()
+
+# A wrapper for a DataIterator, which contains information about what
+# task or iterable the data is sourced from
+class DataSource:
+
+    def read_all_values(stream): 
+        return list(stream)
+
+    @staticmethod
+    def create_source_from_task(task, read_function=read_all_values):
+        return DataSource(
+            task.task_uid, DataIterator(task.output, read_function))
+
+    @staticmethod
+    def create_source_from_iterable(iterable, read_function=read_all_values):
+        return DataSource(None, DataIterator(iterable, read_function))
+
+    def __init__(self, source_task_uid, data_iterator):
+        self.source_task_uid = source_task_uid
+        self.data_iterator = data_iterator
+
+class DataIterator:
+
+    def __init__(self, stream, read_function):
+        self.stream = stream
+        self.buffer = [x for x in stream]
+        self.read_function = read_function
+        # TODO(StefanKennedy) Set this up to add new values in a
+        # streaming format
+
+    def has_available_data(self):
+        # TODO(StefanKennedy) Make this correspond to the read_function
+        # supplied
+        return len(self.buffer) > 0 
+
+    def read(self):
+        # TODO(StefanKennedy) Raise error if we run out of data
+        return self.read_function(self.stream)
+
+class TaskInput:
+
+    def __init__(self, task_uid, task_instructions, values):
+        self.task_uid = task_uid
+        self.task_instructions = task_instructions
+        self.values = values
 
 # Abstraction of the information necessary to represent a task
 class Task:
@@ -154,7 +183,7 @@ class Task:
     to excecute a piece of work.
     """
 
-    def __init__(self, uid, data_source, task_instructions,
+    def __init__(self, uid, task_instructions,
                  completion_check=lambda x: True):
         """
         Initalises the Task
@@ -171,15 +200,17 @@ class Task:
         to return true when any result is received back from the server
         """
         self.task_uid = uid
-        self.data_source = data_source
         self.task_instructions = task_instructions
         self.completion_check = completion_check
         self.completed = False
+        self.data_instructions = []
 
     def add_result(self, result):
-        print("Added result to task" + str(result))
         if self.completion_check(result):
             self._complete_task()
+
+    def add_data_source(self, source):
+        self.data_instructions.append(source)
 
     def _complete_task(self):
         self.completed = True
