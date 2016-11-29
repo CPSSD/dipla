@@ -62,7 +62,7 @@ class TaskQueue:
     def pop_task_input(self):
         """
         Returns some values that can be used to run a task as a
-        TaskValues object. These values will be taken from a task
+        TaskInput object. These values will be taken from a task
         with its id present in the active_tasks set
 
         Raises:
@@ -70,7 +70,7 @@ class TaskQueue:
         no data available to return for any of the available tasks
 
         Returns:
-         - The TaskValue object representing some of the data from an
+         - The TaskInput object representing some of the data from an
         active task
         """
         if len(self.active_tasks) == 0:
