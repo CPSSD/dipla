@@ -10,6 +10,7 @@ class TaskQueueTest(unittest.TestCase):
         self.queue = task_queue.TaskQueue()
 
     def test_push_task(self):
+        # Tasks depending on iterables are always active
         sample_task = Task("a", "sample task")
         sample_task.add_data_source(
             DataSource.create_source_from_iterable([1, 2, 3]))
@@ -17,6 +18,7 @@ class TaskQueueTest(unittest.TestCase):
         self.assertEqual({"a"}, self.queue.active_tasks)
         self.assertEqual({"a"}, self.queue.nodes.keys())
 
+        # Tasks depending on other tasks need to wait before activating
         sample_task2 = Task("b", "sample task 2")
         sample_task2.add_data_source(
             DataSource.create_source_from_task(sample_task))
@@ -24,8 +26,9 @@ class TaskQueueTest(unittest.TestCase):
         self.assertEqual({"a"}, self.queue.active_tasks)
         self.assertEqual({"a", "b"}, self.queue.nodes.keys())
 
+        # Tasks without any dependencies should raise an error
+        sample_task3 = Task("c", "sample task 3")
         with self.assertRaises(NoTaskDependencyError):
-            sample_task3 = Task("c", "sample task 3")
             self.queue.push_task(sample_task3)
     
     def test_add_result(self):
@@ -37,6 +40,7 @@ class TaskQueueTest(unittest.TestCase):
         self.queue.add_result("a", "test result")
         self.assertTrue(self.queue.get_task_open("a"))
 
+        # Test task is marked as open once a "done" result is received
         def check_result_says_done(result):
             return result == "done"
 
@@ -60,6 +64,8 @@ class TaskQueueTest(unittest.TestCase):
             DataSource.create_source_from_task(root_task))
         self.queue.push_task(next_task)
         
+        # "next" is added as an active task id once the "root" task
+        # has some values to pass on
         self.assertEquals({"root"}, self.queue.active_tasks)
 
         self.queue.add_result("root", 100)
@@ -117,11 +123,11 @@ class TaskQueueTest(unittest.TestCase):
         popped = self.queue.pop_task_input()
         self.assertEqual("d", popped.task_uid)
         self.assertEqual("second task", popped.task_instructions)
-        print(popped.values)
         self.assertEqual([1, 2], popped.values)
         #TODO(StefanKennedy) Test that correct exceptions are raised
 
     def test_node_has_next_input(self):
+        # Task with input returns true
         sample_task = Task("a", "sample task")
         sample_task.add_data_source(
             DataSource.create_source_from_iterable([1]))
@@ -129,6 +135,7 @@ class TaskQueueTest(unittest.TestCase):
         sample_node = TaskQueueNode(sample_task)
         self.assertTrue(sample_node.has_next_input())
 
+        # Task without input returns false
         sample_task2 = Task("b", "sample task")
         sample_task2.add_data_source(
             DataSource.create_source_from_iterable([]))
@@ -136,6 +143,7 @@ class TaskQueueTest(unittest.TestCase):
         sample_node2 = TaskQueueNode(sample_task2)
         self.assertFalse(sample_node2.has_next_input())
 
+        # Task with two inputs, but one is empty returns false
         sample_task3 = Task("c", "sample task")
         sample_task3.add_data_source(
             DataSource.create_source_from_iterable([1]))
@@ -145,7 +153,21 @@ class TaskQueueTest(unittest.TestCase):
         sample_node3 = TaskQueueNode(sample_task3)
         self.assertFalse(sample_node3.has_next_input())
 
+        # Task with one input value in a stream, but requires two
+        # returns false
+        sample_task4 = Task("d", "sample task")
+
+        def require_2_values(stream):
+            print(len(stream))
+            return len(stream) >= 2
+        sample_task4.add_data_source(DataSource.create_source_from_iterable(
+            [1], availability_check=require_2_values))
+
+        sample_node4 = TaskQueueNode(sample_task4)
+        self.assertFalse(sample_node4.has_next_input())
+
     def test_node_next_input(self):
+        # Task with input returns correct values
         sample_task = Task("a", "sample task")
         sample_task.add_data_source(
             DataSource.create_source_from_iterable([1]))
@@ -153,6 +175,7 @@ class TaskQueueTest(unittest.TestCase):
         sample_node = TaskQueueNode(sample_task)
         self.assertTrue([1], sample_node.next_input().values)
 
+        # Task with no input raises error
         sample_task2 = Task("b", "sample task")
         sample_task2.add_data_source(
             DataSource.create_source_from_iterable([]))
@@ -161,6 +184,7 @@ class TaskQueueTest(unittest.TestCase):
         with self.assertRaises(StopIteration):
             sample_node2.next_input()
 
+        # Task with custom reader returns correct value
         def read_individual_values(stream):
             return stream.pop(0)
         sample_task3 = Task("c", "sample task")
