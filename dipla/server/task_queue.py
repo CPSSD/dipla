@@ -22,50 +22,43 @@ class TaskQueue:
 
     def push_task(self, item):
         """
-        Adds a task to the queue, or to the pool of waiting tasks if it
-        is still waiting on data.
+        Adds a task to the queue, connecting it with the tasks that it
+        depends on. Some tasks will be input tasks, in which case they
+        depend on nothing. A task is connected to something it depends
+        on using a DataSource, which tracks the task that the data is
+        coming from and the iterator that is used to stream the data
 
         Params:
-         - item: The Task to be executed by a worker
+         - item: The Task to be connected into the queue
 
         Returns
          - None
         """
         self.nodes[item.task_uid] = TaskQueueNode(item)
 
+        # This task does not do anything, it has no inputs so dont make
+        # it active (It must be an input task)
+        if len(item.data_instructions) == 0:
+            return
+
+        # Inform all tasks that this one depends on about the dependancy
         active = True
         for instruction in item.data_instructions:
-            # If Instruction is from a raw input
+            # If instruction is from an iterable then it wont be a task
             if instruction.source_task_uid == None:
                 continue
-# TODO(StefanKennedy) Change the notion of a task being 'completed' to a task being open
+
+            # Inform other task that this task depends on it
             self.nodes[instruction.source_task_uid].add_dependee(item.task_uid)
-            if not self.get_task_completed(instruction.source_task_uid):
+            # If other task is not open, do not activate this task
+            if not self.get_task_open(instruction.source_task_uid):
                 active = False
 
         if active:
             self.active_tasks.add(item.task_uid)
 
-    def pop_task(self):
-        """
-        Removes a Task from the queue and returns it
-
-        Raises
-         - TaskQueueEmpty exception if there are no tasks
-
-
-        Returns:
-         - A Task object from the top of the queue
-        """
-
-        if self.queue_head is None:
-            raise TaskQueueEmpty("Could not pop task from empty TaskQueue")
-
-        next_head = self.nodes[self.queue_head].next_node
-        popped = self._consume_node(self.queue_head)
-        self.queue_head = next_head
-        return popped
-
+    # TODO(StefanKennedy) Add fallback incase a client popped values are
+    # lost and we need to redistribute them
     def pop_task_input(self):
         """
         Returns the task at the front of the queue without removing it from
@@ -86,27 +79,27 @@ class TaskQueue:
 
     def add_result(self, task_id, result):
         self.nodes[task_id].task_item.add_result(result)
-        if self.nodes[task_id].task_item.completed:
-            self.active_tasks.remove(task_id)
+        if self.get_task_open(task_id):
             self.activate_new_tasks(self.nodes[task_id].dependees)
+
+    # TODO(StefanKennedy) Add functionality to close a task (take out of
+    # active task set) This would happen if reading an input hit EOF
 
     # TODO(StefanKennedy) Test this
     def activate_new_tasks(self, ids):
-        print("Activating new tasks (" + str(len(ids)) + " ids)")
         for id in ids:
-            print("On task " + id)
             # Check to see if the task still needs to wait on anything
             can_activate = True
             for dependency in self.nodes[id].dependencies:
-                if not self.nodes[dependency.task_uid].completed:
-                    print("Task was not completed to cannot activate")
+                if not self.get_task_open(dependency.task_uid):
                     can_activate = False
                     break
+
             if can_activate:
                 self.active_tasks.add(id)
 
-    def get_task_completed(self, task_uid):
-        return self.nodes[task_uid].task_item.completed
+    def get_task_open(self, task_uid):
+        return self.nodes[task_uid].task_item.open
 
 class TaskQueueEmpty(queue.Empty):
     """
@@ -203,8 +196,7 @@ class Task:
     to excecute a piece of work.
     """
 
-    def __init__(self, uid, task_instructions,
-                 completion_check=lambda x: True):
+    def __init__(self, uid, task_instructions, open_check=lambda x: True):
         """
         Initalises the Task
 
@@ -223,18 +215,18 @@ class Task:
         self.task_instructions = task_instructions
         self.data_instructions = []
 
-        self.completion_check = completion_check
-        self.completed = False
+        self.open_check = open_check
+        self.open = False
 
         self.task_output = []
 
     def add_result(self, result):
         self.task_output.append(result)
-        if self.completion_check(result):
-            self._complete_task()
+        if self.open_check(result):
+            self._open_task()
 
     def add_data_source(self, source):
         self.data_instructions.append(source)
 
-    def _complete_task(self):
-        self.completed = True
+    def _open_task(self):
+        self.open = True
