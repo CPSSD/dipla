@@ -132,15 +132,19 @@ class TaskQueueNode:
     def next_input(self):
         # TODO(StefanKennedy) Add functionality so that this can handle
         # multiple input dependencies
+        if not self.dependencies[0].data_iterator.has_available_data():
+            raise StopIteration("Attempted to read input from an empty source")
+
         return TaskInput(
             self.task_item.task_uid,
             self.task_item.task_instructions,
             self.dependencies[0].data_iterator.read())
 
     def has_next_input(self):
-        # TODO(StefanKennedy) Add functionality so that this can check
-        # that it can get input from all dependencies
-        return self.dependencies[0].data_iterator.has_available_data()
+        for dependency in self.dependencies:
+            if not dependency.data_iterator.has_available_data():
+                return False
+        return True
 
 # A class composed of a DataIterator, which also contains information
 # about what task the data is sourced from (if sourced from a task)
