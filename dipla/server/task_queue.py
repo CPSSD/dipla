@@ -150,18 +150,29 @@ class TaskQueueNode:
 # about what task the data is sourced from (if sourced from a task)
 class DataSource:
 
-    def read_all_values(stream): 
+    def read_all_values(stream):
+        # Copy the values to a new list and return it
         return list(stream)
 
-    @staticmethod
-    def create_source_from_task(task, read_function=read_all_values):
-        print("Creating data source from task with id: " + task.task_uid)
-        return DataSource(
-            task.task_uid, DataIterator(task.task_output, read_function))
+    def any_data_available(stream):
+        return len(stream) > 0
 
     @staticmethod
-    def create_source_from_iterable(iterable, read_function=read_all_values):
-        return DataSource(None, DataIterator(iterable, read_function))
+    def create_source_from_task(
+            task,
+            read_function=read_all_values,
+            availability_check=any_data_available):
+        return DataSource(
+            task.task_uid,
+            DataIterator(task.task_output, read_function, availability_check))
+
+    @staticmethod
+    def create_source_from_iterable(
+            iterable,
+            read_function=read_all_values,
+            availability_check=any_data_available):
+        return DataSource(
+            None, DataIterator(iterable, read_function, availability_check))
 
     def __init__(self, source_task_uid, data_iterator):
         self.source_task_uid = source_task_uid
@@ -169,21 +180,19 @@ class DataSource:
 
 class DataIterator:
 
-    def __init__(self, stream, read_function):
+    def __init__(self, stream, read_function, availability_check):
         self.stream = stream
-        self.buffer = [x for x in stream]
         self.read_function = read_function
-        # TODO(StefanKennedy) Set this up to add new values in a
-        # streaming format. This currently just initalised itself to
-        # whatever values are present in the stream
+        self.availability_check = availability_check
+        # TODO(StefanKennedy) Test that this can add new values in a
+        # streaming format.
 
     def has_available_data(self):
-        # TODO(StefanKennedy) Make this correspond to the read_function
-        # supplied
-        return len(self.buffer) > 0 
+        return self.availability_check(self.stream) 
 
     def read(self):
-        # TODO(StefanKennedy) Raise error if we run out of data
+        if not self.has_available_data():
+            raise StopIteration("Attempted to read unavailable data")
         return self.read_function(self.stream)
 
 class TaskInput:
