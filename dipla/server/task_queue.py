@@ -38,8 +38,10 @@ class TaskQueue:
             # If Instruction is from a raw input
             if instruction.source_task_uid == None:
                 continue
+# TODO(StefanKennedy) Change the notion of a task being 'completed' to a task being open
             self.nodes[instruction.source_task_uid].add_dependee(item.task_uid)
-            active = False
+            if not self.get_task_completed(instruction.source_task_uid):
+                active = False
 
         if active:
             self.active_tasks.add(item.task_uid)
@@ -86,6 +88,22 @@ class TaskQueue:
         self.nodes[task_id].task_item.add_result(result)
         if self.nodes[task_id].task_item.completed:
             self.active_tasks.remove(task_id)
+            self.activate_new_tasks(self.nodes[task_id].dependees)
+
+    # TODO(StefanKennedy) Test this
+    def activate_new_tasks(self, ids):
+        print("Activating new tasks (" + str(len(ids)) + " ids)")
+        for id in ids:
+            print("On task " + id)
+            # Check to see if the task still needs to wait on anything
+            can_activate = True
+            for dependency in self.nodes[id].dependencies:
+                if not self.nodes[dependency.task_uid].completed:
+                    print("Task was not completed to cannot activate")
+                    can_activate = False
+                    break
+            if can_activate:
+                self.active_tasks.add(id)
 
     def get_task_completed(self, task_uid):
         return self.nodes[task_uid].task_item.completed
@@ -131,8 +149,8 @@ class TaskQueueNode:
         # that it can get input from all dependencies
         return self.dependencies[0].data_iterator.has_available_data()
 
-# A wrapper for a DataIterator, which contains information about what
-# task or iterable the data is sourced from
+# A class composed of a DataIterator, which also contains information
+# about what task the data is sourced from (if sourced from a task)
 class DataSource:
 
     def read_all_values(stream): 
@@ -140,8 +158,9 @@ class DataSource:
 
     @staticmethod
     def create_source_from_task(task, read_function=read_all_values):
+        print("Creating data source from task with id: " + task.task_uid)
         return DataSource(
-            task.task_uid, DataIterator(task.output, read_function))
+            task.task_uid, DataIterator(task.task_output, read_function))
 
     @staticmethod
     def create_source_from_iterable(iterable, read_function=read_all_values):
@@ -158,7 +177,8 @@ class DataIterator:
         self.buffer = [x for x in stream]
         self.read_function = read_function
         # TODO(StefanKennedy) Set this up to add new values in a
-        # streaming format
+        # streaming format. This currently just initalised itself to
+        # whatever values are present in the stream
 
     def has_available_data(self):
         # TODO(StefanKennedy) Make this correspond to the read_function
@@ -201,11 +221,15 @@ class Task:
         """
         self.task_uid = uid
         self.task_instructions = task_instructions
-        self.completion_check = completion_check
-        self.completed = False
         self.data_instructions = []
 
+        self.completion_check = completion_check
+        self.completed = False
+
+        self.task_output = []
+
     def add_result(self, result):
+        self.task_output.append(result)
         if self.completion_check(result):
             self._complete_task()
 
