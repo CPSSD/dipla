@@ -1,6 +1,6 @@
 import unittest
 from dipla.server import task_queue
-from dipla.server.task_queue import Task, DataSource
+from dipla.server.task_queue import Task, TaskQueueNode, DataSource
 from dipla.server.task_queue import TaskQueueEmpty, NoTaskDependencyError
 
 
@@ -121,3 +121,51 @@ class TaskQueueTest(unittest.TestCase):
         self.assertEqual([1, 2], popped.values)
         #TODO(StefanKennedy) Test that correct exceptions are raised
 
+    def test_node_has_next_input(self):
+        sample_task = Task("a", "sample task")
+        sample_task.add_data_source(
+            DataSource.create_source_from_iterable([1]))
+        
+        sample_node = TaskQueueNode(sample_task)
+        self.assertTrue(sample_node.has_next_input())
+
+        sample_task2 = Task("b", "sample task")
+        sample_task2.add_data_source(
+            DataSource.create_source_from_iterable([]))
+        
+        sample_node2 = TaskQueueNode(sample_task2)
+        self.assertFalse(sample_node2.has_next_input())
+
+        sample_task3 = Task("c", "sample task")
+        sample_task3.add_data_source(
+            DataSource.create_source_from_iterable([1]))
+        sample_task3.add_data_source(
+            DataSource.create_source_from_iterable([]))
+
+        sample_node3 = TaskQueueNode(sample_task3)
+        self.assertFalse(sample_node3.has_next_input())
+
+    def test_node_next_input(self):
+        sample_task = Task("a", "sample task")
+        sample_task.add_data_source(
+            DataSource.create_source_from_iterable([1]))
+        
+        sample_node = TaskQueueNode(sample_task)
+        self.assertTrue([1], sample_node.next_input().values)
+
+        sample_task2 = Task("b", "sample task")
+        sample_task2.add_data_source(
+            DataSource.create_source_from_iterable([]))
+        
+        sample_node2 = TaskQueueNode(sample_task2)
+        with self.assertRaises(StopIteration):
+            sample_node2.next_input()
+
+        def read_individual_values(stream):
+            return stream.pop(0)
+        sample_task3 = Task("c", "sample task")
+        sample_task3.add_data_source(DataSource.create_source_from_iterable(
+            [1, 2], read_individual_values))
+
+        sample_node3 = TaskQueueNode(sample_task3)
+        self.assertEqual(1, sample_node3.next_input().values)
