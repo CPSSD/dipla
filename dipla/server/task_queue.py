@@ -17,8 +17,6 @@ class TaskQueue:
     """
 
     def __init__(self):
-        # The queue head and tail represent the uids of the start and
-        # end nodes respectively of a LinkedList
         self._active_tasks = set()
         self._nodes = {}
 
@@ -61,9 +59,6 @@ class TaskQueue:
         from the queue, or false if there are either no tasks or no
         available values for any tasks
         """
-        if len(self._active_tasks) == 0:
-            return False
-
         for task_uid in self._active_tasks:
             if self._nodes[task_uid].has_next_input():
                 return True
@@ -155,7 +150,7 @@ class TaskQueueNode:
         """
         task_item is the value stored in this node
 
-        This class acts as a node in a linked list using it's
+        This class acts as a node in a linked list using its
         dependencies as the previous nodes and it's dependees as the
         next nodes
         """

@@ -109,7 +109,7 @@ class WorkerGroup:
         Returns:
          - True if there are workers available in the ready_worker set
         """
-        return bool(len(self.ready_workers))
+        return len(self.ready_workers) > 0
 
     def _all_workers(self):
         """
