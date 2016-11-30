@@ -69,9 +69,9 @@ class TaskQueue:
     # and we need to redistribute them
     def pop_task_input(self):
         """
-        Returns some values that can be used to run a task as a
-        TaskInput object. These values will be taken from a task
-        with its id present in the active_tasks set
+        Returns a TaskInput object that can be used to run a task as a
+        These values will be taken from a task with its id present in
+        the active_tasks set
 
         Raises:
          - TaskQueueEmpty exception is there's no available tasks or

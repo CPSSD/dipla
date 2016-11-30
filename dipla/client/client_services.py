@@ -55,12 +55,13 @@ class BinaryRunnerService(ClientService):
             result = self._binary_runner.run(
                 self._client.binary_paths[task], [str(input_value)])
             results.append(result)
-        data = {
+        result_data = {
             'task_uid': data["task_uid"],
             'results': results
         }
 
-        message = message_generator.generate_message('client_result', data)
+        message = message_generator.generate_message(
+            'client_result', result_data)
         return message
 
 

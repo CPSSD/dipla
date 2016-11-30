@@ -27,7 +27,7 @@ class TaskQueueTest(unittest.TestCase):
         self.assertEqual({"foo"}, self.queue.get_active_tasks())
         self.assertEqual({"foo", "bar"}, self.queue.get_nodes().keys())
 
-    def test_add_result_to_default_check(self):
+    def test_add_result_to_task_with_default_checker(self):
         # Test task is marked as open on any result if no check provided
         sample_task = Task("foo", "")
         sample_task.add_data_source(
