@@ -35,9 +35,11 @@ class TaskQueue:
         Returns
          - None
         """
+        if item.uid is None:
+            raise AttributeError("Added task to TaskQueue with no id")
         self._nodes[item.uid] = TaskQueueNode(item)
 
-        # Add this task as a dependent of all its prerequisite tasks
+        # Add this task as a dependant of all its prerequisite tasks
         active = True
         for instruction in item.data_instructions:
             # If instruction is from an iterable then it wont be a task
@@ -92,6 +94,10 @@ class TaskQueue:
                 return self._nodes[task_uid].next_input()
 
     def add_result(self, task_id, result):
+        if task_id not in self._nodes.keys():
+            raise KeyError(
+                "Attempted to add result for a task not present in the queue")
+
         self._nodes[task_id].task_item.add_result(result)
         if self.is_task_open(task_id):
             self.activate_new_tasks(self._nodes[task_id].dependees)
@@ -106,6 +112,9 @@ class TaskQueue:
         that is not open, it will not make the task open
         """
         for task_id in ids:
+            if task_id not in self._nodes.keys():
+                raise KeyError(
+                    "Attempted to try activating a task that not in the queue")
             # Check to see if the task still needs to wait on anything
             can_activate = True
             for dependency in self._nodes[task_id].dependencies:
@@ -127,6 +136,9 @@ class TaskQueue:
         return nodes_copy
 
     def is_task_open(self, task_uid):
+        if task_uid not in self._nodes:
+            raise KeyError(
+                "Attempted to check if task was open that is not in the queue")
         return self._nodes[task_uid].task_item.open
 
 
