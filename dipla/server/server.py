@@ -7,6 +7,7 @@ import dipla.server.task_queue
 
 from dipla.server.worker_group import WorkerGroup, Worker
 from dipla.shared.services import ServiceError
+from dipla.shared.message_generator import generate_message
 from base64 import b64encode
 
 
@@ -200,11 +201,8 @@ class Server:
         return message_dict
 
     async def _send_message(self, socket, label, data):
-        response = {
-            'label': label,
-            'data': data,
-        }
-        await socket.send(json.dumps(response))
+        message = generate_message(label, data)
+        await socket.send(json.dumps(message))
 
     def send(self, socket, label, data):
         asyncio.ensure_future(self._send_message(socket, label, data))
