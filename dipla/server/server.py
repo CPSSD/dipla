@@ -155,9 +155,8 @@ class Server:
                         message['data'], params=params)
                     if response_data is None:
                         continue
-                    await self._send_message(worker.websocket,
-                                             message['label'],
-                                             response_data)
+                    self.send(
+                        worker.websocket, message['label'], response_data)
                 except (ValueError, KeyError) as e:
                     # If there is a general error that isn't service specific
                     # then send a message with the 'runtime_error' label.
@@ -165,15 +164,11 @@ class Server:
                         'details': 'Error during websocket loop: %s' % str(e),
                         'code': 1,
                     }
-                    await self._send_message(worker.websocket,
-                                             'runtime_error',
-                                             data)
+                    self.send(worker.websocket, 'runtime_error', data)
                 except ServiceError as e:
                     # This error has a specific code to transmit attached to it
                     data = {'details': str(e), 'code': e.code}
-                    await self._send_message(worker.websocket,
-                                             'runtime_error',
-                                             data)
+                    self.send(worker.websocket, 'runtime_error', data)
         except websockets.exceptions.ConnectionClosed as e:
             print(worker.uid + " has closed the connection")
         finally:
