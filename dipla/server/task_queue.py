@@ -57,6 +57,21 @@ class TaskQueue:
         if active:
             self.active_tasks.add(item.task_uid)
 
+    def has_next_input(self):
+        """
+        Returns true if there are task input values that can be popped
+        from the queue, or false if there are either no tasks or no
+        available values for any tasks
+        """
+        if len(self.active_tasks) == 0:
+            return False
+
+        for task_uid in self.active_tasks:
+            if self.nodes[task_uid].has_next_input():
+                return True
+
+        return False
+
     # TODO(StefanKennedy) Add fallback incase popped values are lost
     # and we need to redistribute them
     def pop_task_input(self):
@@ -73,13 +88,12 @@ class TaskQueue:
          - The TaskInput object representing some of the data from an
         active task
         """
-        if len(self.active_tasks) == 0:
+        if not self.has_next_input():
             raise TaskQueueEmpty("Queue was empty and could not pop input")
 
         for task_uid in self.active_tasks:
             if self.nodes[task_uid].has_next_input():
                 return self.nodes[task_uid].next_input()
-        raise TaskQueueEmpty("No input values available for any tasks")
 
     def add_result(self, task_id, result):
         self.nodes[task_id].task_item.add_result(result)

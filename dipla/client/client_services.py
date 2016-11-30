@@ -36,7 +36,7 @@ class BinaryRunnerService(ClientService):
 
     @staticmethod
     def get_label():
-        return 'get_instructions'
+        return 'run_instructions'
 
     def __init__(self, client, binary_runner):
         super().__init__(client)
@@ -87,7 +87,7 @@ class BinaryReceiverService(ClientService):
             os.chmod(binary_path, 511)
 
         return message_generator.generate_message(
-            "get_instructions", "")
+            "binary_recieved", "")
 
 
 class ServerErrorService(ClientService):

@@ -46,7 +46,7 @@ class ServerServices:
         # the client to better choose what to do with it.
         self.services = {
             'get_binaries': self._handle_get_binaries,
-            'get_instructions': self._handle_get_instructions,
+            'binary_recieved': self._handle_binary_recieved,
             'client_result': self._handle_client_result,
             'get_instructions_result': self._handle_client_result,
             'runtime_error': self._handle_runtime_error,
@@ -76,29 +76,27 @@ class ServerServices:
         }
         return data
 
-    def _handle_get_instructions(self, message, params):
-        data = {}
+    def _handle_binary_recieved(self, message, params):
+        # Worker has downloaded binary and is ready to do tasks 
         try:
-            task_input = params['server'].task_queue.pop_task_input()
-            data['task_instructions'] = task_input.task_instructions
-            # We need a unique task id incase the same task is used in
-            # multiple places
-            data['task_uid'] = task_input.task_uid
-            # In the current version the data_source is not yet created
-            # Instead the placeholder of the actual data values is used
-            data['data'] = task_input.values
-        except task_queue.TaskQueueEmpty as e:
-            data['command'] = 'quit'
-        return data
+            params['server'].worker_group.add_worker(params['worker'])
+        except ValueError:
+            # TODO(cianlr): Log something here indicating the error
+            data = {'details': 'UserID already taken', 'code': 0}
+            params['server'].send(websocket, 'runtime_error', data)
+            return None
+        # If there was extra tasks that no others could do, try and
+        # assign it to this worker, as it should be the only ready one
+        params['server'].distribute_tasks()
+        return None
 
     def _handle_client_result(self, message, params):
         task_id = message['task_uid']
         value = message['results']
         server = params['server']
         server.task_queue.add_result(task_id, value)
-        # TODO(StefanKennedy) Make client automatically obtain more
-        # input values if there are more available for the current task
         server.worker_group.return_worker(params['worker'].uid)
+        server.distribute_tasks()
         return None
 
     def _handle_runtime_error(self, message, params):
@@ -139,18 +137,7 @@ class Server:
 
     async def websocket_handler(self, websocket, path):
         user_id = self.worker_group.generate_uid()
-        try:
-            self.worker_group.add_worker(
-                Worker(user_id, websocket, quality=0.5))
-        except ValueError:
-            # TODO(cianlr): Log something here indicating the error
-            data = {'details': 'UserID already taken', 'code': 0}
-            await self._send_message(websocket, 'runtime_error', data)
-            return
-        # This is kind of unusual, we add a new worker to the group and
-        # then pull out whatever is at the top of the group and repurpose
-        # the thread to handle that worker, but it works for now.
-        worker = self.worker_group.lease_worker()
+        worker = Worker(user_id, websocket, quality=0.5)
         try:
             # recv() raises a ConnectionClosed exception when the client
             # disconnects, which breaks out of the while True loop.
@@ -192,8 +179,26 @@ class Server:
         except websockets.exceptions.ConnectionClosed as e:
             print(worker.uid + " has closed the connection")
         finally:
-            self.worker_group.return_worker(worker.uid)
-            self.worker_group.remove_worker(worker.uid)
+            if worker.uid in self.worker_group.worker_uids():
+                self.worker_group.remove_worker(worker.uid)
+
+    def distribute_tasks(self):
+        # By leasing workers without specifying an id, we get the
+        # highest quality worker for the task
+        while self.worker_group.has_available_worker():
+            if self.task_queue.has_next_input():
+                task_input = self.task_queue.pop_task_input()
+                
+                # Create the message and send it
+                data = {}
+                data['task_instructions'] = task_input.task_instructions
+                data['task_uid'] = task_input.task_uid
+                data['data'] = task_input.values
+                worker = self.worker_group.lease_worker()
+                self.send(worker.websocket, 'run_instructions', data)
+            else:
+                 break
+
 
     def _decode_message(self, message):
         print(message)
@@ -209,6 +214,9 @@ class Server:
             'data': data,
         }
         await socket.send(json.dumps(response))
+
+    def send(self, socket, label, data):
+        asyncio.ensure_future(self._send_message(socket, label, data))
 
     def start(self):
         start_server = websockets.serve(
