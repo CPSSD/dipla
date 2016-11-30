@@ -56,7 +56,7 @@ def main():
     tq.push_task(reduce_task)
 
     bm = BinaryManager()
-    bm.add_platform('.*x.*', [
+    bm.add_binary_paths('.*x.*', [
         ('fibonacci', 'fibonacci'),
         ('negate', 'negate'),
         ('reduce', 'reduce')
