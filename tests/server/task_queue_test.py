@@ -2,6 +2,7 @@ import unittest
 from dipla.server import task_queue
 from dipla.server.task_queue import Task, TaskQueueNode, DataSource
 from dipla.server.task_queue import TaskQueueEmpty, NoTaskDependencyError
+from dipla.server.task_queue import DataStreamerEmpty
 
 
 class TaskQueueTest(unittest.TestCase):
@@ -215,7 +216,7 @@ class TaskQueueTest(unittest.TestCase):
             DataSource.create_source_from_iterable([]))
 
         sample_node = TaskQueueNode(sample_task)
-        with self.assertRaises(StopIteration):
+        with self.assertRaises(DataStreamerEmpty):
             sample_node.next_input()
 
     def test_node_next_input_on_defined_function(self):

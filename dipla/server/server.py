@@ -146,7 +146,6 @@ class Server:
                     # back the response.
                     message = self._decode_message(
                         await worker.websocket.recv())
-                    print("Message label is: " + message['label'])
                     service = self.services.get_service(message['label'])
                     params = {
                         'server': self,
@@ -185,18 +184,18 @@ class Server:
         # By leasing workers without specifying an id, we get the
         # highest quality worker for the task
         while self.worker_group.has_available_worker():
-            if self.task_queue.has_next_input():
-                task_input = self.task_queue.pop_task_input()
-
-                # Create the message and send it
-                data = {}
-                data['task_instructions'] = task_input.task_instructions
-                data['task_uid'] = task_input.task_uid
-                data['data'] = task_input.values
-                worker = self.worker_group.lease_worker()
-                self.send(worker.websocket, 'run_instructions', data)
-            else:
+            if not self.task_queue.has_next_input():
                 break
+
+            task_input = self.task_queue.pop_task_input()
+
+            # Create the message and send it
+            data = {}
+            data['task_instructions'] = task_input.task_instructions
+            data['task_uid'] = task_input.task_uid
+            data['data'] = task_input.values
+            worker = self.worker_group.lease_worker()
+            self.send(worker.websocket, 'run_instructions', data)
 
     def _decode_message(self, message):
         message_dict = json.loads(message)
