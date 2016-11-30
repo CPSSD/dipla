@@ -15,9 +15,26 @@ class BinaryManager:
     def __init__(self):
         self.platform_re_list = []
 
-    def add_platform(self, platform_re, task_list):
+    def add_binary_paths(self, platform_re, task_list):
         # Ensure task_list is a correcly formatted list of tuples containing a
         # task name string and path string.
+        self._check_task_list(task_list)
+        b64_binaries = []
+        for task_name, binary_path in task_list:
+            with open(binary_path, 'rb') as binary:
+                # Read the bytes of the binary and base64 encode them.
+                binary_b64_bytes = b64encode(binary.read())
+                # Turn the bytes of the base64 into a UTF-8 string.
+                b64_binaries.append(
+                    (task_name, binary_b64_bytes.decode('UTF-8')))
+
+        self.platform_re_list.append((re.compile(platform_re), b64_binaries))
+
+    def add_encoded_binaries(self, platform_re, task_list):
+        self._check_task_list(task_list)
+        self.platform_re_list.append((re.compile(platform_re), task_list))
+
+    def _check_task_list(self, task_list):
         for task_tuple in task_list:
             if not isinstance(task_tuple, tuple):
                 raise ValueError('task_list must be a list of tuples.')
@@ -25,16 +42,18 @@ class BinaryManager:
             if not isinstance(task_name, str):
                 raise ValueError(
                     'The first element of each tuple must be a string.')
-            if not isinstance(binary_path, str):
+            if not isinstance(encoded_binary, str):
                 raise ValueError(
                     'The second element of each tuple must be a string.')
 
-        self.platform_re_list.append((re.compile(platform_re), task_list))
-
     def get_binaries(self, platform):
+        full_task_list = []
         for platform_re, task_list in self.platform_re_list:
             if platform_re.match(platform):
-                return task_list
+                full_task_list.extend(task_list)
+
+        if full_task_list:
+            return full_task_list
         raise KeyError('No matching binaries found for this platform')
 
 
@@ -63,15 +82,8 @@ class ServerServices:
         except KeyError as e:
             raise ServiceError(e, 2)
 
-        encoded_binaries = {}
-        for task_name, path in task_list:
-            with open(path, 'rb') as binary:
-                binary_bytes = binary.read()
-            encoded_bytes = b64encode(binary_bytes)
-            encoded_binaries[task_name] = encoded_bytes.decode('utf-8')
-
         data = {
-            'base64_binaries': encoded_binaries,
+            'base64_binaries': dict(encoded_binaries),
         }
         return data
 
