@@ -52,12 +52,13 @@ class BinaryRunnerService(ClientService):
 
         results = []
         for input_value in data['data']:
-            results.append(self._binary_runner.run(
-                    self._client.binary_paths[task], str(input_value)))
+            result = self._binary_runner.run(
+                self._client.binary_paths[task], str(input_value))
+            results.append(result)
         data = {
-                'task_uid' : data["task_uid"],
-                'results' : results
-            }
+            'task_uid': data["task_uid"],
+            'results': results
+        }
 
         message = message_generator.generate_message('client_result', data)
         return message

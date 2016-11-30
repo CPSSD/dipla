@@ -6,6 +6,7 @@ using information such as the task identifier and input data
 import queue  # needed to inherit exception from
 import sys
 
+
 class TaskQueue:
     """
     The TaskQueue is, as the name suggests, a FIFO queue for storing Tasks that
@@ -18,13 +19,13 @@ class TaskQueue:
     def __init__(self):
         # The queue head and tail represent the uids of the start and
         # end nodes respectively of a LinkedList
-        self.active_tasks = set()
-        self.nodes = {}
+        self._active_tasks = set()
+        self._nodes = {}
 
     def push_task(self, item):
         """
         Adds a task to the queue, connecting it with the tasks that it
-        depends on. A task is connected to something it depends on 
+        depends on. A task is connected to something it depends on
         using a DataSource, which tracks the task that the data is
         coming from and the iterator that is used to stream the data
 
@@ -34,28 +35,28 @@ class TaskQueue:
         Returns
          - None
         """
-        self.nodes[item.task_uid] = TaskQueueNode(item)
+        self._nodes[item.uid] = TaskQueueNode(item)
 
-        # This task does not do anything, raise an error 
+        # This task does not do anything, raise an error
         if len(item.data_instructions) == 0:
-           raise NoTaskDependencyError(
-               "Attempted to add a task that did not have any data source") 
+            raise NoTaskDependencyError(
+               "Attempted to add a task that did not have any data source")
 
-        # Inform all tasks that this one depends on about the dependancy
+        # Inform all tasks that this one depends on about the dependency
         active = True
         for instruction in item.data_instructions:
             # If instruction is from an iterable then it wont be a task
-            if instruction.source_task_uid == None:
+            if instruction.source_task_uid is None:
                 continue
 
             # Inform other task that this task depends on it
-            self.nodes[instruction.source_task_uid].add_dependee(item.task_uid)
+            self._nodes[instruction.source_task_uid].add_dependee(item.uid)
             # If other task is not open, do not activate this task
             if not self.is_task_open(instruction.source_task_uid):
                 active = False
 
         if active:
-            self.active_tasks.add(item.task_uid)
+            self._active_tasks.add(item.uid)
 
     def has_next_input(self):
         """
@@ -63,11 +64,11 @@ class TaskQueue:
         from the queue, or false if there are either no tasks or no
         available values for any tasks
         """
-        if len(self.active_tasks) == 0:
+        if len(self._active_tasks) == 0:
             return False
 
-        for task_uid in self.active_tasks:
-            if self.nodes[task_uid].has_next_input():
+        for task_uid in self._active_tasks:
+            if self._nodes[task_uid].has_next_input():
                 return True
 
         return False
@@ -91,14 +92,14 @@ class TaskQueue:
         if not self.has_next_input():
             raise TaskQueueEmpty("Queue was empty and could not pop input")
 
-        for task_uid in self.active_tasks:
-            if self.nodes[task_uid].has_next_input():
-                return self.nodes[task_uid].next_input()
+        for task_uid in self._active_tasks:
+            if self._nodes[task_uid].has_next_input():
+                return self._nodes[task_uid].next_input()
 
     def add_result(self, task_id, result):
-        self.nodes[task_id].task_item.add_result(result)
+        self._nodes[task_id].task_item.add_result(result)
         if self.is_task_open(task_id):
-            self.activate_new_tasks(self.nodes[task_id].dependees)
+            self.activate_new_tasks(self._nodes[task_id].dependees)
 
     # TODO(StefanKennedy) Add functionality to close a task (take out of
     # active task set) This would happen if reading an input hit EOF
@@ -112,16 +113,23 @@ class TaskQueue:
         for id in ids:
             # Check to see if the task still needs to wait on anything
             can_activate = True
-            for dependency in self.nodes[id].dependencies:
+            for dependency in self._nodes[id].dependencies:
                 if not self.is_task_open(dependency.source_task_uid):
                     can_activate = False
                     break
 
             if can_activate:
-                self.active_tasks.add(id)
+                self._active_tasks.add(id)
+
+    def get_active_tasks(self):
+        return set(self._active_tasks)
+
+    def get_nodes(self):
+        return dict(self._nodes)
 
     def is_task_open(self, task_uid):
-        return self.nodes[task_uid].task_item.open
+        return self._nodes[task_uid].task_item.open
+
 
 class TaskQueueEmpty(queue.Empty):
     """
@@ -154,8 +162,8 @@ class TaskQueueNode:
             raise StopIteration("Attempted to read input from an empty source")
 
         return TaskInput(
-            self.task_item.task_uid,
-            self.task_item.task_instructions,
+            self.task_item.uid,
+            self.task_item.instructions,
             self.dependencies[0].data_iterator.read())
 
     def has_next_input(self):
@@ -163,6 +171,7 @@ class TaskQueueNode:
             if not dependency.data_iterator.has_available_data():
                 return False
         return True
+
 
 class DataSource:
 
@@ -179,7 +188,7 @@ class DataSource:
             read_function=read_all_values,
             availability_check=any_data_available):
         return DataSource(
-            task.task_uid,
+            task.uid,
             DataIterator(task.task_output, read_function, availability_check))
 
     @staticmethod
@@ -205,18 +214,19 @@ class DataSource:
         self.source_task_uid = source_task_uid
         self.data_iterator = data_iterator
 
+
 class DataIterator:
 
     def __init__(self, stream, read_function, availability_check):
         """
-        This is singly responsible for acting as the bridge between a 
+        This is singly responsible for acting as the bridge between a
         reader and a outputter of a stream of data. It should be
         composed by the reader, where the outputter has access to output
         on the stream
 
         stream is the collection of data that can be mutated by the
         reader as it consumes the values in it
-        
+
         read_function is the defined way of reading values and returning
         the to the reader
 
@@ -231,12 +241,13 @@ class DataIterator:
         # streaming format.
 
     def has_available_data(self):
-        return self.availability_check(self.stream) 
+        return self.availability_check(self.stream)
 
     def read(self):
         if not self.has_available_data():
             raise StopIteration("Attempted to read unavailable data")
         return self.read_function(self.stream)
+
 
 class TaskInput:
 
@@ -259,6 +270,7 @@ class TaskInput:
         self.task_instructions = task_instructions
         self.values = values
 
+
 # Abstraction of the information necessary to represent a task
 class Task:
     """
@@ -276,13 +288,13 @@ class Task:
          - task_instructions: An object used to represent instructions
         on what task should be carried out on the data
          - open_check:  A function that returns true if it can determine
-        that this task is open. This function should take one argument 
+        that this task is open. This function should take one argument
         which is the result that is received from the client The default
         lambda function used here causes the completion check to return
         true when any result is received back from the server
         """
-        self.task_uid = uid
-        self.task_instructions = task_instructions
+        self.uid = uid
+        self.instructions = task_instructions
         self.data_instructions = []
 
         self.open_check = open_check
@@ -301,10 +313,10 @@ class Task:
     def _open_task(self):
         self.open = True
 
+
 class NoTaskDependencyError(Exception):
     """
     An exception to be thrown if the a task is added that depends on
     nothing. If this was possible, the task would never do anything
     """
     pass
-
