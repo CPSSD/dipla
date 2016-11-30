@@ -48,7 +48,6 @@ class ServerServices:
             'get_binaries': self._handle_get_binaries,
             'binary_recieved': self._handle_binary_recieved,
             'client_result': self._handle_client_result,
-            'get_instructions_result': self._handle_client_result,
             'runtime_error': self._handle_runtime_error,
         }
 
@@ -77,7 +76,7 @@ class ServerServices:
         return data
 
     def _handle_binary_recieved(self, message, params):
-        # Worker has downloaded binary and is ready to do tasks 
+        # Worker has downloaded binary and is ready to do tasks
         try:
             params['server'].worker_group.add_worker(params['worker'])
         except ValueError:
@@ -150,8 +149,8 @@ class Server:
                     print("Message label is: " + message['label'])
                     service = self.services.get_service(message['label'])
                     params = {
-                        'server':self,
-                        'worker':worker
+                        'server': self,
+                        'worker': worker
                     }
                     response_data = service(
                         message['data'], params=params)
@@ -188,7 +187,7 @@ class Server:
         while self.worker_group.has_available_worker():
             if self.task_queue.has_next_input():
                 task_input = self.task_queue.pop_task_input()
-                
+
                 # Create the message and send it
                 data = {}
                 data['task_instructions'] = task_input.task_instructions
@@ -197,11 +196,9 @@ class Server:
                 worker = self.worker_group.lease_worker()
                 self.send(worker.websocket, 'run_instructions', data)
             else:
-                 break
-
+                break
 
     def _decode_message(self, message):
-        print(message)
         message_dict = json.loads(message)
         if 'label' not in message_dict or 'data' not in message_dict:
             raise ValueError('Message missing "label" or "data": {}'.format(
