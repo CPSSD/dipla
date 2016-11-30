@@ -248,8 +248,6 @@ class DataStreamer:
         self.stream = stream
         self.read_function = read_function
         self.availability_check = availability_check
-        # TODO(StefanKennedy) Test that this can add new values in a
-        # streaming format.
 
     def has_available_data(self):
         return self.availability_check(self.stream)
