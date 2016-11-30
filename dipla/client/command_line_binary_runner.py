@@ -22,7 +22,7 @@ class CommandLineBinaryRunner(object):
     def _run_binary(self, filepath, arguments):
         self._logger.debug("About to run binary %s" % filepath)
         process = Popen(
-            args=["/home/stefan/GitHub/dipla/"+filepath] + [arguments],
+            args=[filepath] + [arguments],
             stdin=PIPE,
             stdout=PIPE,
             stderr=PIPE,
