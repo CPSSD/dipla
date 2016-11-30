@@ -135,6 +135,26 @@ class TaskQueueTest(unittest.TestCase):
         with self.assertRaises(TaskQueueEmpty):
             self.queue.pop_task_input()
 
+    def test_has_next_input(self):
+        # Test empty task queue returns false
+        self.assertFalse(self.queue.has_next_input())
+
+        # Test queue with a task with no input returns false
+        sample_task = Task("a", "sample task")
+        sample_task.add_data_source(
+            DataSource.create_source_from_iterable([]))
+        self.queue.push_task(sample_task)
+
+        self.assertFalse(self.queue.has_next_input())
+
+        # Test queue with two tasks, one with input returns true
+        sample_task2 = Task("b", "sample task 2")
+        sample_task2.add_data_source(
+            DataSource.create_source_from_iterable([1]))
+        self.queue.push_task(sample_task2)
+
+        self.assertTrue(self.queue.has_next_input())
+
     def test_node_has_next_input(self):
         # Task with input returns true
         sample_task = Task("a", "sample task")
