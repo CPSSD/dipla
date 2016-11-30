@@ -42,7 +42,7 @@ class TaskQueue:
             raise NoTaskDependencyError(
                "Attempted to add a task that did not have any data source")
 
-        # Inform all tasks that this one depends on about the dependency
+        # Add this task as a dependent of all its prerequisite tasks
         active = True
         for instruction in item.data_instructions:
             # If instruction is from an iterable then it wont be a task
@@ -73,7 +73,7 @@ class TaskQueue:
 
         return False
 
-    # TODO(StefanKennedy) Add fallback incase popped values are lost
+    # TODO(StefanKennedy) Add fallback in case popped values are lost
     # and we need to redistribute them
     def pop_task_input(self):
         """
@@ -110,22 +110,26 @@ class TaskQueue:
         tasks into the active_tasks set. If a task has a dependency
         that is not open, it will not make the task open
         """
-        for id in ids:
+        for task_id in ids:
             # Check to see if the task still needs to wait on anything
             can_activate = True
-            for dependency in self._nodes[id].dependencies:
+            for dependency in self._nodes[task_id].dependencies:
                 if not self.is_task_open(dependency.source_task_uid):
                     can_activate = False
                     break
 
             if can_activate:
-                self._active_tasks.add(id)
+                self._active_tasks.add(task_id)
 
     def get_active_tasks(self):
-        return set(self._active_tasks)
+        active_tasks_copy = set()
+        active_tasks_copy.update(self._active_tasks)
+        return active_tasks_copy
 
     def get_nodes(self):
-        return dict(self._nodes)
+        nodes_copy = dict()
+        nodes_copy.update(self._nodes)
+        return nodes_copy
 
     def is_task_open(self, task_uid):
         return self._nodes[task_uid].task_item.open
@@ -158,19 +162,28 @@ class TaskQueueNode:
     def next_input(self):
         # TODO(StefanKennedy) Add functionality so that this can handle
         # multiple input dependencies
-        if not self.dependencies[0].data_iterator.has_available_data():
-            raise StopIteration("Attempted to read input from an empty source")
+        if not self.dependencies[0].data_streamer.has_available_data():
+            raise DataStreamerEmpty(
+                "Attempted to read input from an empty source")
 
         return TaskInput(
             self.task_item.uid,
             self.task_item.instructions,
-            self.dependencies[0].data_iterator.read())
+            self.dependencies[0].data_streamer.read())
 
     def has_next_input(self):
         for dependency in self.dependencies:
-            if not dependency.data_iterator.has_available_data():
+            if not dependency.data_streamer.has_available_data():
                 return False
         return True
+
+
+class DataStreamerEmpty(Exception):
+    """
+    An exception raised when an attempt is made to read a data streamer,
+    but there are currently no available values to read in the streamer
+    """
+    pass
 
 
 class DataSource:
@@ -189,7 +202,7 @@ class DataSource:
             availability_check=any_data_available):
         return DataSource(
             task.uid,
-            DataIterator(task.task_output, read_function, availability_check))
+            DataStreamer(task.task_output, read_function, availability_check))
 
     @staticmethod
     def create_source_from_iterable(
@@ -197,25 +210,25 @@ class DataSource:
             read_function=read_all_values,
             availability_check=any_data_available):
         return DataSource(
-            None, DataIterator(iterable, read_function, availability_check))
+            None, DataStreamer(iterable, read_function, availability_check))
 
-    def __init__(self, source_task_uid, data_iterator):
+    def __init__(self, source_task_uid, data_streamer):
         """
-        This is a class composed of a DataIterator, which also contains
+        This is a class composed of a DataStreamer, which also contains
         information about what task the data is sourced from (if sourced
         from a task)
 
         source_task_uid is the unique identifier of the task that this
         data is sourced from. (For that task, the data is it's output)
 
-        data_iterator is the DataIterator object that contains the
+        data_streamer is the DataStreamer object that contains the
         stream used to read the data
         """
         self.source_task_uid = source_task_uid
-        self.data_iterator = data_iterator
+        self.data_streamer = data_streamer
 
 
-class DataIterator:
+class DataStreamer:
 
     def __init__(self, stream, read_function, availability_check):
         """
@@ -245,7 +258,7 @@ class DataIterator:
 
     def read(self):
         if not self.has_available_data():
-            raise StopIteration("Attempted to read unavailable data")
+            raise DataStreamerEmpty("Attempted to read unavailable data")
         return self.read_function(self.stream)
 
 
