@@ -39,12 +39,26 @@ class BinaryManager:
         raise KeyError('No matching binaries found for this platform')
 
 
+class ServiceParams:
+
+    def __init__(self, server, worker):
+        self.server = server
+        self.worker = worker
+
+
 class ServerServices:
 
     def __init__(self):
-        # Raising an exception will transmit it back to the client. A
-        # ServiceError lets you include a specific error code to allow
-        # the client to better choose what to do with it.
+        """
+        Raising an exception will transmit it back to the client. A
+        ServiceError lets you include a specific error code to allow
+        the client to better choose what to do with it.
+
+        The services provided here expect a data object of type
+        ServiceParams that carry the server that is calling the service
+        as well as the worker that owns the websocket that called the
+        service
+        """
         self.services = {
             'get_binaries': self._handle_get_binaries,
             'binary_recieved': self._handle_binary_recieved,
@@ -60,7 +74,7 @@ class ServerServices:
     def _handle_get_binaries(self, message, params):
         platform = message['platform']
         try:
-            task_list = params['server'].binary_manager.get_binaries(platform)
+            task_list = params.server.binary_manager.get_binaries(platform)
         except KeyError as e:
             raise ServiceError(e, 2)
 
@@ -79,23 +93,23 @@ class ServerServices:
     def _handle_binary_recieved(self, message, params):
         # Worker has downloaded binary and is ready to do tasks
         try:
-            params['server'].worker_group.add_worker(params['worker'])
+            params.server.worker_group.add_worker(params.worker)
         except ValueError:
             # TODO(cianlr): Log something here indicating the error
             data = {'details': 'UserID already taken', 'code': 0}
-            params['server'].send(websocket, 'runtime_error', data)
+            params.server.send(websocket, 'runtime_error', data)
             return None
         # If there was extra tasks that no others could do, try and
         # assign it to this worker, as it should be the only ready one
-        params['server'].distribute_tasks()
+        params.server.distribute_tasks()
         return None
 
     def _handle_client_result(self, message, params):
         task_id = message['task_uid']
         value = message['results']
-        server = params['server']
+        server = params.server
         server.task_queue.add_result(task_id, value)
-        server.worker_group.return_worker(params['worker'].uid)
+        server.worker_group.return_worker(params.worker.uid)
         server.distribute_tasks()
         return None
 
@@ -148,12 +162,8 @@ class Server:
                     message = self._decode_message(
                         await worker.websocket.recv())
                     service = self.services.get_service(message['label'])
-                    params = {
-                        'server': self,
-                        'worker': worker
-                    }
                     response_data = service(
-                        message['data'], params=params)
+                        message['data'], params=ServiceParams(self, worker))
                     if response_data is None:
                         continue
                     self.send(
