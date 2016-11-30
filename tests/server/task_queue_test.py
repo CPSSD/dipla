@@ -38,7 +38,7 @@ class TaskQueueTest(unittest.TestCase):
             DataSource.create_source_from_iterable([]))
         self.queue.push_task(sample_task)
         self.queue.add_result("a", "test result")
-        self.assertTrue(self.queue.get_task_open("a"))
+        self.assertTrue(self.queue.is_task_open("a"))
 
     def test_add_result_to_user_defined_check(self):
         # Test task is marked as open once a "done" result is received
@@ -50,9 +50,9 @@ class TaskQueueTest(unittest.TestCase):
             DataSource.create_source_from_iterable([]))
         self.queue.push_task(sample_task)
         self.queue.add_result("b", "test result")
-        self.assertFalse(self.queue.get_task_open("b"))
+        self.assertFalse(self.queue.is_task_open("b"))
         self.queue.add_result("b", "done")
-        self.assertTrue(self.queue.get_task_open("b"))
+        self.assertTrue(self.queue.is_task_open("b"))
 
     def test_activate_new_tasks(self):
         root_task = Task("root", "root task")

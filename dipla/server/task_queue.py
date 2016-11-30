@@ -51,7 +51,7 @@ class TaskQueue:
             # Inform other task that this task depends on it
             self.nodes[instruction.source_task_uid].add_dependee(item.task_uid)
             # If other task is not open, do not activate this task
-            if not self.get_task_open(instruction.source_task_uid):
+            if not self.is_task_open(instruction.source_task_uid):
                 active = False
 
         if active:
@@ -97,7 +97,7 @@ class TaskQueue:
 
     def add_result(self, task_id, result):
         self.nodes[task_id].task_item.add_result(result)
-        if self.get_task_open(task_id):
+        if self.is_task_open(task_id):
             self.activate_new_tasks(self.nodes[task_id].dependees)
 
     # TODO(StefanKennedy) Add functionality to close a task (take out of
@@ -113,14 +113,14 @@ class TaskQueue:
             # Check to see if the task still needs to wait on anything
             can_activate = True
             for dependency in self.nodes[id].dependencies:
-                if not self.get_task_open(dependency.source_task_uid):
+                if not self.is_task_open(dependency.source_task_uid):
                     can_activate = False
                     break
 
             if can_activate:
                 self.active_tasks.add(id)
 
-    def get_task_open(self, task_uid):
+    def is_task_open(self, task_uid):
         return self.nodes[task_uid].task_item.open
 
 class TaskQueueEmpty(queue.Empty):
