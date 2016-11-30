@@ -4,5 +4,5 @@ def distributable(function):
     pass
 
 
-def task_input(function):
+def data_source(function):
     pass
