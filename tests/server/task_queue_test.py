@@ -27,11 +27,6 @@ class TaskQueueTest(unittest.TestCase):
         self.assertEqual({"foo"}, self.queue.get_active_tasks())
         self.assertEqual({"foo", "bar"}, self.queue.get_nodes().keys())
 
-        # Tasks without any dependencies should raise an error
-        sample_task3 = Task("baz", "sample task 3")
-        with self.assertRaises(NoTaskDependencyError):
-            self.queue.push_task(sample_task3)
-
     def test_add_result_to_default_check(self):
         # Test task is marked as open on any result if no check provided
         sample_task = Task("foo", "")
@@ -111,8 +106,6 @@ class TaskQueueTest(unittest.TestCase):
         def completion_check(result):
             return result == 2
         first_task = Task("baz", "first task", completion_check)
-        first_task.add_data_source(
-            DataSource.create_source_from_iterable([]))
         self.queue.push_task(first_task)
         self.queue.add_result("baz", 1)
         self.queue.add_result("baz", 2)

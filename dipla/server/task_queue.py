@@ -37,11 +37,6 @@ class TaskQueue:
         """
         self._nodes[item.uid] = TaskQueueNode(item)
 
-        # This task does not do anything, raise an error
-        if len(item.data_instructions) == 0:
-            raise NoTaskDependencyError(
-               "Attempted to add a task that did not have any data source")
-
         # Add this task as a dependent of all its prerequisite tasks
         active = True
         for instruction in item.data_instructions:
@@ -172,6 +167,9 @@ class TaskQueueNode:
             self.dependencies[0].data_streamer.read())
 
     def has_next_input(self):
+        if len(self.dependencies) == 0:
+            return False
+
         for dependency in self.dependencies:
             if not dependency.data_streamer.has_available_data():
                 return False
