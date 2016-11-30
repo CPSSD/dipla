@@ -18,7 +18,7 @@ class BinaryRunnerServiceTest(TestCase):
         self.json_data = {
             'task_uid': 'bar',
             'task_instructions': 'foo',
-            'data': 1
+            'data': [1, 2, 3]
         }
 
     def given_a_binary_runner_service(self):
@@ -75,6 +75,5 @@ class MockBinaryRunner(CommandLineBinaryRunner):
 
     def received(self, filepath, arguments):
         filepaths_match = self.filepath == filepath
-        print(str(self.arguments) + " == " + str(arguments))
-        arguments_match = self.arguments == arguments
+        arguments_match = self.arguments == [str(arguments[-1])]
         return filepaths_match and arguments_match
