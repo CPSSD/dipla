@@ -147,4 +147,4 @@ class Client(object):
         self.send(generate_message('get_binaries', data))
 
         loop.run_until_complete(receive_task)
-        # TODO Attempt to reconnect if connection is lost
+        self.start()
