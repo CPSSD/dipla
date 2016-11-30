@@ -50,6 +50,10 @@ class TaskQueueTest(unittest.TestCase):
         self.queue.add_result("bar", "done")
         self.assertTrue(self.queue.is_task_open("bar"))
 
+    def test_add_result_for_missing_task(self):
+        with self.assertRaises(KeyError):
+            self.queue.add_result("bar", "result")
+
     def test_activate_new_tasks(self):
         root_task = Task("root", "root task")
         root_task.add_data_source(
@@ -68,6 +72,10 @@ class TaskQueueTest(unittest.TestCase):
         self.queue.add_result("root", 100)
 
         self.assertEquals({"root", "next"}, self.queue.get_active_tasks())
+
+    def test_activate_missing_task(self):
+        with self.assertRaises(KeyError):
+            self.queue.activate_new_tasks({"foo"})
 
     def test_pop_task_input_depending_on_iterable(self):
         # Test default reading all values from data source
@@ -222,3 +230,7 @@ class TaskQueueTest(unittest.TestCase):
 
         sample_node = TaskQueueNode(sample_task)
         self.assertEqual(1, sample_node.next_input().values)
+
+    def test_is_task_open_on_missing_task(self):
+        with self.assertRaises(KeyError):
+            self.queue.is_task_open("foo")
