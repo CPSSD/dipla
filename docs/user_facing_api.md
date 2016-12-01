@@ -34,9 +34,9 @@ my_inputs = Dipla.read_data_source([1, 4, 9, 16, 25])
 This will mean that anywhere else my_inputs is used, it will represent the values from the iterable
 list `[1, 4, 9, 16, 25]`
 
-The other way to read inputs is by using a function that retrieve inputs from some source. In this
+The other way to read inputs is by using a function that retrieves inputs from some source. In this
 case the parameter to the function would be used to retrieve the input, for example, if we wanted
-to get inputs from some urls we would have a function and the list of urls:
+to get inputs by fetching some urls we would have a function and the list of urls:
 
 ```
 @data_source
@@ -44,7 +44,7 @@ def fetch_url(url_string):
     return URL(url_string).fetch()
 
 url_strings = ['www.google.com', 'www.dcu.ie', 'www.facebook.com/login']
-my_inputs = Dipla.read_data_source(url_strings, fetch_url)
+my_inputs = Dipla.read_data_source(fetch_url, url_strings)
 ```
 
 This @data_source function will not be distributed, it will run on the server.
@@ -53,8 +53,8 @@ This @data_source function will not be distributed, it will run on the server.
 
 Once you have a data source to input your data, you can apply the tasks to the inputs. Once you have
 run a task on the inputs, you can run another task on the output of the first task. To finish all of
-your work off, you should have a Dipla.Get() call. Take this example, where we square root some
-inputs, then cube them:
+your work off, you should have a `Dipla.get()` or a `Dipla.start() call`. Take this example, where
+we square root some inputs, then cube them:
 
 ```
 @distributable
@@ -71,11 +71,14 @@ rooted = Dipla.apply_distributable(square_root, my_inputs)
 cubed = Dipla.apply_distributable(cubed_value, rooted)
 
 final_output = Dipla.get(cubed)
+
+for num in final_output:
+    print(num)
 ```
 
 The `Dipla.get()` shown above is very important, its what converts your results out of the format
-that Dipla needs it to be in for it to use them, back into the format that you can understand
+that _Dipla_ needs it to be in for it to use them, back into the format that _you_ can understand
 and manipulate with normal code.
 
-There is an alternative to `Dipla.get()`, you can also use `Dipla.start()`, which has does not
+There is an alternative to `Dipla.get()`. You can also use `Dipla.start()`, which has does not
 return any output.
