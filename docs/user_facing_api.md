@@ -59,6 +59,7 @@ we square root some inputs, then cube them:
 ```
 @distributable
 def square_root(input_value):
+    import math
     return math.sqrt(input_value)
 
 @distributable
