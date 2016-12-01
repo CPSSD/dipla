@@ -61,7 +61,7 @@ class ServerServices:
         """
         self.services = {
             'get_binaries': self._handle_get_binaries,
-            'binary_recieved': self._handle_binary_recieved,
+            'binary_received': self._handle_binary_received,
             'client_result': self._handle_client_result,
             'runtime_error': self._handle_runtime_error,
         }
@@ -90,7 +90,7 @@ class ServerServices:
         }
         return data
 
-    def _handle_binary_recieved(self, message, params):
+    def _handle_binary_received(self, message, params):
         # Worker has downloaded binary and is ready to do tasks
         try:
             params.server.worker_group.add_worker(params.worker)
