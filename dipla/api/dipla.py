@@ -1,5 +1,4 @@
-from dipla.server import task_queue
-from dipla.server.task_queue import TaskQueue, Task
+from dipla.server.task_queue import TaskQueue, Task, DataSource
 from dipla.shared import uid_generator
 
 def read_data_source(source):
