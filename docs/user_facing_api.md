@@ -11,6 +11,7 @@ could do the following:
 ```
 @distributable
 def square_root(input_value):
+    import math
     return math.sqrt(input_value)
 ```
 
