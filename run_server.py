@@ -30,7 +30,7 @@ def main():
     tq.push_task(second_task)
 
     bm = BinaryManager()
-    bm.add_platform('.*x.*', [
+    bm.add_binary_paths('.*x.*', [
         ('fibonacci', 'fibonacci')
     ])
 
