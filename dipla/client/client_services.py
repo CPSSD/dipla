@@ -1,4 +1,6 @@
 import logging
+import os
+from dipla.shared import message_generator
 
 from abc import ABC, abstractmethod, abstractstaticmethod
 from base64 import b64decode
@@ -34,7 +36,7 @@ class BinaryRunnerService(ClientService):
 
     @staticmethod
     def get_label():
-        return 'run_binary'
+        return 'run_instructions'
 
     def __init__(self, client, binary_runner):
         super().__init__(client)
@@ -42,15 +44,25 @@ class BinaryRunnerService(ClientService):
 
     def execute(self, data):
         task = data["task_instructions"]
-        arguments = data["data_instructions"]
 
         if not hasattr(self._client, 'binary_paths'):
             raise ValueError('Client does not have any binaries')
         if task not in self._client.binary_paths:
             raise ValueError('Task "' + task + '" does not exist')
 
-        return self._binary_runner.run(self._client.binary_paths[task],
-                                       arguments)
+        results = []
+        for input_value in data['data']:
+            result = self._binary_runner.run(
+                self._client.binary_paths[task], [str(input_value)])
+            results.append(result)
+        result_data = {
+            'task_uid': data["task_uid"],
+            'results': results
+        }
+
+        message = message_generator.generate_message(
+            'client_result', result_data)
+        return message
 
 
 class BinaryReceiverService(ClientService):
@@ -74,7 +86,10 @@ class BinaryReceiverService(ClientService):
             raw_data = b64decode(encoded_bin)
             with open(binary_path, 'wb') as file_writer:
                 file_writer.write(raw_data)
-        return None
+            os.chmod(binary_path, 511)
+
+        return message_generator.generate_message(
+            "binary_recieved", "")
 
 
 class ServerErrorService(ClientService):
@@ -90,3 +105,4 @@ class ServerErrorService(ClientService):
     def execute(self, data):
         self.logger.error('Error from server (code %d): %s' % (
             data['code'], data['details']))
+        return None

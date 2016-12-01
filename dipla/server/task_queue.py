@@ -4,122 +4,137 @@ using information such as the task identifier and input data
 """
 
 import queue  # needed to inherit exception from
+import sys
 
 
 class TaskQueue:
     """
     The TaskQueue is, as the name suggests, a FIFO queue for storing Tasks that
-    should be executed by the workers. It also has a pool of waiting tasks that
-    have not received enough data inputs to be executed, and a pool of data
-    that is expecting to go into a task but no task is yet waiting for it.
+    should be executed by the workers. It has a set of active tasks that can be
+    used to pop task values for clients to operate on. The active tasks set can
+    build up as more tasks become available, and can decrease in size if some
+    tasks are marked as completely finished receiving input
     """
 
     def __init__(self):
-        # The queue head and tail represent the start and end nodes
-        # respectively of a LinkedList
-        self.queue_head = None
-        self.queue_tail = None
-
-        # A list of (data_type, value) tuples
-        self.ready_data = []
-        # A list of Tasks that do not have all the data they need yet
-        self.waiting_tasks = []
+        self._active_tasks = set()
+        self._nodes = {}
 
     def push_task(self, item):
         """
-        Adds a task to the queue, or to the pool of waiting tasks if it
-        is still waiting on data.
+        Adds a task to the queue, connecting it with the tasks that it
+        depends on. A task is connected to something it depends on
+        using a DataSource, which tracks the task that the data is
+        coming from and the iterator that is used to stream the data
 
         Params:
-         - item: The Task to be executed by a worker
+         - item: The Task to be connected into the queue
 
         Returns
          - None
         """
+        if item.uid is None:
+            raise AttributeError("Added task to TaskQueue with no id")
+        self._nodes[item.uid] = TaskQueueNode(item)
 
-        if not item.ready():
-            # If the item is still waiting on data, then we want to add
-            # it to the store of waiting tasks
-            self.waiting_tasks.append(item)
-            return
+        # Add this task as a dependant of all its prerequisite tasks
+        active = True
+        for instruction in item.data_instructions:
+            # If instruction is from an iterable then it wont be a task
+            if instruction.source_task_uid is None:
+                continue
 
-        # If the LinkedList is empty
-        if self.queue_head is None:
-            # Set this item as the head and tail of the list
-            self.queue_head = TaskQueueNode(item, container_queue=self)
-            self.queue_tail = self.queue_head
-        else:
-            # Add an item to the end of the list
-            new_node = TaskQueueNode(
-                item, container_queue=self, previous_node=self.queue_tail)
-            self.queue_tail.next_node = new_node
-            self.queue_tail = new_node
+            # Inform other task that this task depends on it
+            self._nodes[instruction.source_task_uid].add_dependee(item.uid)
+            # If other task is not open, do not activate this task
+            if not self.is_task_open(instruction.source_task_uid):
+                active = False
 
-    def update_waiting_tasks(self):
-        """Taking the newly received data, see if any tasks are now ready
-        to go."""
-        # Iterate backwards so we can delete things without messing up
-        # indexes
-        for i in range(len(self.ready_data) - 1, -1, -1):
-            data_type, value = self.ready_data[i]
-            found = False
-            # Find a task that needs this data, and give it to it
-            for j in range(len(self.waiting_tasks)):
-                if self.waiting_tasks[j].requires_type(data_type):
-                    found = True
-                    self.waiting_tasks[j].give_data(data_type, value)
-                    break
-            if found:
-                del self.ready_data[i]
+        if active:
+            self._active_tasks.add(item.uid)
 
-        # Check for tasks that are ready to go
-        for i in range(len(self.waiting_tasks) - 1, -1, -1):
-            if self.waiting_tasks[i].ready():
-                # Add this task to the live queue
-                self.push_task(self.waiting_tasks[i])
-                # Delete this task from the waiting list
-                del self.waiting_tasks[i]
-
-    def add_new_data(self, data_type, value):
-        """Add some new data to the pool and see if it makes any tasks
-        ready to go."""
-        self.ready_data.append((data_type, value))
-        self.update_waiting_tasks()
-
-    def pop_task(self):
+    def has_next_input(self):
         """
-        Removes a Task from the queue and returns it
-
-        Raises
-         - TaskQueueEmpty exception if there are no tasks
-
-        Returns:
-         - A Task object from the top of the queue
+        Returns true if there are task input values that can be popped
+        from the queue, or false if there are either no tasks or no
+        available values for any tasks
         """
+        for task_uid in self._active_tasks:
+            if self._nodes[task_uid].has_next_input():
+                return True
 
-        if self.queue_head is None:
-            raise TaskQueueEmpty("Could not pop task from empty TaskQueue")
+        return False
 
-        next_head = self.queue_head.next_node
-        popped = self.queue_head.pop()
-        self.queue_head = next_head
-        return popped
-
-    def peek_task(self):
+    # TODO(StefanKennedy) Add fallback in case popped values are lost
+    # and we need to redistribute them
+    def pop_task_input(self):
         """
-        Returns the task at the front of the queue without removing it from
-        the queue
+        Returns a TaskInput object that can be used to run a task as a
+        These values will be taken from a task with its id present in
+        the active_tasks set
 
         Raises:
-         - TaskQueueEmpty exception is there's no tasks in the queue
+         - TaskQueueEmpty exception is there's no available tasks or
+        no data available to return for any of the available tasks
 
         Returns:
-         - The Task object at the top of the queue
+         - The TaskInput object representing some of the data from an
+        active task
         """
-        if self.queue_head is None:
-            raise TaskQueueEmpty("Queue was empty and could not peek item")
+        if not self.has_next_input():
+            raise TaskQueueEmpty("Queue was empty and could not pop input")
 
-        return self.queue_head.task_item
+        for task_uid in self._active_tasks:
+            if self._nodes[task_uid].has_next_input():
+                return self._nodes[task_uid].next_input()
+
+    def add_result(self, task_id, result):
+        if task_id not in self._nodes.keys():
+            raise KeyError(
+                "Attempted to add result for a task not present in the queue")
+
+        self._nodes[task_id].task_item.add_result(result)
+        if self.is_task_open(task_id):
+            self.activate_new_tasks(self._nodes[task_id].dependees)
+
+    # TODO(StefanKennedy) Add functionality to close a task (take out of
+    # active task set) This would happen if reading an input hit EOF
+
+    def activate_new_tasks(self, ids):
+        """
+        Checks the tasks using the set of ids to try to move some more
+        tasks into the active_tasks set. If a task has a dependency
+        that is not open, it will not make the task open
+        """
+        for task_id in ids:
+            if task_id not in self._nodes.keys():
+                raise KeyError(
+                    "Attempted to try activating a task that not in the queue")
+            # Check to see if the task still needs to wait on anything
+            can_activate = True
+            for dependency in self._nodes[task_id].dependencies:
+                if not self.is_task_open(dependency.source_task_uid):
+                    can_activate = False
+                    break
+
+            if can_activate:
+                self._active_tasks.add(task_id)
+
+    def get_active_tasks(self):
+        active_tasks_copy = set()
+        active_tasks_copy.update(self._active_tasks)
+        return active_tasks_copy
+
+    def get_nodes(self):
+        nodes_copy = dict()
+        nodes_copy.update(self._nodes)
+        return nodes_copy
+
+    def is_task_open(self, task_uid):
+        if task_uid not in self._nodes:
+            raise KeyError(
+                "Attempted to check if task was open that is not in the queue")
+        return self._nodes[task_uid].task_item.open
 
 
 class TaskQueueEmpty(queue.Empty):
@@ -129,45 +144,147 @@ class TaskQueueEmpty(queue.Empty):
     pass
 
 
-# LinkedList Node containing the Task object
 class TaskQueueNode:
 
-    def __init__(self, task_item, container_queue,
-                 previous_node=None, next_node=None):
+    def __init__(self, task_item):
         """
         task_item is the value stored in this node
 
-        container_queue is the queue that this node was instantiated from.
-        This needs to be tracked in order to empty the queue if this is
-        the last existing node and it is deleted
-
-        previous_node/next_node point to the corresponding node in the
-        LinkedList
+        This class acts as a node in a linked list using its
+        dependencies as the previous nodes and it's dependees as the
+        next nodes
         """
-        self.container_queue = container_queue
-        task_item.container_node = self
-
         self.task_item = task_item
-        self.previous_node = previous_node
-        self.next_node = next_node
+        self.dependencies = task_item.data_instructions
+        self.dependees = []
 
-    def pop(self):
-        del self.task_item.container_node
+    def add_dependee(self, dependee_uid):
+        self.dependees.append(dependee_uid)
 
-        # If this is the only item in the LinkedList
-        if self.previous_node is None and self.next_node is None:
-            self.container_queue.queue_head = None
-            self.container_queue.queue_tail = None
-            return self.task_item
+    def next_input(self):
+        # TODO(StefanKennedy) Add functionality so that this can handle
+        # multiple input dependencies
+        if not self.dependencies[0].data_streamer.has_available_data():
+            raise DataStreamerEmpty(
+                "Attempted to read input from an empty source")
 
-        # If there are other items in the LinkedList reassign the
-        # previous/next pointers of the neighbour items
-        if self.previous_node is not None:
-            self.previous_node.next_node = self.next_node
-        if self.next_node is not None:
-            self.next_node.previous_node = self.previous_node
+        return TaskInput(
+            self.task_item.uid,
+            self.task_item.instructions,
+            self.dependencies[0].data_streamer.read())
 
-        return self.task_item
+    def has_next_input(self):
+        if len(self.dependencies) == 0:
+            return False
+
+        for dependency in self.dependencies:
+            if not dependency.data_streamer.has_available_data():
+                return False
+        return True
+
+
+class DataStreamerEmpty(Exception):
+    """
+    An exception raised when an attempt is made to read a data streamer,
+    but there are currently no available values to read in the streamer
+    """
+    pass
+
+
+class DataSource:
+
+    def read_all_values(stream):
+        # Copy the values to a new list and return it
+        return list(stream)
+
+    def any_data_available(stream):
+        return len(stream) > 0
+
+    @staticmethod
+    def create_source_from_task(
+            task,
+            read_function=read_all_values,
+            availability_check=any_data_available):
+        return DataSource(
+            task.uid,
+            DataStreamer(task.task_output, read_function, availability_check))
+
+    @staticmethod
+    def create_source_from_iterable(
+            iterable,
+            read_function=read_all_values,
+            availability_check=any_data_available):
+        return DataSource(
+            None, DataStreamer(iterable, read_function, availability_check))
+
+    def __init__(self, source_task_uid, data_streamer):
+        """
+        This is a class composed of a DataStreamer, which also contains
+        information about what task the data is sourced from (if sourced
+        from a task)
+
+        source_task_uid is the unique identifier of the task that this
+        data is sourced from. (For that task, the data is it's output)
+
+        data_streamer is the DataStreamer object that contains the
+        stream used to read the data
+        """
+        self.source_task_uid = source_task_uid
+        self.data_streamer = data_streamer
+
+
+class DataStreamer:
+
+    def __init__(self, stream, read_function, availability_check):
+        """
+        This is singly responsible for acting as the bridge between a
+        reader and a outputter of a stream of data. It should be
+        composed by the reader, where the outputter has access to output
+        on the stream
+
+        stream is the collection of data that can be mutated by the
+        reader as it consumes the values in it
+
+        read_function is the defined way of reading values and returning
+        the to the reader
+
+        availability_check is the defined way of returning True or False
+        depending on whether a call to read_function is possible on the
+        stream
+        """
+        self.stream = stream
+        self.read_function = read_function
+        self.availability_check = availability_check
+
+    def has_available_data(self):
+        return self.availability_check(self.stream)
+
+    def read(self):
+        if not self.has_available_data():
+            raise DataStreamerEmpty("Attempted to read unavailable data")
+        return self.read_function(self.stream)
+
+
+class TaskInput:
+
+    def __init__(self, task_uid, task_instructions, values):
+        """
+        This is what is given out by the task queue when some values
+        are requested from a pop/peek etc. The values attribute
+        is real data (as opposed to a promise) that will be sent to
+        clients who then run it
+
+        task_uid is the unique identifier of this instance of the task
+
+        task_instructions are used to inform clients which runnable to
+        execute
+
+        values are the actual data values (not a promise) that are sent
+        to clients to execute the task and return the results
+        """
+        self.task_uid = task_uid
+        self.task_instructions = task_instructions
+        self.values = values
 
 
 # Abstraction of the information necessary to represent a task
@@ -177,113 +294,45 @@ class Task:
     to excecute a piece of work.
     """
 
-    def __init__(self, data_instructions, task_instructions,
-                 completion_check=lambda x: True):
+    def __init__(self, uid, task_instructions, open_check=lambda x: True):
         """
         Initalises the Task
 
         Params:
-         - data_instructions: A list of DataInstructions
+         - data_source: An iteratable object that can be used to read
+        the input for this task
          - task_instructions: An object used to represent instructions
         on what task should be carried out on the data
-         - completion_check:  A function that returns true if it can
-        determine that this task is complete. This function should take
-        one argument which is the result that is received from the client
-        The default lambda function used here causes the completion check
-        to return true when any result is received back from the server
+         - open_check:  A function that returns true if it can determine
+        that this task is open. This function should take one argument
+        which is the result that is received from the client The default
+        lambda function used here causes the completion check to return
+        true when any result is received back from the server
         """
-        self.data_instructions = data_instructions
-        self.task_instructions = task_instructions
-        self.completion_check = completion_check
-        self.completed = False
+        self.uid = uid
+        self.instructions = task_instructions
+        self.data_instructions = []
 
-    @staticmethod
-    def create(task_instructions,
-               expected_data,
-               completion_check=lambda x: True):
-        """Create a Task.
+        self.open_check = open_check
+        self.open = False
 
-        Params:
-         - task_instructions: See __init__
-         - expected_data: A dict in the form of {name:type}, where both
-        "name" and "type" are strings. "name" refers to the name of a
-        DataInstruction that this Task will need as input, and "type"
-        refers to the type of that DataInstruction.
-         - completion_check: See __init__
-
-        Example usage:
-        Task.create('add', {'a': 'number', 'b': 'number })
-
-        Returns:
-        A Task.
-        """
-        data_instructions = [DataInstruction(k, expected_data[k])
-                             for k in expected_data.keys()]
-        return Task(data_instructions,
-                    task_instructions,
-                    completion_check)
+        self.task_output = []
 
     def add_result(self, result):
-        if self.completion_check(result):
-            self._complete_task()
+        self.task_output.append(result)
+        if self.open_check(result):
+            self._open_task()
 
-    def _complete_task(self):
-        if hasattr(self, "container_node"):
-            # Take this element out of the LinkedList
-            self.container_node.pop()
-        self.completed = True
+    def add_data_source(self, source):
+        self.data_instructions.append(source)
 
-    def ready(self):
-        """Returns True if the task has all the data it needs to run"""
-        return all([x.ready() for x in self.data_instructions])
-
-    def requires_type(self, data_type):
-        return [x for x in self.data_instructions if (
-            not x.ready() and x.get_type() == data_type)]
-
-    def give_data(self, data_type, value):
-        for i in range(len(self.data_instructions)):
-            if ((not self.data_instructions[i].ready()) and
-                    self.data_instructions[i].get_type() == data_type):
-                self.data_instructions[i].set_value(value)
-                return
+    def _open_task(self):
+        self.open = True
 
 
-class DataInstruction:
+class NoTaskDependencyError(Exception):
     """
-    This is a class to hold a data input to a client binary.
-    It can contain either immediate data ready to be used, or a
-    piece of future data being waited on before being ready to be used.
+    An exception to be thrown if the a task is added that depends on
+    nothing. If this was possible, the task would never do anything
     """
-
-    def __init__(self, name, data_type="immediate", value=None):
-        """Initialises the data instruction.
-
-        Params:
-         - name: The key that will be used for this piece of data when
-        it is being passed to the binary.
-         - data_type: A string with the type of data. This will be used
-        to figure out if newly available data is relevant to a particular
-        Task.
-         - value: The actual value of this data instruction, of any type.
-        """
-        self.name = name
-        # private, with a get_(), as some data may be drawn from a stream,
-        # database, or similar.
-        self._data_type = data_type
-        self._value = value
-
-    def ready(self):
-        """Returns True if this DataInstruction is ready to be sent, and
-        False if it is still waiting to be fulfilled."""
-        return self._value is not None
-
-    def get_value(self):
-        """Returns the underlying data of this container."""
-        return self._value
-
-    def set_value(self, value):
-        self._value = value
-
-    def get_type(self):
-        return self._data_type
+    pass

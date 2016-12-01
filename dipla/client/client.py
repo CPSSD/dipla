@@ -7,6 +7,7 @@ import logging
 import os
 
 from dipla.shared.services import ServiceError
+from dipla.shared.message_generator import generate_message
 
 
 class Client(object):
@@ -54,13 +55,11 @@ class Client(object):
 
         details, str: the error message.
         code, int: the error code."""
-        message = {
-            'label': 'runtime_error',
-            'data': {
-                'details': details,
-                'code': code,
-            }
+        data = {
+            'details': details,
+            'code': code
         }
+        message = generate_message('runtime_error', data)
         self.send(message)
 
     async def _send_async(self, message):
@@ -91,23 +90,19 @@ class Client(object):
         if not ('label' in message and 'data' in message):
             raise ServiceError('Missing field from message: %s' % message, 4)
 
-        result = self._run_service(message["label"], message["data"])
-        if result is not None:
+        result_message = self._run_service(message["label"], message["data"])
+        if result_message is not None:
             # send the client_result back to the server
-            self.send({
-                'label': 'client_result',
-                'data': {
-                    'type': message['label'] + '_result',
-                    'value': result
-                }})
+            self.send(result_message)
 
     def _run_service(self, label, data):
         try:
             service = self.services[label]
             return service.execute(data)
         except KeyError:
-            self.logger.error("Failed to find service: {}".format(label))
-            raise ServiceError('Failed to find service: {}'.format(label), 5)
+            error_message = "Failed to find service: {}".format(label)
+            self.logger.error(error_message)
+            raise ServiceError(error_message, 5)
 
     async def _start_websocket(self):
         """Run the loop receiving websocket messages. Makes use of
@@ -146,10 +141,10 @@ class Client(object):
                 self.connect_tries_limit)
             return
         receive_task = asyncio.ensure_future(self.receive_loop())
-        self.send({
-            'label': 'get_binaries',
-            'data': {
-                'platform': self._get_platform()}})
+        data = {
+            'platform': self._get_platform()
+        }
+        self.send(generate_message('get_binaries', data))
 
         loop.run_until_complete(receive_task)
         self.start()
