@@ -1,4 +1,4 @@
-from dipla.api.script_templates import argv_input_script
+from dipla.api_support.script_templates import argv_input_script
 from base64 import b64encode
 import pickle
 
