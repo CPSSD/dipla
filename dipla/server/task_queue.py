@@ -9,15 +9,27 @@ import sys
 
 class TaskQueue:
     """
-    The TaskQueue is, as the name suggests, a FIFO queue for storing Tasks that
-    should be executed by the workers. It has a set of active tasks that can be
-    used to pop task values for clients to operate on. The active tasks set can
-    build up as more tasks become available, and can decrease in size if some
-    tasks are marked as completely finished receiving input
+    The TaskQueue is, as the name suggests, an ordered LinkedList for storing 
+    Tasks that should be executed by the workers. It has a set of active tasks
+    that can be used to pop task values for clients to operate on. The active
+    tasks set can build up as more tasks become available, and can decrease in
+    size if some tasks are marked as completely finished receiving input
     """
 
     def __init__(self):
+        # _active_tasks is the set of all tasks ids for the tasks that
+        # can currently have their inputs distributed to workers. Tasks
+        # will be in this collection because everything they depend on
+        # has had enough results for this task to be a feasible option
+        # for distribution. If tasks are completed they will be removed
+        # from this set. Since we may be streaming data, at a point in
+        # time it is possible that all the data from the input stream
+        # has been consumed and we need to wait on more before this task
+        # can continue, but the task is still active despite of this
         self._active_tasks = set()
+        # _nodes are the TaskQueueNodes that make up the linked list
+        # structure. The keys of the dictionary are the task ids and
+        # the values are the TaskQueueNode objects
         self._nodes = {}
 
     def push_task(self, item):
@@ -89,7 +101,7 @@ class TaskQueue:
                 return self._nodes[task_uid].next_input()
 
     def add_result(self, task_id, result):
-        if task_id not in self._nodes.keys():
+        if task_id not in self._nodes:
             raise KeyError(
                 "Attempted to add result for a task not present in the queue")
 
@@ -243,8 +255,10 @@ class DataStreamer:
         stream is the collection of data that can be mutated by the
         reader as it consumes the values in it
 
-        read_function is the defined way of reading values and returning
-        the to the reader
+        read_function is the function that is applied to the stream to
+        read values in a particular way, e.g. one at a time, popping
+        them from the collection, or read everything at once without
+        consuming anything
 
         availability_check is the defined way of returning True or False
         depending on whether a call to read_function is possible on the
@@ -290,6 +304,11 @@ class Task:
     """
     This is a class that should encapsulate all the information a client needs
     to excecute a piece of work.
+
+    A task is defined as open when it has produced enough results for the tasks
+    that depend on it to be started. For example, this could be when the task
+    produces any results. It could also be only whenever the task has produced
+    all of the results that it will produce
     """
 
     def __init__(self, uid, task_instructions, open_check=lambda x: True):
@@ -305,7 +324,8 @@ class Task:
         that this task is open. This function should take one argument
         which is the result that is received from the client The default
         lambda function used here causes the completion check to return
-        true when any result is received back from the server
+        true when any result is received back from the server. A task
+        being open is defined in the docstring for the Task class
         """
         self.uid = uid
         self.instructions = task_instructions
@@ -326,11 +346,3 @@ class Task:
 
     def _open_task(self):
         self.open = True
-
-
-class NoTaskDependencyError(Exception):
-    """
-    An exception to be thrown if the a task is added that depends on
-    nothing. If this was possible, the task would never do anything
-    """
-    pass
