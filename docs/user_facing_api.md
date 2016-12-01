@@ -48,3 +48,34 @@ my_inputs = Dipla.read_data_source(url_strings, fetch_url)
 ```
 
 This @data_source function will not be distributed, it will run on the server.
+
+## Creating a distributable program
+
+Once you have a data source to input your data, you can apply the tasks to the inputs. Once you have
+run a task on the inputs, you can run another task on the output of the first task. To finish all of
+your work off, you should have a Dipla.Get() call. Take this example, where we square root some
+inputs, then cube them:
+
+```
+@distributable
+def square_root(input_value):
+    return math.sqrt(input_value)
+
+@distributable
+def cubed_value(input_value):
+    return input_value**3
+
+my_inputs = Dipla.read_data_source([1, 4, 9, 16, 25])
+
+rooted = Dipla.apply_distributable(square_root, my_inputs)
+cubed = Dipla.apply_distributable(cubed_value, rooted)
+
+final_output = Dipla.get(cubed)
+```
+
+The `Dipla.get()` shown above is very important, its what converts your results out of the format
+that Dipla needs it to be in for it to use them, back into the format that you can understand
+and manipulate with normal code.
+
+There is an alternative to `Dipla.get()`, you can also use `Dipla.start()`, which has does not
+return any output.
