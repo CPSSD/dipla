@@ -10,10 +10,13 @@ def main():
     tq = TaskQueue()
     
     root_source = [1, 2, 3, 4, 5]
-    def consuming_read_function(stream):
-        values = list(stream)
+    def consuming_read_function(stream, stream_location):
+        values = list(stream)[stream_location:]
         stream.clear()
         return values
+
+    def move_by_collection_size(collection, current_location):
+        return current_location + len(collection)
 
     # I know there's lots of generating ids here which will probably
     # annoy people. This will not be necessary in future code because
@@ -27,7 +30,9 @@ def main():
     
     iterable_source_uid1 = generate_uid(existing=[])
     fibonacci_task.add_data_source(DataSource.create_source_from_iterable(
-        root_source, iterable_source_uid1, consuming_read_function))
+        root_source,
+        iterable_source_uid1,
+        location_changer=move_by_collection_size))
 
     # Create the negate task depending on root_source
     negate_task_uid = generate_uid(existing=[fibonacci_task_uid])
@@ -35,7 +40,9 @@ def main():
 
     iterable_source_uid2 = generate_uid(existing=[])
     negate_task.add_data_source(DataSource.create_source_from_iterable(
-        root_source, iterable_source_uid2, consuming_read_function))
+        root_source,
+        iterable_source_uid2,
+        location_changer=move_by_collection_size))
 
     # Create the reduce task depending on the first two tasks
     reduce_task_uid = generate_uid(
@@ -44,11 +51,11 @@ def main():
     
     fibonacci_task_source_uid = generate_uid(existing=[])
     reduce_task.add_data_source(DataSource.create_source_from_task(
-        fibonacci_task, fibonacci_task_source_uid))
+        fibonacci_task, fibonacci_task_source_uid, consuming_read_function))
     
     negate_task_source_uid = generate_uid(existing=[fibonacci_task_source_uid])
     reduce_task.add_data_source(DataSource.create_source_from_task(
-        negate_task, negate_task_source_uid))
+        negate_task, negate_task_source_uid, consuming_read_function))
 
 
     tq.push_task(fibonacci_task)
@@ -58,7 +65,8 @@ def main():
     bm = BinaryManager()
     bm.add_platform('.*x.*', [
         ('fibonacci', 'fibonacci'),
-        ('negate', 'negate')
+        ('negate', 'negate'),
+        ('reduce', 'reduce')
     ])
 
     s = Server(tq, bm)
