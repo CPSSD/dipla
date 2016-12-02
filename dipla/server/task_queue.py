@@ -181,7 +181,7 @@ class TaskQueueNode:
         for dependency in self.dependencies:
             argument_id = dependency.source_uid
             arguments_order.append(argument_id)
-            arguments_values[argument_id] = dependency.data_streamer.read() 
+            arguments_values[argument_id] = dependency.data_streamer.read()
         return TaskInput(
             self.task_item.uid,
             self.task_item.instructions,
@@ -262,11 +262,11 @@ class DataSource:
 class DataStreamer:
 
     def __init__(
-        self,
-        stream,
-        read_function,
-        availability_check,
-        stream_location_changer=None):
+            self,
+            stream,
+            read_function,
+            availability_check,
+            stream_location_changer=None):
         """
         This is singly responsible for acting as the bridge between a
         reader and a outputter of a stream of data. It should be
@@ -307,7 +307,7 @@ class DataStreamer:
     def read(self):
         if not self.has_available_data():
             raise DataStreamerEmpty("Attempted to read unavailable data")
-        
+
         read = self.read_function(self.stream, self.stream_location)
         # Move the stream_location pointer to the new location. This is
         # for reading data without consuming it
