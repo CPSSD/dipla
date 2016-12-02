@@ -49,6 +49,7 @@ class CommandLineBinaryRunner(object):
         process_output = process.communicate(None)[0]
         return process_output.strip().decode()
 
+
 class InvalidArgumentsError(Exception):
     """
     An exception raised when the invalid arguments are supplied for
