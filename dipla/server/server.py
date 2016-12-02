@@ -106,9 +106,10 @@ class ServerServices:
 
     def _handle_client_result(self, message, params):
         task_id = message['task_uid']
-        value = message['results']
+        results = message['results']
         server = params.server
-        server.task_queue.add_result(task_id, value)
+        for result in results:
+            server.task_queue.add_result(task_id, result)
         server.worker_group.return_worker(params.worker.uid)
         server.distribute_tasks()
         return None
