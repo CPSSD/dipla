@@ -15,29 +15,50 @@ def main():
         stream.clear()
         return values
 
-    # Create a first task that depends on root_source, a iterable
-    # collection
-    first_task_uid = generate_uid(existing=[]) 
-    first_task = Task(first_task_uid, 'fibonacci')
+    # I know there's lots of generating ids here which will probably
+    # annoy people. This will not be necessary in future code because
+    # we will have a more sophisticated generation approach. The id
+    # generation should not be done inside the Task constructor or
+    # inside the add_data_source function
+
+    # Create the fibonacci task depending on root_source
+    fibonacci_task_uid = generate_uid(existing=[]) 
+    fibonacci_task = Task(fibonacci_task_uid, 'fibonacci')
     
-    iterable_source_uid = generate_uid(existing=[])
-    first_task.add_data_source(DataSource.create_source_from_iterable(
-        root_source, iterable_source_uid, consuming_read_function))
+    iterable_source_uid1 = generate_uid(existing=[])
+    fibonacci_task.add_data_source(DataSource.create_source_from_iterable(
+        root_source, iterable_source_uid1, consuming_read_function))
 
-    # Create a second task that depends on the first task's output
-    second_task_uid = generate_uid(existing=[first_task_uid])
-    second_task = Task(second_task_uid, 'fibonacci')
+    # Create the negate task depending on root_source
+    negate_task_uid = generate_uid(existing=[fibonacci_task_uid])
+    negate_task = Task(negate_task_uid, 'negate')
 
-    first_task_source_uid = generate_uid(existing=[iterable_source_uid])
-    second_task.add_data_source(DataSource.create_source_from_task(
-        first_task, first_task_source_uid, consuming_read_function))
+    iterable_source_uid2 = generate_uid(existing=[])
+    negate_task.add_data_source(DataSource.create_source_from_iterable(
+        root_source, iterable_source_uid2, consuming_read_function))
 
-    tq.push_task(first_task)
-    tq.push_task(second_task)
+    # Create the reduce task depending on the first two tasks
+    reduce_task_uid = generate_uid(
+        existing=[fibonacci_task_uid, negate_task_uid])
+    reduce_task = Task(reduce_task_uid, 'reduce')
+    
+    fibonacci_task_source_uid = generate_uid(existing=[])
+    reduce_task.add_data_source(DataSource.create_source_from_task(
+        fibonacci_task, fibonacci_task_source_uid))
+    
+    negate_task_source_uid = generate_uid(existing=[fibonacci_task_source_uid])
+    reduce_task.add_data_source(DataSource.create_source_from_task(
+        negate_task, negate_task_source_uid))
+
+
+    tq.push_task(fibonacci_task)
+    tq.push_task(negate_task)
+    tq.push_task(reduce_task)
 
     bm = BinaryManager()
-    bm.add_platform('.*ix.*', [
-        ('fibonacci', 'fibonacci')
+    bm.add_platform('.*x.*', [
+        ('fibonacci', 'fibonacci'),
+        ('negate', 'negate')
     ])
 
     s = Server(tq, bm)
