@@ -208,34 +208,35 @@ class DataStreamerEmpty(Exception):
 
 class DataSource:
 
-    def read_all_values(stream):
+    def read_all_values(stream, location):
         # Copy the values to a new list and return it
         return list(stream)
 
-    def any_data_available(stream):
-        return len(stream) > 0
+    def any_data_available(stream, location):
+        return len(stream) - location > 0
 
     @staticmethod
     def create_source_from_task(
             task,
             source_uid,
             read_function=read_all_values,
-            availability_check=any_data_available):
-        return DataSource(
-            source_uid,
-            task.uid,
-            DataStreamer(task.task_output, read_function, availability_check))
+            availability_check=any_data_available,
+            location_changer=None):
+        return DataSource(source_uid, task.uid, DataStreamer(
+            task.task_output,
+            read_function,
+            availability_check,
+            location_changer))
 
     @staticmethod
     def create_source_from_iterable(
             iterable,
             source_uid,
             read_function=read_all_values,
-            availability_check=any_data_available):
-        return DataSource(
-            source_uid,
-            None,
-            DataStreamer(iterable, read_function, availability_check))
+            availability_check=any_data_available,
+            location_changer=None):
+        return DataSource(source_uid, None, DataStreamer(
+            iterable, read_function, availability_check, location_changer))
 
     def __init__(self, source_uid, source_task_uid, data_streamer):
         """
@@ -260,7 +261,12 @@ class DataSource:
 
 class DataStreamer:
 
-    def __init__(self, stream, read_function, availability_check):
+    def __init__(
+        self,
+        stream,
+        read_function,
+        availability_check,
+        stream_location_changer=None):
         """
         This is singly responsible for acting as the bridge between a
         reader and a outputter of a stream of data. It should be
@@ -273,23 +279,42 @@ class DataStreamer:
         read_function is the function that is applied to the stream to
         read values in a particular way, e.g. one at a time, popping
         them from the collection, or read everything at once without
-        consuming anything
+        consuming anything. This takes the stream and the stream
+        location as an argument
 
         availability_check is the defined way of returning True or False
         depending on whether a call to read_function is possible on the
-        stream
+        stream. It takes the stream and the stream location as arguments
+
+        stream_location_changer is a function that takes the data that
+        was read, and the current stream_location integer, and the data
+        that was read. The stream_location pointer will be set to the
+        returned value
+
+        stream_location is the current location through the stream that
+        we have read to. This is the position the next read will start
+        from
         """
         self.stream = stream
         self.read_function = read_function
         self.availability_check = availability_check
+        self.stream_location_changer = stream_location_changer
+        self.stream_location = 0
 
     def has_available_data(self):
-        return self.availability_check(self.stream)
+        return self.availability_check(self.stream, self.stream_location)
 
     def read(self):
         if not self.has_available_data():
             raise DataStreamerEmpty("Attempted to read unavailable data")
-        return self.read_function(self.stream)
+        
+        read = self.read_function(self.stream, self.stream_location)
+        # Move the stream_location pointer to the new location. This is
+        # for reading data without consuming it
+        if self.stream_location_changer is not None:
+            self.stream_location = self.stream_location_changer(
+                read, self.stream_location)
+        return read
 
 
 class TaskInput:

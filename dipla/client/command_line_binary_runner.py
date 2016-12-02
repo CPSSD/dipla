@@ -18,7 +18,7 @@ class CommandLineBinaryRunner(object):
             # Check all the rest of the arguments have the same number of
             # values as the first
             for argument in arguments_order[1:]:
-                if not len(argument_values) == expected_runs:
+                if not len(arguments_values[argument]) == expected_runs:
                     raise InvalidArgumentsError(
                         "Non-uniform number of values supplied to run binary")
 
