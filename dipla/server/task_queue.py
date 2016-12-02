@@ -172,11 +172,13 @@ class TaskQueueNode:
         self.dependees.append(dependee_uid)
 
     def next_input(self):
-        # TODO(StefanKennedy) Add functionality so that this can handle
-        # multiple input dependencies
         if not self.dependencies[0].data_streamer.has_available_data():
             raise DataStreamerEmpty(
                 "Attempted to read input from an empty source")
+
+        ordered_input_values = []
+        for dependency in self.dependencies:
+            ordered_input_values.append(dependency.data_streamer.read())
 
         return TaskInput(
             self.task_item.uid,
@@ -292,7 +294,11 @@ class TaskInput:
         execute
 
         values are the actual data values (not a promise) that are sent
-        to clients to execute the task and return the results
+        to clients to execute the task and return the results. It is a
+        multidimensional list, with the first list representing the i'th
+        command line argument with the i'th cell of the list. The i'th
+        list contains the actual data values that should be passed into
+        a task one at a time
         """
         self.task_uid = task_uid
         self.task_instructions = task_instructions
@@ -342,6 +348,11 @@ class Task:
             self._open_task()
 
     def add_data_source(self, source):
+        """
+        The order in which data sources are added is important because
+        it will be later used to manage the order of command line
+        arguments for a binary
+        """
         self.data_instructions.append(source)
 
     def _open_task(self):
