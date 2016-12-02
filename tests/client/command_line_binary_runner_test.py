@@ -24,7 +24,7 @@ class CommandLineBinaryRunnerTest(TestCase):
         self.given_a_sums_binary()
         self.given_summing("3", "5")
         self.when_the_binary_is_run()
-        self.then_the_result_will_be(["8]")
+        self.then_the_result_will_be(["8"])
 
     def test_that_binary_produces_valid_output_with_more_input(self):
         self.given_a_sums_binary()
