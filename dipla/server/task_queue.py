@@ -9,7 +9,7 @@ import sys
 
 class TaskQueue:
     """
-    The TaskQueue is, as the name suggests, an ordered LinkedList for storing 
+    The TaskQueue is, as the name suggests, an ordered LinkedList for storing
     Tasks that should be executed by the workers. It has a set of active tasks
     that can be used to pop task values for clients to operate on. The active
     tasks set can build up as more tasks become available, and can decrease in
