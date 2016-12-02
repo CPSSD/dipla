@@ -132,14 +132,6 @@ class TaskQueue:
             if can_activate:
                 self._active_tasks.add(task_id)
 
-    def get_active_tasks(self):
-        # Set is a reference type so we need to shallow copy it
-        return set(self._active_tasks)
-
-    def get_nodes(self):
-        # Dict is a reference type so we need to shallow copy it
-        return dict(self._nodes)
-
     def is_task_open(self, task_uid):
         if task_uid not in self._nodes:
             raise KeyError(
