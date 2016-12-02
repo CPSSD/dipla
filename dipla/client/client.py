@@ -103,7 +103,7 @@ class Client(object):
             self.logger.error(error_message)
             raise ServiceError(error_message, 5)
         return service.execute(data)
-        
+
     async def _start_websocket(self):
         """Run the loop receiving websocket messages. Makes use of
         exponential backoff when trying to connect, waiting for longer
