@@ -1,7 +1,7 @@
 import unittest
 from dipla.server import task_queue
 from dipla.server.task_queue import Task, TaskQueueNode, DataSource
-from dipla.server.task_queue import TaskQueueEmpty, NoTaskDependencyError
+from dipla.server.task_queue import TaskQueueEmpty
 from dipla.server.task_queue import DataStreamerEmpty
 
 
