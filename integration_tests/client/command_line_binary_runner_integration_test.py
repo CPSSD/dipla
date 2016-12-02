@@ -52,20 +52,20 @@ class CommandLineBinaryRunnerIntegrationTest(TestCase):
             length=4, existing_uids=self.existing_ids)
         resource_url = github_resource("master/txt/word_count.txt")
         self.arguments_order.append(uid)
-        self.arguments_values[uid] = resource_url
+        self.arguments_values[uid] = {uid: resource_url}
 
     def given_using_another_github_resource(self):
         uid = uid_generator.generate_uid(
             length=4, existing_uids=self.existing_ids)
         resource_url = github_resource("master/txt/word_count_again.txt")
         self.arguments_order.append(uid)
-        self.arguments_values[uid] = resource_url
+        self.arguments_values[uid] = {uid: resource_url}
 
     def given_searching_for(self, word):
         uid = uid_generator.generate_uid(
             length=4, existing_uids=self.existing_ids)
         self.arguments_order.append(uid)
-        self.arguments_values[uid] = word
+        self.arguments_values[uid] = {uid: word}
 
     def when_attempting_to_run_binary(self):
         pass
