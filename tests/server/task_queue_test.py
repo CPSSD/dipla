@@ -15,17 +15,9 @@ class TaskQueueTest(unittest.TestCase):
         sample_task = Task("foo", "sample task")
         sample_task.add_data_source(
             DataSource.create_source_from_iterable([1, 2, 3], "baz"))
+        self.assertFalse(self.queue.has_next_input())
         self.queue.push_task(sample_task)
-        self.assertEqual({"foo"}, self.queue.get_active_tasks())
-        self.assertEqual({"foo"}, self.queue.get_nodes().keys())
-
-        # Tasks depending on other tasks need to wait before activating
-        sample_task2 = Task("bar", "sample task 2")
-        sample_task2.add_data_source(
-            DataSource.create_source_from_task(sample_task, "foobar"))
-        self.queue.push_task(sample_task2)
-        self.assertEqual({"foo"}, self.queue.get_active_tasks())
-        self.assertEqual({"foo", "bar"}, self.queue.get_nodes().keys())
+        self.assertTrue(self.queue.has_next_input())
 
     def test_add_result_to_task_with_default_checker(self):
         # Test task is marked as open on any result if no check provided
@@ -56,9 +48,17 @@ class TaskQueueTest(unittest.TestCase):
 
     def test_activate_new_tasks(self):
         root_task = Task("root", "root task")
+
+        def consume_reader(stream, location):
+            return stream.pop(0)
+
         root_task.add_data_source(
-            DataSource.create_source_from_iterable([], "foo"))
+            DataSource.create_source_from_iterable([1], "foo", consume_reader))
         self.queue.push_task(root_task)
+
+        self.assertTrue(self.queue.has_next_input())
+        self.queue.pop_task_input()
+        self.assertFalse(self.queue.has_next_input())
 
         next_task = Task("next", "next task")
         next_task.add_data_source(
@@ -67,11 +67,11 @@ class TaskQueueTest(unittest.TestCase):
 
         # "next" is added as an active task id once the "root" task
         # has some values to pass on
-        self.assertEquals({"root"}, self.queue.get_active_tasks())
+        self.assertFalse(self.queue.has_next_input())
 
         self.queue.add_result("root", 100)
 
-        self.assertEquals({"root", "next"}, self.queue.get_active_tasks())
+        self.assertTrue(self.queue.has_next_input())
 
     def test_activate_missing_task(self):
         with self.assertRaises(KeyError):
