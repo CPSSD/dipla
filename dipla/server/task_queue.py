@@ -176,14 +176,17 @@ class TaskQueueNode:
             raise DataStreamerEmpty(
                 "Attempted to read input from an empty source")
 
-        ordered_input_values = []
+        arguments_order = []
+        arguments_values = {}
         for dependency in self.dependencies:
-            ordered_input_values.append(dependency.data_streamer.read())
-
+            argument_id = dependency.source_uid
+            arguments_order.append(argument_id)
+            arguments_values[argument_id] = dependency.data_streamer.read() 
         return TaskInput(
             self.task_item.uid,
             self.task_item.instructions,
-            ordered_input_values)
+            arguments_order,
+            arguments_values)
 
     def has_next_input(self):
         if len(self.dependencies) == 0:
@@ -215,25 +218,34 @@ class DataSource:
     @staticmethod
     def create_source_from_task(
             task,
+            source_uid,
             read_function=read_all_values,
             availability_check=any_data_available):
         return DataSource(
+            source_uid,
             task.uid,
             DataStreamer(task.task_output, read_function, availability_check))
 
     @staticmethod
     def create_source_from_iterable(
             iterable,
+            source_uid,
             read_function=read_all_values,
             availability_check=any_data_available):
         return DataSource(
-            None, DataStreamer(iterable, read_function, availability_check))
+            source_uid,
+            None,
+            DataStreamer(iterable, read_function, availability_check))
 
-    def __init__(self, source_task_uid, data_streamer):
+    def __init__(self, source_uid, source_task_uid, data_streamer):
         """
         This is a class composed of a DataStreamer, which also contains
         information about what task the data is sourced from (if sourced
         from a task)
+
+        source_uid is the unique identifier of this object. It can be
+        used to determine that the DataStreamer in this source was the
+        origin of some data
 
         source_task_uid is the unique identifier of the task that this
         data is sourced from. (For that task, the data is it's output)
@@ -241,6 +253,7 @@ class DataSource:
         data_streamer is the DataStreamer object that contains the
         stream used to read the data
         """
+        self.source_uid = source_uid
         self.source_task_uid = source_task_uid
         self.data_streamer = data_streamer
 
@@ -281,7 +294,7 @@ class DataStreamer:
 
 class TaskInput:
 
-    def __init__(self, task_uid, task_instructions, values):
+    def __init__(self, task_uid, task_instructions, arguments_order, values):
         """
         This is what is given out by the task queue when some values
         are requested from a pop/peek etc. The values attribute
@@ -293,15 +306,17 @@ class TaskInput:
         task_instructions are used to inform clients which runnable to
         execute
 
+        arguments_order is a list of dependency task_uids that tracks
+        the order that arguments should be given to the task
+
         values are the actual data values (not a promise) that are sent
         to clients to execute the task and return the results. It is a
-        multidimensional list, with the first list representing the i'th
-        command line argument with the i'th cell of the list. The i'th
-        list contains the actual data values that should be passed into
-        a task one at a time
+        dictionary of the task_uid that this data is coming from (the
+        source) to a list of the actual data values
         """
         self.task_uid = task_uid
         self.task_instructions = task_instructions
+        self.arguments_order = arguments_order
         self.values = values
 
 

@@ -51,7 +51,9 @@ class BinaryRunnerService(ClientService):
             raise ValueError('Task "' + task + '" does not exist')
 
         results = self._binary_runner.run(
-            self._client.binary_paths[task], data["data"])
+            self._client.binary_paths[task],
+            data["arguments_order"],
+            data["arguments_values"])
         result_data = {
             'task_uid': data["task_uid"],
             'results': results

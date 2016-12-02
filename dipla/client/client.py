@@ -98,12 +98,12 @@ class Client(object):
     def _run_service(self, label, data):
         try:
             service = self.services[label]
-            return service.execute(data)
         except KeyError:
             error_message = "Failed to find service: {}".format(label)
             self.logger.error(error_message)
             raise ServiceError(error_message, 5)
-
+        return service.execute(data)
+        
     async def _start_websocket(self):
         """Run the loop receiving websocket messages. Makes use of
         exponential backoff when trying to connect, waiting for longer

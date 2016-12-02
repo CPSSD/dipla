@@ -199,7 +199,9 @@ class Server:
             data = {}
             data['task_instructions'] = task_input.task_instructions
             data['task_uid'] = task_input.task_uid
-            data['data'] = task_input.values
+            data['arguments_order'] = task_input.arguments_order
+            data['arguments_values'] = task_input.values
+            # TODO(Update the documentation with this)
             worker = self.worker_group.lease_worker()
             self.send(worker.websocket, 'run_instructions', data)
 
