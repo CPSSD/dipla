@@ -18,7 +18,10 @@ class BinaryRunnerServiceTest(TestCase):
         self.json_data = {
             'task_uid': 'bar',
             'task_instructions': 'foo',
-            'data': [1, 2, 3]
+            'arguments_order': ['baz'],
+            'arguments_values': {
+                'baz': [1, 2, 3]
+            }
         }
 
     def given_a_binary_runner_service(self):
@@ -34,13 +37,16 @@ class BinaryRunnerServiceTest(TestCase):
 
     def then_the_binary_runner_will_receive_the_correct_arguments(self):
         correct_filepath = self.path_that_should_be_run
-        correct_arguments = self.json_data['data']
+        correct_order = self.json_data['arguments_order']
+        correct_values = self.json_data['arguments_values']
         runner = self.mock_binary_runner
-        self.assertTrue(runner.received(correct_filepath, correct_arguments))
+        self.assertTrue(runner.received(
+            correct_filepath, correct_order, correct_values))
 
     def and_the_binary_runner_will_not_have_received_invalid_arguments(self):
         runner = self.mock_binary_runner
-        self.assertFalse(runner.received("incorrect_param", "incorrect_param"))
+        self.assertFalse(runner.received(
+             "incorrect_param", "incorrect_param", "incorrect_param"))
 
 
 class BinaryReceiverServiceTest(TestCase):
@@ -69,11 +75,14 @@ class DummyClient:
 
 class MockBinaryRunner(CommandLineBinaryRunner):
 
-    def run(self, filepath, arguments):
+    def run(self, filepath, arguments_order, arguments_values):
         self.filepath = filepath
-        self.arguments = arguments
+        self.arguments_order = arguments_order
+        self.arguments_values = arguments_values
 
-    def received(self, filepath, arguments):
+    def received(self, filepath, arguments_order, arguments_values):
         filepaths_match = self.filepath == filepath
-        arguments_match = self.arguments == [str(arguments[-1])]
+        arguments_order_match = self.arguments_order == arguments_order
+        arguments_values_match = self.arguments_values == arguments_values
+        arguments_match = arguments_order_match and arguments_values_match
         return filepaths_match and arguments_match

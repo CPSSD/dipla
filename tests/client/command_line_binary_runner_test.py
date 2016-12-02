@@ -7,7 +7,8 @@ class CommandLineBinaryRunnerTest(TestCase):
 
     def setUp(self):
         self.filepath = ""
-        self.arguments = []
+        self.arguments_order = []
+        self.arguments_values = {}
 
     def test_that_exception_is_thrown_when_binary_doesnt_exist(self):
         self.given_a_non_existent_binary()
@@ -42,14 +43,19 @@ class CommandLineBinaryRunnerTest(TestCase):
             "tests/example_binaries/sums/sums.exe"
 
     def given_summing(self, num_a, num_b):
-        self.arguments = [num_a, num_b]
+        self.arguments_order = ["a", "b"]
+        self.arguments_values = {
+            "a": [num_a],
+            "b": [num_b]
+        }
 
     def when_attempting_to_run_binary(self):
         pass
 
     def when_the_binary_is_run(self):
         self.runner = CommandLineBinaryRunner()
-        self.result = self.runner.run(self.filepath, self.arguments)
+        self.result = self.runner.run(
+            self.filepath, self.arguments_order, self.arguments_values)
 
     def then_a_FileNotFoundError_will_be_thrown(self):
         with self.assertRaises(FileNotFoundError):
