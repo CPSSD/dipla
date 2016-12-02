@@ -183,7 +183,7 @@ class TaskQueueNode:
         return TaskInput(
             self.task_item.uid,
             self.task_item.instructions,
-            self.dependencies[0].data_streamer.read())
+            ordered_input_values)
 
     def has_next_input(self):
         if len(self.dependencies) == 0:
