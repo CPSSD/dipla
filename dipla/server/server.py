@@ -47,6 +47,12 @@ class BinaryManager:
                     'The second element of each tuple must be a string.')
 
     def get_binaries(self, platform):
+        """
+        Get's all the binaries with regexes that match the given platform.
+
+        If multiple tasks match then it returns all of them, this allows
+        generic binaries to be mixed with platform specific ones.
+        """
         full_task_list = []
         for platform_re, task_list in self.platform_re_list:
             if platform_re.match(platform):
