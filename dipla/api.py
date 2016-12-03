@@ -11,7 +11,7 @@ class Dipla:
     server = None
 
     @staticmethod
-    def distribute(function):
+    def distributable(function):
         """
         Takes a function and converts it to a binary, the binary is then
         registered with the BinaryManager. The function is returned unchanged.
