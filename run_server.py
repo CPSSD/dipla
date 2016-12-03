@@ -15,9 +15,6 @@ def main():
         stream.clear()
         return values
 
-    def move_by_collection_size(collection, current_location):
-        return current_location + len(collection)
-
     # I know there's lots of generating ids here which will probably
     # annoy people. This will not be necessary in future code because
     # we will have a more sophisticated generation approach. The id
@@ -30,9 +27,7 @@ def main():
     
     iterable_source_uid1 = generate_uid(existing=[])
     fibonacci_task.add_data_source(DataSource.create_source_from_iterable(
-        root_source,
-        iterable_source_uid1,
-        location_changer=move_by_collection_size))
+        root_source, iterable_source_uid1))
 
     # Create the negate task depending on root_source
     negate_task_uid = generate_uid(existing=[fibonacci_task_uid])
@@ -40,9 +35,7 @@ def main():
 
     iterable_source_uid2 = generate_uid(existing=[])
     negate_task.add_data_source(DataSource.create_source_from_iterable(
-        root_source,
-        iterable_source_uid2,
-        location_changer=move_by_collection_size))
+        root_source, iterable_source_uid2))
 
     # Create the reduce task depending on the first two tasks
     reduce_task_uid = generate_uid(
