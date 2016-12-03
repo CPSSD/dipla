@@ -1,14 +1,11 @@
 from dipla.api_support.function_serialise import get_encoded_script
-from dipla.server.server import Server, BinaryManager
+from dipla.server.server import BinaryManager
 
 
 class Dipla:
 
     # BinaryManager to be injected into server.
     binary_manager = BinaryManager()
-
-    # Server instance.
-    server = None
 
     @staticmethod
     def distributable(function):
@@ -28,21 +25,15 @@ class Dipla:
 
     @staticmethod
     def data_source(function):
-        pass
+        return function
 
     @staticmethod
     def apply_distributable(function, stream):
         task_name = function.__name__
 
-    @staticmethod
-    def start():
-        # Start the dipla server
-
-        # This comment is included to illustrate how I expect the start() to
-        # look, the final implementation may vary.
-        # Dipla.server = Server(
-        #     Dipla.tq,
-        #     Dipla.binary_manager
-        # )
-        # Dipla.server.start()
-        pass
+# When starting the server inside this class you must inject the binary
+# manager that's tied to the class. Eg:
+# Dipla.server = Server(
+#     Dipla.tq,
+#     Dipla.binary_manager
+# )
