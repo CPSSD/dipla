@@ -52,8 +52,8 @@ class TaskQueueTest(unittest.TestCase):
         def consume_reader(stream, location):
             return stream.pop(0)
 
-        root_task.add_data_source(
-            DataSource.create_source_from_iterable([1], "foo", consume_reader))
+        root_task.add_data_source(DataSource.create_source_from_iterable(
+             [1], "foo", consume_reader, location_changer=None))
         self.queue.push_task(root_task)
 
         self.assertTrue(self.queue.has_next_input())
@@ -96,7 +96,7 @@ class TaskQueueTest(unittest.TestCase):
         def read_single_values(stream, location):
             return stream.pop(0)
         sample_task.add_data_source(DataSource.create_source_from_iterable(
-                [1, 2], "foo", read_single_values))
+                [1, 2], "foo", read_single_values, location_changer=None))
         self.queue.push_task(sample_task)
 
         popped = self.queue.pop_task_input()
@@ -246,7 +246,7 @@ class TaskQueueTest(unittest.TestCase):
             return stream.pop(0)
         sample_task = Task("baz", "sample task")
         sample_task.add_data_source(DataSource.create_source_from_iterable(
-            [1, 2], "bar", read_individual_values))
+            [1, 2], "bar", read_individual_values, location_changer=None))
 
         sample_node = TaskQueueNode(sample_task)
         self.assertEqual({"bar": 1}, sample_node.next_input().values)
