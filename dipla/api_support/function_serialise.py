@@ -2,6 +2,7 @@ from dipla.api_support.script_templates import argv_input_script
 from base64 import b64encode
 import pickle
 
+
 def get_encoded_script(func):
     """
     Takes in a function and wraps it in an execution script
@@ -13,6 +14,7 @@ def get_encoded_script(func):
     b64_code = b64encode(pickle_code)
     filled_script = argv_input_script.format(str(b64_code))
     return b64encode(bytes(filled_script, 'UTF-8')).decode('UTF-8')
+
 
 def serialise_code_object(co):
     """
