@@ -61,7 +61,7 @@ class ServerServices:
         """
         self.services = {
             'get_binaries': self._handle_get_binaries,
-            'binary_received': self._handle_binary_received,
+            'binaries_received': self._handle_binary_received,
             'client_result': self._handle_client_result,
             'runtime_error': self._handle_runtime_error,
         }
