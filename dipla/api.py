@@ -6,6 +6,7 @@ from dipla.shared import uid_generator
 class Dipla:
 
     binary_mananger = BinaryManager()
+    task_queue = TaskQueue()
 
     @staticmethod
     def distribute(function):
@@ -26,12 +27,11 @@ class Dipla:
         # The Task name is never used so it is just set to 'input'
         read_task = Task(uid, 'input') 
         read_task.add_data_source(DataSource.create_source_from_iterable(source))
-        queue = TaskQueue()
-        return Promise(uid, queue)
+        task_queue.push_task(read_task)
+        return Promise(uid)
 
 
 class Promise:
 
-    def __init__(self, promise_uid, task_queue):
+    def __init__(self, promise_uid):
         self.uid = promise_uid
-        self.task_queue = task_queue

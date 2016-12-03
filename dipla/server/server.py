@@ -80,7 +80,7 @@ class ServerServices:
         """
         self.services = {
             'get_binaries': self._handle_get_binaries,
-            'binary_recieved': self._handle_binary_recieved,
+            'binary_received': self._handle_binary_received,
             'client_result': self._handle_client_result,
             'runtime_error': self._handle_runtime_error,
         }
@@ -102,7 +102,7 @@ class ServerServices:
         }
         return data
 
-    def _handle_binary_recieved(self, message, params):
+    def _handle_binary_received(self, message, params):
         # Worker has downloaded binary and is ready to do tasks
         try:
             params.server.worker_group.add_worker(params.worker)
@@ -118,9 +118,10 @@ class ServerServices:
 
     def _handle_client_result(self, message, params):
         task_id = message['task_uid']
-        value = message['results']
+        results = message['results']
         server = params.server
-        server.task_queue.add_result(task_id, value)
+        for result in results:
+            server.task_queue.add_result(task_id, result)
         server.worker_group.return_worker(params.worker.uid)
         server.distribute_tasks()
         return None
@@ -211,7 +212,9 @@ class Server:
             data = {}
             data['task_instructions'] = task_input.task_instructions
             data['task_uid'] = task_input.task_uid
-            data['data'] = task_input.values
+            data['arguments_order'] = task_input.arguments_order
+            data['arguments_values'] = task_input.values
+            # TODO(Update the documentation with this)
             worker = self.worker_group.lease_worker()
             self.send(worker.websocket, 'run_instructions', data)
 

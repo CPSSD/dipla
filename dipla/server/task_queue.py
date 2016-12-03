@@ -9,15 +9,27 @@ import sys
 
 class TaskQueue:
     """
-    The TaskQueue is, as the name suggests, a FIFO queue for storing Tasks that
-    should be executed by the workers. It has a set of active tasks that can be
-    used to pop task values for clients to operate on. The active tasks set can
-    build up as more tasks become available, and can decrease in size if some
-    tasks are marked as completely finished receiving input
+    The TaskQueue is, as the name suggests, an ordered LinkedList for storing
+    Tasks that should be executed by the workers. It has a set of active tasks
+    that can be used to pop task values for clients to operate on. The active
+    tasks set can build up as more tasks become available, and can decrease in
+    size if some tasks are marked as completely finished receiving input
     """
 
     def __init__(self):
+        # _active_tasks is the set of all tasks ids for the tasks that
+        # can currently have their inputs distributed to workers. Tasks
+        # will be in this collection because everything they depend on
+        # has had enough results for this task to be a feasible option
+        # for distribution. If tasks are completed they will be removed
+        # from this set. Since we may be streaming data, at a point in
+        # time it is possible that all the data from the input stream
+        # has been consumed and we need to wait on more before this task
+        # can continue, but the task is still active despite of this
         self._active_tasks = set()
+        # _nodes are the TaskQueueNodes that make up the linked list
+        # structure. The keys of the dictionary are the task ids and
+        # the values are the TaskQueueNode objects
         self._nodes = {}
 
     def push_task(self, item):
@@ -89,7 +101,7 @@ class TaskQueue:
                 return self._nodes[task_uid].next_input()
 
     def add_result(self, task_id, result):
-        if task_id not in self._nodes.keys():
+        if task_id not in self._nodes:
             raise KeyError(
                 "Attempted to add result for a task not present in the queue")
 
@@ -119,16 +131,6 @@ class TaskQueue:
 
             if can_activate:
                 self._active_tasks.add(task_id)
-
-    def get_active_tasks(self):
-        active_tasks_copy = set()
-        active_tasks_copy.update(self._active_tasks)
-        return active_tasks_copy
-
-    def get_nodes(self):
-        nodes_copy = dict()
-        nodes_copy.update(self._nodes)
-        return nodes_copy
 
     def is_task_open(self, task_uid):
         if task_uid not in self._nodes:
@@ -162,16 +164,21 @@ class TaskQueueNode:
         self.dependees.append(dependee_uid)
 
     def next_input(self):
-        # TODO(StefanKennedy) Add functionality so that this can handle
-        # multiple input dependencies
         if not self.dependencies[0].data_streamer.has_available_data():
             raise DataStreamerEmpty(
                 "Attempted to read input from an empty source")
 
+        arguments_order = []
+        arguments_values = {}
+        for dependency in self.dependencies:
+            argument_id = dependency.source_uid
+            arguments_order.append(argument_id)
+            arguments_values[argument_id] = dependency.data_streamer.read()
         return TaskInput(
             self.task_item.uid,
             self.task_item.instructions,
-            self.dependencies[0].data_streamer.read())
+            arguments_order,
+            arguments_values)
 
     def has_next_input(self):
         if len(self.dependencies) == 0:
@@ -193,35 +200,48 @@ class DataStreamerEmpty(Exception):
 
 class DataSource:
 
-    def read_all_values(stream):
+    def read_all_values(stream, location):
         # Copy the values to a new list and return it
         return list(stream)
 
-    def any_data_available(stream):
-        return len(stream) > 0
+    def any_data_available(stream, location):
+        return len(stream) - location > 0
+
+    def move_by_collection_size(collection, current_location):
+        return current_location + len(collection)
 
     @staticmethod
     def create_source_from_task(
             task,
+            source_uid,
             read_function=read_all_values,
-            availability_check=any_data_available):
-        return DataSource(
-            task.uid,
-            DataStreamer(task.task_output, read_function, availability_check))
+            availability_check=any_data_available,
+            location_changer=move_by_collection_size):
+        return DataSource(source_uid, task.uid, DataStreamer(
+            task.task_output,
+            read_function,
+            availability_check,
+            location_changer))
 
     @staticmethod
     def create_source_from_iterable(
             iterable,
+            source_uid,
             read_function=read_all_values,
-            availability_check=any_data_available):
-        return DataSource(
-            None, DataStreamer(iterable, read_function, availability_check))
+            availability_check=any_data_available,
+            location_changer=move_by_collection_size):
+        return DataSource(source_uid, None, DataStreamer(
+            iterable, read_function, availability_check, location_changer))
 
-    def __init__(self, source_task_uid, data_streamer):
+    def __init__(self, source_uid, source_task_uid, data_streamer):
         """
         This is a class composed of a DataStreamer, which also contains
         information about what task the data is sourced from (if sourced
         from a task)
+
+        source_uid is the unique identifier of this object. It can be
+        used to determine that the DataStreamer in this source was the
+        origin of some data
 
         source_task_uid is the unique identifier of the task that this
         data is sourced from. (For that task, the data is it's output)
@@ -229,13 +249,19 @@ class DataSource:
         data_streamer is the DataStreamer object that contains the
         stream used to read the data
         """
+        self.source_uid = source_uid
         self.source_task_uid = source_task_uid
         self.data_streamer = data_streamer
 
 
 class DataStreamer:
 
-    def __init__(self, stream, read_function, availability_check):
+    def __init__(
+            self,
+            stream,
+            read_function,
+            availability_check,
+            stream_location_changer=None):
         """
         This is singly responsible for acting as the bridge between a
         reader and a outputter of a stream of data. It should be
@@ -245,29 +271,50 @@ class DataStreamer:
         stream is the collection of data that can be mutated by the
         reader as it consumes the values in it
 
-        read_function is the defined way of reading values and returning
-        the to the reader
+        read_function is the function that is applied to the stream to
+        read values in a particular way, e.g. one at a time, popping
+        them from the collection, or read everything at once without
+        consuming anything. This takes the stream and the stream
+        location as an argument
 
         availability_check is the defined way of returning True or False
         depending on whether a call to read_function is possible on the
-        stream
+        stream. It takes the stream and the stream location as arguments
+
+        stream_location_changer is a function that takes the data that
+        was read, and the current stream_location integer, and the data
+        that was read. The stream_location pointer will be set to the
+        returned value
+
+        stream_location is the current location through the stream that
+        we have read to. This is the position the next read will start
+        from
         """
         self.stream = stream
         self.read_function = read_function
         self.availability_check = availability_check
+        self.stream_location_changer = stream_location_changer
+        self.stream_location = 0
 
     def has_available_data(self):
-        return self.availability_check(self.stream)
+        return self.availability_check(self.stream, self.stream_location)
 
     def read(self):
         if not self.has_available_data():
             raise DataStreamerEmpty("Attempted to read unavailable data")
-        return self.read_function(self.stream)
+
+        read = self.read_function(self.stream, self.stream_location)
+        # Move the stream_location pointer to the new location. This is
+        # for reading data without consuming it
+        if self.stream_location_changer is not None:
+            self.stream_location = self.stream_location_changer(
+                read, self.stream_location)
+        return read
 
 
 class TaskInput:
 
-    def __init__(self, task_uid, task_instructions, values):
+    def __init__(self, task_uid, task_instructions, arguments_order, values):
         """
         This is what is given out by the task queue when some values
         are requested from a pop/peek etc. The values attribute
@@ -279,11 +326,17 @@ class TaskInput:
         task_instructions are used to inform clients which runnable to
         execute
 
+        arguments_order is a list of dependency task_uids that tracks
+        the order that arguments should be given to the task
+
         values are the actual data values (not a promise) that are sent
-        to clients to execute the task and return the results
+        to clients to execute the task and return the results. It is a
+        dictionary of the task_uid that this data is coming from (the
+        source) to a list of the actual data values
         """
         self.task_uid = task_uid
         self.task_instructions = task_instructions
+        self.arguments_order = arguments_order
         self.values = values
 
 
@@ -292,6 +345,11 @@ class Task:
     """
     This is a class that should encapsulate all the information a client needs
     to excecute a piece of work.
+
+    A task is defined as open when it has produced enough results for the tasks
+    that depend on it to be started. For example, this could be when the task
+    produces any results. It could also be only whenever the task has produced
+    all of the results that it will produce
     """
 
     def __init__(self, uid, task_instructions, open_check=lambda x: True):
@@ -307,7 +365,8 @@ class Task:
         that this task is open. This function should take one argument
         which is the result that is received from the client The default
         lambda function used here causes the completion check to return
-        true when any result is received back from the server
+        true when any result is received back from the server. A task
+        being open is defined in the docstring for the Task class
         """
         self.uid = uid
         self.instructions = task_instructions
@@ -324,15 +383,12 @@ class Task:
             self._open_task()
 
     def add_data_source(self, source):
+        """
+        The order in which data sources are added is important because
+        it will be later used to manage the order of command line
+        arguments for a binary
+        """
         self.data_instructions.append(source)
 
     def _open_task(self):
         self.open = True
-
-
-class NoTaskDependencyError(Exception):
-    """
-    An exception to be thrown if the a task is added that depends on
-    nothing. If this was possible, the task would never do anything
-    """
-    pass
