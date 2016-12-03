@@ -38,11 +38,11 @@ class BinaryManager:
         for task_tuple in task_list:
             if not isinstance(task_tuple, tuple):
                 raise ValueError('task_list must be a list of tuples.')
-            task_name, binary_path = task_tuple
+            task_name, path_or_bin = task_tuple
             if not isinstance(task_name, str):
                 raise ValueError(
                     'The first element of each tuple must be a string.')
-            if not isinstance(encoded_binary, str):
+            if not isinstance(path_or_bin, str):
                 raise ValueError(
                     'The second element of each tuple must be a string.')
 
@@ -78,7 +78,7 @@ class ServerServices:
     def _handle_get_binaries(self, message, server):
         platform = message['platform']
         try:
-            task_list = server.binary_manager.get_binaries(platform)
+            encoded_binaries = server.binary_manager.get_binaries(platform)
         except KeyError as e:
             raise ServiceError(e, 2)
 
