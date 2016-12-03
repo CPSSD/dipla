@@ -128,6 +128,26 @@ class TaskQueueTest(unittest.TestCase):
         self.assertEqual("second task", popped.task_instructions)
         self.assertEqual({"foo": [1, 2]}, popped.values)
 
+    def test_pop_task_with_multiple_inputs(self):
+        first_task = Task("foo", "first task")
+        self.queue.push_task(first_task)
+
+        second_task = Task("bar", "second task")
+        self.queue.push_task(second_task)
+
+        dependent_task = Task("baz", "dependent task")
+        dependent_task.add_data_source(
+            DataSource.create_source_from_task(first_task, "foobar"))
+        dependent_task.add_data_source(
+            DataSource.create_source_from_task(second_task, "foobaz"))
+        self.queue.push_task(dependent_task)
+
+        self.assertFalse(self.queue.has_next_input())
+        self.queue.add_result("foo", [1, 2])
+        self.assertFalse(self.queue.has_next_input())
+        self.queue.add_result("bar", [1, 2])
+        self.assertTrue(self.queue.has_next_input())
+
     def test_pop_task_from_empty_dependency(self):
         # Test that popping data from empty task throws error
         sample_task3 = Task("foobaz", "sample task 3")
