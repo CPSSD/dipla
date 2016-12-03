@@ -1,6 +1,5 @@
 from unittest import TestCase
-from dipla.api.decorators import distributable
-from dipla.api.decorators import data_source
+from dipla.api import Dipla
 
 
 class DistributableDecoratorTest(TestCase):
@@ -28,10 +27,10 @@ class DistributableDecoratorTest(TestCase):
         self.operation()
 
     def _import_distributable_decorator(self):
-        from dipla.api.decorators import distributable
+        from dipla.api import Dipla
 
     def _apply_distributable_decorator(self):
-        @distributable
+        @Dipla.distribute
         def foo():
             pass
         return foo
@@ -62,10 +61,10 @@ class TaskInputDecoratorTest(TestCase):
         self.operation()
 
     def _import_data_source_decorator(self):
-        from dipla.api.decorators import data_source
+        from dipla.api import Dipla
 
     def _apply_data_source_decorator(self):
-        @data_source
+        @Dipla.data_source
         def foo():
             pass
         return foo
