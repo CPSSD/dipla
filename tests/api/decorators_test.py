@@ -51,7 +51,7 @@ class DistributableDecoratorTest(TestCase):
         from dipla.api import Dipla
 
     def _apply_distributable_decorator(self):
-        @Dipla.distribute
+        @Dipla.distributable
         def foo():
             pass
         return foo
