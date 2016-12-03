@@ -131,7 +131,7 @@ class TaskQueueTest(unittest.TestCase):
     def test_pop_task_with_multiple_inputs(self):
         first_task = Task("foo", "first task")
         self.queue.push_task(first_task)
-        
+
         second_task = Task("bar", "second task")
         self.queue.push_task(second_task)
 
