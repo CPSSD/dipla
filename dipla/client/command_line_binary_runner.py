@@ -26,8 +26,9 @@ class CommandLineBinaryRunner(object):
             for input_index in range(expected_runs):
                 # Collect the i'th value for each argument
                 next_values = []
-                for values in arguments_values.values():
-                    next_values.append(values[input_index])
+                for argument in arguments_order:
+                    next_values.append(
+                        arguments_values[argument][input_index])
                 # Run the next set of input values
                 results.append(self._run_binary(filepath, next_values))
             return results
