@@ -25,15 +25,15 @@ square_rooted_values = Dipla.apply_distributable(square_root, input_values)
 ## Reading Input
 
 There are currently two ways possible to receive input for your distributable functions. The first
-is to use a iterable python object like a list, or a set. You can convert the iterable object into
-a form that Dipla can distribute in the following way:
+is to use an iterable python object like a list, or a set. You use it simply by passing it as the
+#input parameter to `apply_distributable()`, for example:
 
 ```
-my_inputs = Dipla.read_data_source([1, 4, 9, 16, 25])
+processed = Dipla.apply_distributable(my_task, [1, 4, 9, 16, 25])
 ```
 
-This will mean that anywhere else my_inputs is used, it will represent the values from the iterable
-list `[1, 4, 9, 16, 25]`
+This will mean that my_task will be applied to everything in the iterable collection to produce a
+new output location, represented by `processed`
 
 The other way to read inputs is by using a function that retrieves inputs from some source. In this
 case the parameter to the function would be used to retrieve the input, for example, if we wanted
@@ -67,9 +67,7 @@ def square_root(input_value):
 def cubed_value(input_value):
     return input_value**3
 
-my_inputs = Dipla.read_data_source([1, 4, 9, 16, 25])
-
-rooted = Dipla.apply_distributable(square_root, my_inputs)
+rooted = Dipla.apply_distributable(square_root, [1, 4, 9, 16, 25])
 cubed = Dipla.apply_distributable(cubed_value, rooted)
 
 final_output = Dipla.get(cubed)
@@ -83,7 +81,7 @@ that _Dipla_ needs it to be in for it to use them, back into the format that _yo
 and manipulate with normal code.
 
 There is an alternative to `Dipla.get()`. You can also use `Dipla.start()`, which has does not
-return any output.
+return anything.
 
 ## More advanced usage
 
@@ -108,7 +106,12 @@ def negate(input_value):
 def reduce(fibonacci_input, negate_input):
     return fibonacci_input + negate_input
 
-my_inputs = Dipla.read_data_source([1, 2, 3, 4, 5])
+@data_source
+def read_database(input):
+    return sqldatabase.read_int(
+        "SELECT value FROM inputs WHERE id = ?").bind(input)
+
+my_inputs = Dipla.read_data_source(read_database, [1, 2, 3, 4, 5])
 
 fibonacci = Dipla.apply_distributable(fibonacci, my_inputs)
 negated = Dipla.apply_distributable(negate, my_inputs)
