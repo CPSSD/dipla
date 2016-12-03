@@ -84,3 +84,41 @@ and manipulate with normal code.
 
 There is an alternative to `Dipla.get()`. You can also use `Dipla.start()`, which has does not
 return any output.
+
+## More advanced usage
+
+You can also make tasks have multiple different dependencies. To do this you only need to add extra
+parameters to `Dipla.apply_distributable`. For example:
+
+```
+@distributable
+def fibonacci(input_value):
+    a = 1, b = 1
+    for i in range(input_value)
+        temp_a = a
+        a = b
+        b = b + temp_a
+    return b
+
+@distributable
+def negate(input_value):
+    return -1 * input_value
+
+@distributable
+def reduce(fibonacci_input, negate_input):
+    return fibonacci_input + negate_input
+
+my_inputs = Dipla.read_data_source([1, 2, 3, 4, 5])
+
+fibonacci = Dipla.apply_distributable(fibonacci, my_inputs)
+negated = Dipla.apply_distributable(negate, my_inputs)
+
+# Parameters must be given in the same order than the @distributable
+# takes them
+reduced = Dipla.apply_distributable(reduce, fibonacci, negate)
+
+final_output = Dipla.get(reduced)
+
+for num in final_output:
+    print(num)
+```
