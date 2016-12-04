@@ -357,8 +357,8 @@ class Task:
         Initalises the Task
 
         Params:
-         - data_source: An iteratable object that can be used to read
-        the input for this task
+         - uid: An identifier, different to the task/executable name
+        that can be used to uniquely identify this task
          - task_instructions: An object used to represent instructions
         on what task should be carried out on the data
          - open_check:  A function that returns true if it can determine
