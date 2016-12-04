@@ -32,22 +32,22 @@ class Dipla:
 
     def read_data_source(read_function, source):
         task_uid = uid_generator.generate_uid(
-            length=8, existing_uids=[task_queue.get_task_ids()])
+            length=8, existing_uids=[Dipla.task_queue.get_task_ids()])
         # The Task name is only used to run binaries, which does not
         # happen when reading a data source, so we simply call this
         # 'read_data_source' as it is never used
-        read_task = Task(task_uid, 'read_data_source') 
+        read_task = Task(task_uid, 'read_data_source')
         source_uid = uid_generator.generate_uid(length=8, existing_uids=[])
         read_task.add_data_source(DataSource.create_source_from_iterable(
             source, source_uid, read_function))
-        task_queue.push_task(read_task)
-        return Promise(uid)
+        Dipla.task_queue.push_task(read_task)
+        return Promise(task_uid)
 
 
 class Promise:
 
     def __init__(self, promise_uid):
-        self.uid = promise_uid
+        self.task_uid = promise_uid
 
 # When starting the server inside this class you must inject the binary
 # manager that's tied to the class. Eg:

@@ -138,7 +138,7 @@ class TaskQueue:
                 "Attempted to check if task was open that is not in the queue")
         return self._nodes[task_uid].task_item.open
 
-    def get_task_ids():
+    def get_task_ids(self):
         return self._nodes.keys()
 
 
