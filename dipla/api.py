@@ -49,6 +49,9 @@ class Promise:
     def __init__(self, promise_uid):
         self.task_uid = promise_uid
 
+# Remember that the function's __name__ is the task name in apply_distributable
+# task_name = function.__name__
+
 # When starting the server inside this class you must inject the binary
 # manager that's tied to the class. Eg:
 # Dipla.server = Server(
