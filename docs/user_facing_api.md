@@ -39,7 +39,7 @@ url_strings = ['www.google.com', 'www.dcu.ie', 'www.facebook.com/login']
 my_inputs = Dipla.read_data_source(fetch_url, url_strings)
 ```
 
-@Dipla.data_source functions will not be distributed, they will run on the server.
+When fully developed, @Dipla.data_source functions will not be distributed, they will run on the server.
 
 ## Creating a distributable program
 
