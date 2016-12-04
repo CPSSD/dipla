@@ -5,7 +5,7 @@
 To distribute work using dipla, you should create chunks of code that can exist in isolation, and that make sense for a machine to be able to run that chunk without depending on anything else. You can create one of these chunks by creating a function and giving it the @distributable decorator, for example if you wanted to create a chunk that would calculate the square root of a number, you could do the following:
 
 ```
-@distributable
+@Dipla.distributable
 def square_root(input_value):
     import math
     return math.sqrt(input_value)
@@ -30,7 +30,7 @@ This will mean that my_task will be applied to everything in the iterable collec
 The other way to read inputs is by using a function that retrieves inputs from some source. In this case the parameter to the function would be used to retrieve the input, for example, if we wanted to get inputs by fetching some urls we would have a function and the list of urls:
 
 ```
-@data_source
+@Dipla.data_source
 def fetch_url(url_string):
     return URL(url_string).fetch()
 
@@ -45,15 +45,14 @@ my_inputs = Dipla.read_data_source(fetch_url, url_strings)
 Once you have a data source to input your data, you can apply the tasks to the inputs. Once you have run a task on the inputs, you can run another task on the output of the first task. To finish all of your work off, you should have a `Dipla.get()` or a `Dipla.start() call`. Take this example, where we square root some inputs, then cube them:
 
 ```
-import Dipla
-from Dipla import distributable
+import dipla.api.Dipla
 
-@distributable
+@Dipla.distributable
 def square_root(input_value):
     import math
     return math.sqrt(input_value)
 
-@distributable
+@Dipla.distributable
 def cubed_value(input_value):
     return input_value**3
 
@@ -75,9 +74,9 @@ There is an alternative to `Dipla.get()`. You can also use `Dipla.start()`, whic
 You can also make tasks have multiple different dependencies. To do this you only need to add extra parameters to `Dipla.apply_distributable`. For example:
 
 ```
-import Dipla
-from Dipla import data_source, distributable
-@distributable
+import dipla.api.Dipla
+
+@Dipla.distributable
 def fibonacci(input_value):
     a = 1, b = 1
     for i in range(input_value)
@@ -86,15 +85,15 @@ def fibonacci(input_value):
         b = b + temp_a
     return b
 
-@distributable
+@Dipla.distributable
 def negate(input_value):
     return -1 * input_value
 
-@distributable
+@Dipla.distributable
 def reduce(fibonacci_input, negate_input):
     return fibonacci_input + negate_input
 
-@data_source
+@Dipla.data_source
 def read_database(input):
     return sqldatabase.read_int(
         "SELECT value FROM inputs WHERE id = ?").bind(input)
