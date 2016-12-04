@@ -2,7 +2,7 @@
 
 ## Distributing work
 
-To distribute work using dipla, you should create chunks of code that can exist in isolation, and that make sense for a machine to be able to run that chunk without depending on anything else. You can create one of these chunks by creating a function and giving it the @distributable decorator, for example if you wanted to create a chunk that would calculate the square root of a number, you could do the following:
+To distribute work using dipla, you should create chunks of code that can exist in isolation, and that make sense for a machine to be able to run that chunk without depending on anything else. You can create one of these chunks by creating a function and giving it the @Dipla.distributable decorator, for example if you wanted to create a chunk that would calculate the square root of a number, you could do the following:
 
 ```
 @Dipla.distributable
@@ -38,7 +38,7 @@ url_strings = ['www.google.com', 'www.dcu.ie', 'www.facebook.com/login']
 my_inputs = Dipla.read_data_source(fetch_url, url_strings)
 ```
 
-@data_source functions will not be distributed, they will run on the server.
+@Dipla.data_source functions will not be distributed, they will run on the server.
 
 ## Creating a distributable program
 
