@@ -4,7 +4,7 @@
 
 ## User Manual for Dipla API
 
-You can view the user manual for using the Dipla API [here](docs/user_facing_manual.md), including examples of how to write programs that use dipla.
+You can view the user manual for using the Dipla API [here](docs/user_facing_api.md), including examples of how to write programs that use dipla.
 
 ## Setting Up your Development Environment
 
