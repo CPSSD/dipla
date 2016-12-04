@@ -22,8 +22,9 @@ class Dipla:
         # Start the dipla server
         pass
 
-    def read_data_source(source):
-        task_uid = uid_generator.generate_uid(length=8, existing_uids=[])
+    def read_data_source(read_function, source):
+        task_uid = uid_generator.generate_uid(
+            length=8, existing_uids=[task_queue.get_task_ids()])
         # The Task name is only used to run binaries, which does not
         # happen when reading a data source, so we simply call this
         # 'read_data_source' as it is never used
