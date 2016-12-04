@@ -30,8 +30,8 @@ class Dipla:
         # 'read_data_source' as it is never used
         read_task = Task(task_uid, 'read_data_source') 
         source_uid = uid_generator.generate_uid(length=8, existing_uids=[])
-        read_task.add_data_source(
-            DataSource.create_source_from_iterable(source, source_uid))
+        read_task.add_data_source(DataSource.create_source_from_iterable(
+            source, source_uid, read_function))
         task_queue.push_task(read_task)
         return Promise(uid)
 
