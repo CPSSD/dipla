@@ -63,6 +63,7 @@ class BinaryManager:
             return full_task_list
         raise KeyError('No matching binaries found for this platform')
 
+
 class ServiceParams:
 
     def __init__(self, server, worker):
@@ -127,7 +128,6 @@ class ServerServices:
     def _handle_client_result(self, message, params):
         task_id = message['task_uid']
         results = message['results']
-        print(results)
         server = params.server
         for result in results:
             server.task_queue.add_result(task_id, result)
