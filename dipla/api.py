@@ -31,9 +31,13 @@ class Dipla:
         return function
 
     @staticmethod
-    def read_data_source(read_function, source):
-        task_uid = uid_generator.generate_uid(
+    def _generate_task_id():
+        return uid_generator.generate_uid(
             length=8, existing_uids=[Dipla.task_queue.get_task_ids()])
+
+    @staticmethod
+    def read_data_source(read_function, source):
+        task_uid = Dipla._generate_task_uid() 
         # The Task name is only used to run binaries, which does not
         # happen when reading a data source, so we simply call this
         # 'read_data_source' as it is never used
@@ -44,6 +48,13 @@ class Dipla:
         Dipla.task_queue.push_task(read_task)
         return Promise(task_uid)
 
+    @staticmethod
+    def get(promise):
+        task_uid = Dipla._generate_task_uid() 
+        get_task = Task(task_uid, 'get')
+        get_task.add_data_source(DataSource.create_source_from_task(
+            Dipla.task_queue.get_task(promise.task_uid))
+        Dipla.task_queue.push_task(get_task)
 
 class Promise:
 
