@@ -7,6 +7,7 @@ import queue  # needed to inherit exception from
 import sys
 from enum import Enum
 
+
 class TaskQueue:
     """
     The TaskQueue is, as the name suggests, an ordered LinkedList for storing
@@ -31,7 +32,7 @@ class TaskQueue:
         # structure. The keys of the dictionary are the task ids and
         # the values are the TaskQueueNode objects
         self._nodes = {}
-        
+
     def push_task(self, item):
         """
         Adds a task to the queue, connecting it with the tasks that it
@@ -410,5 +411,5 @@ class MachineType(Enum):
     """
     An enum used to represent a type of machine
     """
-    Server=1
-    Client=2
+    Server = 1
+    Client = 2
