@@ -32,7 +32,8 @@ The other way to read inputs is by using a function that retrieves inputs from s
 ```
 @Dipla.data_source
 def fetch_url(url_string):
-    return URL(url_string).fetch()
+    import urllib.request
+    return urllib.request.urlopen(url_string).read()
 
 url_strings = ['www.google.com', 'www.dcu.ie', 'www.facebook.com/login']
 my_inputs = Dipla.read_data_source(fetch_url, url_strings)
