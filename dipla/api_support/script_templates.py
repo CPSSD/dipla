@@ -1,6 +1,7 @@
-# This file is intended to store the templates for the scripts the clients will run.
-# The '{}' will be replaced with the base64 of the pickle of the deconstructed function
-# code object.
+# This file is intended to store the templates for the scripts the clients
+# will run.
+# The '{}' will be replaced with the base64 of the pickle of the deconstructed
+# function code object.
 
 argv_input_script = """#! /usr/bin/python3
 from base64 import b64decode

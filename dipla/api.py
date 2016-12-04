@@ -3,24 +3,32 @@ from dipla.server.server import BinaryManager
 from dipla.server.task_queue import TaskQueue, Task, DataSource
 from dipla.shared import uid_generator
 
+
 class Dipla:
 
+    # BinaryManager and TaskQueue to be injected into server.
     binary_mananger = BinaryManager()
     task_queue = TaskQueue()
 
     @staticmethod
-    def distribute(function):
+    def distributable(function):
+        """
+        Takes a function and converts it to a binary, the binary is then
+        registered with the BinaryManager. The function is returned unchanged.
+        """
+        # Turn the function into a base64'd Python script.
         base64_binary = get_encoded_script(function)
-        #Dipla.binary_mananger.add_platform('.*', )
+        # Register the result as a new binary for any platform with the name
+        # of the function as the task name.
+        Dipla.binary_manager.add_encoded_binaries('.*', [
+            (function.__name__, base64_binary),
+        ])
+        # Don't actually modify the final function.
+        return function
 
     @staticmethod
     def data_source(function):
-        pass
-
-    @staticmethod
-    def start():
-        # Start the dipla server
-        pass
+        return function
 
     def read_data_source(read_function, source):
         task_uid = uid_generator.generate_uid(
@@ -40,3 +48,10 @@ class Promise:
 
     def __init__(self, promise_uid):
         self.uid = promise_uid
+
+# When starting the server inside this class you must inject the binary
+# manager that's tied to the class. Eg:
+# Dipla.server = Server(
+#     Dipla.tq,
+#     Dipla.binary_manager
+# )

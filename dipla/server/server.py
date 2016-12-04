@@ -39,15 +39,21 @@ class BinaryManager:
         for task_tuple in task_list:
             if not isinstance(task_tuple, tuple):
                 raise ValueError('task_list must be a list of tuples.')
-            task_name, binary_path = task_tuple
+            task_name, path_or_bin = task_tuple
             if not isinstance(task_name, str):
                 raise ValueError(
                     'The first element of each tuple must be a string.')
-            if not isinstance(encoded_binary, str):
+            if not isinstance(path_or_bin, str):
                 raise ValueError(
                     'The second element of each tuple must be a string.')
 
     def get_binaries(self, platform):
+        """
+        Get's all the binaries with regexes that match the given platform.
+
+        If multiple tasks match then it returns all of them, this allows
+        generic binaries to be mixed with platform specific ones.
+        """
         full_task_list = []
         for platform_re, task_list in self.platform_re_list:
             if platform_re.match(platform):
@@ -93,7 +99,8 @@ class ServerServices:
     def _handle_get_binaries(self, message, params):
         platform = message['platform']
         try:
-            task_list = params.server.binary_manager.get_binaries(platform)
+            encoded_binaries = params.server.binary_manager.get_binaries(
+                platform)
         except KeyError as e:
             raise ServiceError(e, 2)
 
