@@ -30,6 +30,7 @@ class Dipla:
     def data_source(function):
         return function
 
+    @staticmethod
     def read_data_source(read_function, source):
         task_uid = uid_generator.generate_uid(
             length=8, existing_uids=[Dipla.task_queue.get_task_ids()])
