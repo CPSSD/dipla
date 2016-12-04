@@ -27,9 +27,8 @@ class Dipla:
     def data_source(function):
         return function
 
-    @staticmethod
-    def apply_distributable(function, stream):
-        task_name = function.__name__
+# Remember that the function's __name__ is the task name in apply_distributable
+# task_name = function.__name__
 
 # When starting the server inside this class you must inject the binary
 # manager that's tied to the class. Eg:
