@@ -8,7 +8,7 @@ To distribute work using dipla, you should create chunks of code that can exist 
 @Dipla.distributable
 def square_root(input_value):
     import math
-    return math.sqrt(input_value)
+    return math.sqrt(int(input_value))
 ```
 
 You can apply this task to your input values in a distributed way by informing dipla about this task, and telling it what input values it should be applied to:
@@ -50,11 +50,11 @@ import dipla.api.Dipla
 @Dipla.distributable
 def square_root(input_value):
     import math
-    return math.sqrt(input_value)
+    return math.sqrt(int(input_value))
 
 @Dipla.distributable
 def cubed_value(input_value):
-    return input_value**3
+    return int(input_value)**3
 
 rooted = Dipla.apply_distributable(square_root, [1, 4, 9, 16, 25])
 cubed = Dipla.apply_distributable(cubed_value, rooted)
@@ -78,8 +78,9 @@ import dipla.api.Dipla
 
 @Dipla.distributable
 def fibonacci(input_value):
-    a = 1, b = 1
-    for i in range(input_value)
+    a = 1
+    b = 1
+    for i in range(int(input_value)):
         temp_a = a
         a = b
         b = b + temp_a
@@ -87,24 +88,24 @@ def fibonacci(input_value):
 
 @Dipla.distributable
 def negate(input_value):
-    return -1 * input_value
+    return -1 * int(input_value)
 
 @Dipla.distributable
 def reduce(fibonacci_input, negate_input):
-    return fibonacci_input + negate_input
+    return int(fibonacci_input) + int(negate_input)
 
 @Dipla.data_source
 def read_database(input):
     return sqldatabase.read_int(
-        "SELECT value FROM inputs WHERE id = ?").bind(input)
+        "SELECT value FROM inputs WHERE id = ?").bind(int(input))
 
 my_inputs = Dipla.read_data_source(read_database, [1, 2, 3, 4, 5])
 
 fibonacci = Dipla.apply_distributable(fibonacci, my_inputs)
 negated = Dipla.apply_distributable(negate, my_inputs)
 
-# Parameters must be given in the same order than the @distributable
-# takes them
+# Parameters must be given in the same order than the
+# @Dipla.distributable takes them
 reduced = Dipla.apply_distributable(reduce, fibonacci, negate)
 
 final_output = Dipla.get(reduced)
