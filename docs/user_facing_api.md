@@ -97,6 +97,8 @@ def reduce(fibonacci_input, negate_input):
 
 @Dipla.data_source
 def read_database(input):
+    import databaselib
+    sqldatabase = databaselib.create_database()
     return sqldatabase.read_int(
         "SELECT value FROM inputs WHERE id = ?").bind(int(input))
 
