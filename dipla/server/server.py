@@ -119,6 +119,9 @@ class ServerServices:
             return None
         # If there was extra tasks that no others could do, try and
         # assign it to this worker, as it should be the only ready one
+        # assign it to this worker, as it should be the only ready one.
+        # If there are other workers it is okay to distribute tasks to
+        # them too
         params.server.distribute_tasks()
         return None
 
