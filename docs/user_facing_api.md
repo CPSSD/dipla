@@ -43,7 +43,7 @@ my_inputs = Dipla.read_data_source(fetch_url, url_strings)
 
 ## Creating a distributable program
 
-Once you have a data source to input your data, you can apply the tasks to the inputs. Once you have run a task on the inputs, you can run another task on the output of the first task. To finish all of your work off, you should have a `Dipla.get()` or a `Dipla.start() call`. Take this example, where we square root some inputs, then cube them:
+Once you have a data source to input your data, you can apply the tasks to the inputs. Once you have run a task on the inputs, you can run another task on the output of the first task. To finish all of your work off, you should have a `Dipla.get()` or a `Dipla.start()` call. Take this example, where we square root some inputs, then cube them:
 
 ```
 import dipla.api.Dipla
