@@ -5,7 +5,7 @@ using information such as the task identifier and input data
 
 import queue  # needed to inherit exception from
 import sys
-
+from enum import Enum
 
 class TaskQueue:
     """
@@ -31,7 +31,7 @@ class TaskQueue:
         # structure. The keys of the dictionary are the task ids and
         # the values are the TaskQueueNode objects
         self._nodes = {}
-
+        
     def push_task(self, item):
         """
         Adds a task to the queue, connecting it with the tasks that it
@@ -355,7 +355,12 @@ class Task:
     all of the results that it will produce
     """
 
-    def __init__(self, uid, task_instructions, open_check=lambda x: True):
+    def __init__(
+            self,
+            uid,
+            task_instructions,
+            machine_type,
+            open_check=lambda x: True):
         """
         Initalises the Task
 
@@ -364,7 +369,10 @@ class Task:
         the input for this task
          - task_instructions: An object used to represent instructions
         on what task should be carried out on the data
-         - open_check:  A function that returns true if it can determine
+         - machine_type: A MachineType enum instance that determines
+        what type of machine this task should be run on (e.g. Server,
+        client)
+         - open_check: A function that returns true if it can determine
         that this task is open. This function should take one argument
         which is the result that is received from the client The default
         lambda function used here causes the completion check to return
@@ -373,6 +381,7 @@ class Task:
         """
         self.uid = uid
         self.instructions = task_instructions
+        self.machine_type = machine_type
         self.data_instructions = []
 
         self.open_check = open_check
@@ -395,3 +404,11 @@ class Task:
 
     def _open_task(self):
         self.open = True
+
+
+class MachineType(Enum):
+    """
+    An enum used to represent a type of machine
+    """
+    Server=1
+    Client=2

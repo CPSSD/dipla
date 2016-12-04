@@ -1,6 +1,6 @@
 from dipla.api_support.function_serialise import get_encoded_script
 from dipla.server.server import BinaryManager
-from dipla.server.task_queue import TaskQueue, Task, DataSource
+from dipla.server.task_queue import TaskQueue, Task, DataSource, MachineType
 from dipla.shared import uid_generator
 
 
@@ -37,7 +37,7 @@ class Dipla:
         # The Task name is only used to run binaries, which does not
         # happen when reading a data source, so we simply call this
         # 'read_data_source' as it is never used
-        read_task = Task(task_uid, 'read_data_source')
+        read_task = Task(task_uid, 'read_data_source', MachineType.Server)
         source_uid = uid_generator.generate_uid(length=8, existing_uids=[])
         read_task.add_data_source(DataSource.create_source_from_iterable(
             source, source_uid, read_function))
