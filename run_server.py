@@ -20,11 +20,11 @@ def main():
     tq.add_new_data('int', 4)
 
     bm = BinaryManager()
-    bm.add_platform('.*x.*', [
+    bm.add_binary_paths('.*x.*', [
         ('add', '/posix/add/path'),
         ('sub', '/posix/sub/path'),
     ])
-    bm.add_platform('.*win32.*', [
+    bm.add_binary_paths('.*win32.*', [
         ('add', '/win32/add/path'),
         ('sub', '/win32/sub/path'),
     ])
