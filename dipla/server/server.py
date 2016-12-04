@@ -63,12 +63,22 @@ class BinaryManager:
             return full_task_list
         raise KeyError('No matching binaries found for this platform')
 
-
 class ServiceParams:
 
     def __init__(self, server, worker):
         self.server = server
         self.worker = worker
+
+
+class ServerTasks:
+
+    def __init__():
+    """
+    A class used to manage tasks that should be executed by the server
+    as opposed to clients. The tasks dictionary stores these by task_uid
+    to the function to run. Each function should take one input value
+    """
+    self.tasks = {}
 
 
 class ServerServices:
@@ -145,11 +155,16 @@ class Server:
 
     def __init__(self,
                  task_queue,
+                 server_tasks,
                  binary_manager,
                  worker_group=None,
                  services=None):
         """
         task_queue is a TaskQueue object that tasks to be run are taken from
+
+        server_tasks is a ServerTasks object that manages the tasks that
+        should run on the server. See the ServerTasks definition for more
+        information
 
         binary_manager is an instance of BinaryManager to be used to source
         task binaries
@@ -161,6 +176,7 @@ class Server:
         default instance is used.
         """
         self.task_queue = task_queue
+        self.server_tasks = server_tasks
         self.binary_manager = binary_manager
 
         self.worker_group = worker_group
