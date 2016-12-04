@@ -3,8 +3,8 @@ import sys
 import json
 import asyncio
 import websockets
-import dipla.server.task_queue
 
+from dipla.server.task_queue import MachineType
 from dipla.server.worker_group import WorkerGroup, Worker
 from dipla.shared.services import ServiceError
 from dipla.shared.message_generator import generate_message
@@ -70,17 +70,6 @@ class ServiceParams:
         self.worker = worker
 
 
-class ServerTasks:
-
-    def __init__():
-    """
-    A class used to manage tasks that should be executed by the server
-    as opposed to clients. The tasks dictionary stores these by task_uid
-    to the function to run. Each function should take one input value
-    """
-    self.tasks = {}
-
-
 class ServerServices:
 
     def __init__(self):
@@ -138,6 +127,7 @@ class ServerServices:
     def _handle_client_result(self, message, params):
         task_id = message['task_uid']
         results = message['results']
+        print(results)
         server = params.server
         for result in results:
             server.task_queue.add_result(task_id, result)
@@ -155,16 +145,11 @@ class Server:
 
     def __init__(self,
                  task_queue,
-                 server_tasks,
                  binary_manager,
                  worker_group=None,
                  services=None):
         """
         task_queue is a TaskQueue object that tasks to be run are taken from
-
-        server_tasks is a ServerTasks object that manages the tasks that
-        should run on the server. See the ServerTasks definition for more
-        information
 
         binary_manager is an instance of BinaryManager to be used to source
         task binaries
@@ -176,7 +161,6 @@ class Server:
         default instance is used.
         """
         self.task_queue = task_queue
-        self.server_tasks = server_tasks
         self.binary_manager = binary_manager
 
         self.worker_group = worker_group
@@ -233,15 +217,25 @@ class Server:
 
             task_input = self.task_queue.pop_task_input()
 
-            # Create the message and send it
-            data = {}
-            data['task_instructions'] = task_input.task_instructions
-            data['task_uid'] = task_input.task_uid
-            data['arguments_order'] = task_input.arguments_order
-            data['arguments_values'] = task_input.values
-            # TODO(Update the documentation with this)
-            worker = self.worker_group.lease_worker()
-            self.send(worker.websocket, 'run_instructions', data)
+            if task_input.machine_type == MachineType.Client:
+                # Create the message and send it
+                data = {}
+                data['task_instructions'] = task_input.task_instructions
+                data['task_uid'] = task_input.task_uid
+                data['arguments_order'] = task_input.arguments_order
+                data['arguments_values'] = task_input.values
+                # TODO(Update the documentation with this)
+                worker = self.worker_group.lease_worker()
+                self.send(worker.websocket, 'run_instructions', data)
+            elif task_input.machine_type == MachineType.Server:
+                # Server side functions tasks do not have any maching
+                # binaries, so we skip the send-to-client stage and move
+                # the read data straight to the results. All server side
+                # tasks have one argument, so  extract the values for
+                # that lone argument
+                task_values = list(task_input.values.values())[0]
+                for result in task_values:
+                    self.task_queue.add_result(task_input.task_uid, result)
 
     def _decode_message(self, message):
         message_dict = json.loads(message)

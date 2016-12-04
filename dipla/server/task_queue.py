@@ -181,6 +181,7 @@ class TaskQueueNode:
         return TaskInput(
             self.task_item.uid,
             self.task_item.instructions,
+            self.task_item.machine_type,
             arguments_order,
             arguments_values)
 
@@ -318,7 +319,13 @@ class DataStreamer:
 
 class TaskInput:
 
-    def __init__(self, task_uid, task_instructions, arguments_order, values):
+    def __init__(
+            self,
+            task_uid,
+            task_instructions,
+            machine_type,
+            arguments_order,
+            values):
         """
         This is what is given out by the task queue when some values
         are requested from a pop/peek etc. The values attribute
@@ -330,6 +337,9 @@ class TaskInput:
         task_instructions are used to inform clients which runnable to
         execute
 
+        machine_type is an instance of the MachineType Enum, used to
+        represent which type of machine this task should be run on
+
         arguments_order is a list of dependency task_uids that tracks
         the order that arguments should be given to the task
 
@@ -340,6 +350,7 @@ class TaskInput:
         """
         self.task_uid = task_uid
         self.task_instructions = task_instructions
+        self.machine_type = machine_type
         self.arguments_order = arguments_order
         self.values = values
 
