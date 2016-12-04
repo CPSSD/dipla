@@ -88,7 +88,7 @@ class BinaryReceiverService(ClientService):
             os.chmod(binary_path, 511)
 
         return message_generator.generate_message(
-            "binary_received", "")
+            "binaries_received", "")
 
 
 class ServerErrorService(ClientService):
