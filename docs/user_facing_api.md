@@ -2,7 +2,7 @@
 
 ## Distributing work
 
-To distribute work using dipla, you should create chunks of code that can exist in isolation, and that make sense for a machine to be able to run that chunk without depending on anything else. You can create one of these chunks by creating a function that takes a string input parameter and giving it the @Dipla.distributable decorator, for example if you wanted to create a chunk that would calculate the square root of a number you could do the following:
+To distribute work using dipla, you should create chunks of code that can exist in isolation, and that make sense for a machine to be able to run that chunk without depending on anything else. You can create one of these chunks by creating a function that takes a string input parameter and giving it the @Dipla.distributable decorator. For example if you wanted to create a chunk that would calculate the square root of a number you could do the following:
 
 ```
 @Dipla.distributable
