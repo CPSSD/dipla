@@ -11,7 +11,8 @@ class MessageDefixer(object):
     Stores each fully formed message within a queue that can be accessed later.
 
     Throws IllegalHeaderExceptions when malicious characters are fed into the
-    message header, which can be used to disconnect potentially malicious users.
+    message header, which can be used to disconnect potentially malicious
+    users.
     """
 
     STATES = ["READ_HEADER", "READ_BODY"]
