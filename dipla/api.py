@@ -28,6 +28,8 @@ class Dipla:
 
     @staticmethod
     def data_source(function):
+        def read_function_wrapper(source, location):
+            return function(source)
         return function
 
     @staticmethod

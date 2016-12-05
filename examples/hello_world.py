@@ -5,6 +5,7 @@ sys.path.append(path.abspath('../dipla'))
 from dipla.api import Dipla
 
 input_data = ["1", "2", "3", "4", "5"]
+@Dipla.data_source
 def read_function(input_value):
     return int(input_value) * 2
 
