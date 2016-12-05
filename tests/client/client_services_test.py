@@ -18,10 +18,7 @@ class BinaryRunnerServiceTest(TestCase):
         self.json_data = {
             'task_uid': 'bar',
             'task_instructions': 'foo',
-            'arguments_order': ['baz'],
-            'arguments_values': {
-                'baz': [1, 2, 3]
-            }
+            'arguments': [[1, 2, 3]]
         }
 
     def given_a_binary_runner_service(self):
@@ -37,16 +34,13 @@ class BinaryRunnerServiceTest(TestCase):
 
     def then_the_binary_runner_will_receive_the_correct_arguments(self):
         correct_filepath = self.path_that_should_be_run
-        correct_order = self.json_data['arguments_order']
-        correct_values = self.json_data['arguments_values']
+        correct_arguments = self.json_data['arguments']
         runner = self.mock_binary_runner
-        self.assertTrue(runner.received(
-            correct_filepath, correct_order, correct_values))
+        self.assertTrue(runner.received(correct_filepath, correct_arguments))
 
     def and_the_binary_runner_will_not_have_received_invalid_arguments(self):
         runner = self.mock_binary_runner
-        self.assertFalse(runner.received(
-             "incorrect_param", "incorrect_param", "incorrect_param"))
+        self.assertFalse(runner.received("incorrect_param", "incorrect_param"))
 
 
 class BinaryReceiverServiceTest(TestCase):
@@ -75,14 +69,11 @@ class DummyClient:
 
 class MockBinaryRunner(CommandLineBinaryRunner):
 
-    def run(self, filepath, arguments_order, arguments_values):
+    def run(self, filepath, arguments):
         self.filepath = filepath
-        self.arguments_order = arguments_order
-        self.arguments_values = arguments_values
+        self.arguments = arguments
 
-    def received(self, filepath, arguments_order, arguments_values):
+    def received(self, filepath, arguments):
         filepaths_match = self.filepath == filepath
-        arguments_order_match = self.arguments_order == arguments_order
-        arguments_values_match = self.arguments_values == arguments_values
-        arguments_match = arguments_order_match and arguments_values_match
+        arguments_match = self.arguments == arguments
         return filepaths_match and arguments_match

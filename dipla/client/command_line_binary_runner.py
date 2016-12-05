@@ -8,27 +8,26 @@ class CommandLineBinaryRunner(object):
     def __init__(self):
         self._logger = getLogger(__name__)
 
-    def run(self, filepath, arguments_order, arguments_values):
+    def run(self, filepath, arguments):
         if self._binary_exists(filepath):
             # Run at least once. If arguments were provided, work out
             # how many sets of inputs were provided
             expected_runs = 1
-            if len(arguments_order) > 0:
-                expected_runs = len(arguments_values[arguments_order[0]])
+            if len(arguments) > 0:
+                expected_runs = len(arguments[0])
             # Check all the rest of the arguments have the same number of
             # values as the first
-            for argument in arguments_order[1:]:
-                if not len(arguments_values[argument]) == expected_runs:
+            for argument_values in arguments[1:]:
+                if not len(argument_values) == expected_runs:
                     raise InvalidArgumentsError(
                         "Non-uniform number of values supplied to run binary")
-
             results = []
             for input_index in range(expected_runs):
                 # Collect the i'th value for each argument
                 next_values = []
-                for argument in arguments_order:
+                for argument_values in arguments:
                     next_values.append(
-                        arguments_values[argument][input_index])
+                        argument_values[input_index])
                 # Run the next set of input values
                 results.append(self._run_binary(filepath, next_values))
             return results

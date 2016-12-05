@@ -8,8 +8,7 @@ class CommandLineBinaryRunnerIntegrationTest(TestCase):
 
     def setUp(self):
         self.filepath = ""
-        self.arguments_order = []
-        self.arguments_values = {}
+        self.arguments = []
         self.existing_ids = []
 
     def test_that_exception_is_thrown_when_binary_doesnt_exist(self):
@@ -51,21 +50,18 @@ class CommandLineBinaryRunnerIntegrationTest(TestCase):
         uid = uid_generator.generate_uid(
             length=4, existing_uids=self.existing_ids)
         resource_url = github_resource("master/txt/word_count.txt")
-        self.arguments_order.append(uid)
-        self.arguments_values[uid] = [resource_url]
+        self.arguments.append([resource_url])
 
     def given_using_another_github_resource(self):
         uid = uid_generator.generate_uid(
             length=4, existing_uids=self.existing_ids)
         resource_url = github_resource("master/txt/word_count_again.txt")
-        self.arguments_order.append(uid)
-        self.arguments_values[uid] = [resource_url]
+        self.arguments.append([resource_url])
 
     def given_searching_for(self, word):
         uid = uid_generator.generate_uid(
             length=4, existing_uids=self.existing_ids)
-        self.arguments_order.append(uid)
-        self.arguments_values[uid] = [word]
+        self.arguments.append([word])
 
     def when_attempting_to_run_binary(self):
         pass
@@ -73,7 +69,7 @@ class CommandLineBinaryRunnerIntegrationTest(TestCase):
     def when_the_binary_is_run(self):
         self.runner = CommandLineBinaryRunner()
         self.result = self.runner.run(
-            self.filepath, self.arguments_order, self.arguments_values)
+            self.filepath, self.arguments)
 
     def then_a_FileNotFoundError_will_be_thrown(self):
         with self.assertRaises(FileNotFoundError):
