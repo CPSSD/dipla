@@ -28,8 +28,9 @@ class Dipla:
 
     @staticmethod
     def data_source(function):
-        def read_function_wrapper(source, location):
-            return function(source)
+        def read_function_wrapper(source, location): 
+            while len(source) > 0:
+                return [function(source.pop(0))]
         return read_function_wrapper
 
     @staticmethod
@@ -40,13 +41,29 @@ class Dipla:
     @staticmethod
     def read_data_source(read_function, source):
         task_uid = Dipla._generate_task_id() 
+        
+        # Stop reading the data source once we hit EOF
+        # TODO(StefanKennedy) Set up data sources to run indefinitely
+        def complete_on_eof(streamer):
+            print("Testing complete")
+            if len(streamer.stream) == 0:
+                return True
+            if streamer.stream_location >= len(streamer.stream):
+                return True
+            return False
+        
         # The Task name is only used to run binaries, which does not
         # happen when reading a data source, so we simply call this
         # 'read_data_source' as it is never used
-        read_task = Task(task_uid, 'read_data_source', MachineType.Server)
+        read_task = Task(
+            task_uid,
+            'read_data_source',
+            MachineType.Server,
+            complete_check=complete_on_eof)
+
         source_uid = uid_generator.generate_uid(length=8, existing_uids=[])
         read_task.add_data_source(DataSource.create_source_from_iterable(
-            source, source_uid, read_function))
+            source, source_uid, read_function, location_changer=None))
         Dipla.task_queue.push_task(read_task)
         return Promise(task_uid)
 

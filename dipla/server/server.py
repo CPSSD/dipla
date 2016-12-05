@@ -217,7 +217,6 @@ class Server:
                 self.worker_group.remove_worker(worker.uid)
 
     def distribute_tasks(self):
-        print("Distribute tasks")
         # By leasing workers without specifying an id, we get the
         # highest quality worker for the task
         while self.worker_group.has_available_worker():
@@ -226,11 +225,10 @@ class Server:
                 break
 
             task_input = self.task_queue.pop_task_input()
-            print("Popped task input")
             if self.task_queue.is_inactive():
-                # Turn off the server
+                # Flag the server to terminate, all tasks are inactive
+                print("Setting keep running to false")
                 self.keep_running = False
-                return
 
             if task_input.machine_type == MachineType.Client:
                 # Create the message and send it
@@ -252,7 +250,6 @@ class Server:
                     self.task_queue.add_result(task_input.task_uid, result)
 
     def _decode_message(self, message):
-        print(message)
         message_dict = json.loads(message)
         if 'label' not in message_dict or 'data' not in message_dict:
             raise ValueError('Message missing "label" or "data": {}'.format(
