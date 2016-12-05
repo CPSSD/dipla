@@ -21,7 +21,7 @@ class MessageDefixer(object):
         self._state_index = 0
         self._state = MessageDefixer.STATES[self._state_index]
         self._feed_buffer = ""
-        self._next_expected_message_length = 0
+        self._expected_message_length = 0
 
     def feed_character(self, character):
         if character != "":
@@ -30,14 +30,14 @@ class MessageDefixer(object):
                 if character in DIGITS:
                     pass
                 elif character == ':':
-                    self._next_expected_message_length = int(self._feed_buffer[:-1])
+                    self._expected_message_length = int(self._feed_buffer[:-1])
                     self._feed_buffer = ""
                     self._increment_state()
                 else:
                     error = "Header must be numeric. Was fed: '{}'"
                     raise IllegalHeaderException(error.format(character))
             elif self._state == MessageDefixer.STATES[1]:
-                if len(self._feed_buffer) == self._next_expected_message_length:
+                if len(self._feed_buffer) == self._expected_message_length:
                     self._full_messages.put(self._feed_buffer)
                     self._feed_buffer = ""
                     self._increment_state()
