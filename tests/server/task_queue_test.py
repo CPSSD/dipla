@@ -53,7 +53,7 @@ class TaskQueueTest(unittest.TestCase):
             return stream.pop(0)
 
         root_task.add_data_source(DataSource.create_source_from_iterable(
-             [1], "foo", consume_reader, location_changer=None))
+            [1], "foo", consume_reader, location_changer=None))
         self.queue.push_task(root_task)
 
         self.assertTrue(self.queue.has_next_input())
@@ -87,7 +87,7 @@ class TaskQueueTest(unittest.TestCase):
         popped = self.queue.pop_task_input()
         self.assertEqual("foo", popped.task_uid)
         self.assertEqual("sample task", popped.task_instructions)
-        self.assertEqual({"foo": [1, 2, 3]}, popped.values)
+        self.assertEqual([[1, 2, 3]], popped.values)
 
     def test_pop_task_input_using_defined_read_function(self):
         # Test reading data source using specified function
@@ -102,12 +102,12 @@ class TaskQueueTest(unittest.TestCase):
         popped = self.queue.pop_task_input()
         self.assertEqual("bar", popped.task_uid)
         self.assertEqual("sample task", popped.task_instructions)
-        self.assertEqual({"foo": 1}, popped.values)
+        self.assertEqual([1], popped.values)
 
         popped = self.queue.pop_task_input()
         self.assertEqual("bar", popped.task_uid)
         self.assertEqual("sample task", popped.task_instructions)
-        self.assertEqual({"foo": 2}, popped.values)
+        self.assertEqual([2], popped.values)
 
     def test_pop_task_depending_on_task(self):
         # Test reading data source from another task
@@ -126,7 +126,7 @@ class TaskQueueTest(unittest.TestCase):
         popped = self.queue.pop_task_input()
         self.assertEqual("foobar", popped.task_uid)
         self.assertEqual("second task", popped.task_instructions)
-        self.assertEqual({"foo": [1, 2]}, popped.values)
+        self.assertEqual([[1, 2]], popped.values)
 
     def test_pop_task_with_multiple_inputs(self):
         first_task = Task("foo", "first task")
@@ -249,7 +249,7 @@ class TaskQueueTest(unittest.TestCase):
             [1, 2], "bar", read_individual_values, location_changer=None))
 
         sample_node = TaskQueueNode(sample_task)
-        self.assertEqual({"bar": 1}, sample_node.next_input().values)
+        self.assertEqual([1], sample_node.next_input().values)
 
     def test_is_task_open_on_missing_task(self):
         with self.assertRaises(KeyError):
