@@ -15,6 +15,13 @@ def main():
         values = list(stream)[stream_location:]
         stream.clear()
         return values
+    
+    def complete_on_eof(streamer):
+        if len(streamer.stream) == 0:
+            return True
+        if streamer.stream_location >= len(streamer.stream):
+            return True
+        return False
 
     # I know there's lots of generating ids here which will probably
     # annoy people. This will not be necessary in future code because
@@ -24,7 +31,10 @@ def main():
 
     serverside_task_uid = generate_uid(existing=[])
     serverside_task = Task(
-        serverside_task_uid, 'serverside', MachineType.Server)
+        serverside_task_uid,
+        'serverside',
+        MachineType.Server,
+        complete_check=complete_on_eof)
 
     iterable_source_uid1 = generate_uid(existing=[])
     serverside_task.add_data_source(DataSource.create_source_from_iterable(
@@ -32,7 +42,11 @@ def main():
 
     # Create the fibonacci task depending on root_source
     fibonacci_task_uid = generate_uid(existing=[serverside_task_uid]) 
-    fibonacci_task = Task(fibonacci_task_uid, 'fibonacci', MachineType.Client)
+    fibonacci_task = Task(
+        fibonacci_task_uid,
+        'fibonacci',
+        MachineType.Client,
+        complete_check=complete_on_eof)
     
     serverside_source_uid = generate_uid(existing=[])
     fibonacci_task.add_data_source(DataSource.create_source_from_task(
@@ -41,7 +55,11 @@ def main():
     # Create the negate task depending on root_source
     negate_task_uid = generate_uid(
         existing=[fibonacci_task_uid, serverside_task_uid])
-    negate_task = Task(negate_task_uid, 'negate', MachineType.Client)
+    negate_task = Task(
+        negate_task_uid,
+        'negate',
+        MachineType.Client,
+        complete_check=complete_on_eof)
 
     iterable_source_uid2 = generate_uid(existing=[])
     negate_task.add_data_source(DataSource.create_source_from_iterable(
@@ -50,7 +68,11 @@ def main():
     # Create the reduce task depending on the first two tasks
     reduce_task_uid = generate_uid(
         existing=[fibonacci_task_uid, negate_task_uid, serverside_task_uid])
-    reduce_task = Task(reduce_task_uid, 'reduce', MachineType.Client)
+    reduce_task = Task(
+        reduce_task_uid,
+        'reduce',
+        MachineType.Client,
+        complete_check=complete_on_eof)
     
     fibonacci_task_source_uid = generate_uid(existing=[])
     reduce_task.add_data_source(DataSource.create_source_from_task(

@@ -174,7 +174,6 @@ class Server:
         self.keep_running = True
 
     async def websocket_handler(self, websocket, path):
-        self.websocket_server.close()
         user_id = self.worker_group.generate_uid()
         worker = Worker(user_id, websocket, quality=0.5)
         try:
