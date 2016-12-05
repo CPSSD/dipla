@@ -7,7 +7,7 @@ from dipla.shared import uid_generator
 class Dipla:
 
     # BinaryManager and TaskQueue to be injected into server.
-    binary_mananger = BinaryManager()
+    binary_manager = BinaryManager()
     task_queue = TaskQueue()
 
     @staticmethod
@@ -30,7 +30,7 @@ class Dipla:
     def data_source(function):
         def read_function_wrapper(source, location):
             return function(source)
-        return function
+        return read_function_wrapper
 
     @staticmethod
     def read_data_source(read_function, source):
