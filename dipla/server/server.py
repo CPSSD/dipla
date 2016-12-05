@@ -180,6 +180,7 @@ class Server:
             # recv() raises a ConnectionClosed exception when the client
             # disconnects, which breaks out of the while True loop.
             while True:
+                print("Inside while loop")
                 try:
                     # Parse the message, get the corresponding service, send
                     # back the response.
@@ -189,7 +190,9 @@ class Server:
                     response_data = service(
                         message['data'], params=ServiceParams(self, worker))
                     if not self.keep_running:
-                        websocket.close()
+                        # TODO(StefanKennedy) Research if there is a
+                        # more elegant way to stop the server
+                        asyncio.get_event_loop().stop()
                         return
                     if response_data is None:
                         continue
@@ -214,13 +217,16 @@ class Server:
                 self.worker_group.remove_worker(worker.uid)
 
     def distribute_tasks(self):
+        print("Distribute tasks")
         # By leasing workers without specifying an id, we get the
         # highest quality worker for the task
         while self.worker_group.has_available_worker():
             if not self.task_queue.has_next_input():
+                print("Breaking cause task queue has nothing left to read")
                 break
 
             task_input = self.task_queue.pop_task_input()
+            print("Popped task input")
             if self.task_queue.is_inactive():
                 # Turn off the server
                 self.keep_running = False
@@ -246,6 +252,7 @@ class Server:
                     self.task_queue.add_result(task_input.task_uid, result)
 
     def _decode_message(self, message):
+        print(message)
         message_dict = json.loads(message)
         if 'label' not in message_dict or 'data' not in message_dict:
             raise ValueError('Message missing "label" or "data": {}'.format(
