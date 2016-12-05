@@ -171,7 +171,10 @@ class Server:
         if not self.services:
             self.services = ServerServices()
 
+        self.keep_running = True
+
     async def websocket_handler(self, websocket, path):
+        self.websocket_server.close()
         user_id = self.worker_group.generate_uid()
         worker = Worker(user_id, websocket, quality=0.5)
         try:
@@ -186,6 +189,9 @@ class Server:
                     service = self.services.get_service(message['label'])
                     response_data = service(
                         message['data'], params=ServiceParams(self, worker))
+                    if not self.keep_running:
+                        websocket.close()
+                        return
                     if response_data is None:
                         continue
                     self.send(
@@ -216,6 +222,10 @@ class Server:
                 break
 
             task_input = self.task_queue.pop_task_input()
+            if self.task_queue.is_inactive():
+                # Turn off the server
+                self.keep_running = False
+                return
 
             if task_input.machine_type == MachineType.Client:
                 # Create the message and send it
@@ -232,7 +242,7 @@ class Server:
                 # the read data straight to the results. All server side
                 # tasks have one argument, so  extract the values for
                 # that lone argument
-                task_values = list(task_input.values.values())[0]
+                task_values = task_input.values[0]
                 for result in task_values:
                     self.task_queue.add_result(task_input.task_uid, result)
 
@@ -251,10 +261,10 @@ class Server:
         asyncio.ensure_future(self._send_message(socket, label, data))
 
     def start(self):
-        start_server = websockets.serve(
+        self.websocket_server = websockets.serve(
             self.websocket_handler,
             "localhost",
             8765)
 
-        asyncio.get_event_loop().run_until_complete(start_server)
+        asyncio.get_event_loop().run_until_complete(self.websocket_server)
         asyncio.get_event_loop().run_forever()

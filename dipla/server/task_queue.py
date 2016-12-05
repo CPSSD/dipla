@@ -99,7 +99,12 @@ class TaskQueue:
 
         for task_uid in self._active_tasks:
             if self._nodes[task_uid].has_next_input():
-                return self._nodes[task_uid].next_input()
+                # Read some data from this task, and if check if we've
+                # completed it
+                popped = self._nodes[task_uid].next_input()
+                if self.is_task_complete(task_uid):
+                    self._active_tasks.remove(task_uid)
+                return popped
 
     def add_result(self, task_id, result):
         if task_id not in self._nodes:
@@ -108,12 +113,10 @@ class TaskQueue:
 
         self._nodes[task_id].task_item.add_result(result)
         if self.is_task_open(task_id):
-            self.activate_new_tasks(self._nodes[task_id].dependees)
+            self.activate_new_tasks(self._nodes[task_id].dependees) 
 
     def get_task(self, task_uid):
         return self._nodes[task_uid].task_item
-    # TODO(StefanKennedy) Add functionality to close a task (take out of
-    # active task set) This would happen if reading an input hit EOF
 
     def activate_new_tasks(self, ids):
         """
@@ -140,6 +143,15 @@ class TaskQueue:
             raise KeyError(
                 "Attempted to check if task was open that is not in the queue")
         return self._nodes[task_uid].task_item.open
+
+    def is_task_complete(self, task_uid):
+        if task_uid not in self._nodes:
+            raise KeyError(
+                "Tried to check if task was complete that is not in the queue")
+        return self._nodes[task_uid].task_item.complete
+
+    def is_inactive(self):
+        return len(self._active_tasks) == 0
 
     def get_task_ids(self):
         return self._nodes.keys()
@@ -174,10 +186,18 @@ class TaskQueueNode:
             raise DataStreamerEmpty(
                 "Attempted to read input from an empty source")
 
+        complete = False
         arguments = []
         for dependency in self.dependencies:
             argument_id = dependency.source_uid
             arguments.append(dependency.data_streamer.read())
+            # If any dependencies do not have data available the
+            if self.task_item.complete_check(dependency.data_streamer):
+                complete = True
+
+        if complete:
+            self.task_item.complete_task()
+
         return TaskInput(
             self.task_item.uid,
             self.task_item.instructions,
@@ -361,7 +381,8 @@ class Task:
             uid,
             task_instructions,
             machine_type,
-            open_check=lambda x: True):
+            open_check=lambda x: True,
+            complete_check=lambda x: False):
         """
         Initalises the Task
 
@@ -379,6 +400,11 @@ class Task:
         lambda function used here causes the completion check to return
         true when any result is received back from the server. A task
         being open is defined in the docstring for the Task class
+         - complete_check: A function that returns true if it can
+        determine that this task should be completed, and no longer
+        be used for any distributed operation. This defaults to a
+        function that always returns False so that the task does not
+        close. This takes the remaining, unread stream as an argument
         """
         self.uid = uid
         self.instructions = task_instructions
@@ -387,6 +413,8 @@ class Task:
 
         self.open_check = open_check
         self.open = False
+        self.complete_check = complete_check
+        self.complete = False
 
         self.task_output = []
 
@@ -405,6 +433,9 @@ class Task:
 
     def _open_task(self):
         self.open = True
+
+    def complete_task(self):
+        self.complete = True
 
 
 class MachineType(Enum):
