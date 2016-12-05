@@ -22,7 +22,7 @@ class MessageDefixerTest(unittest.TestCase):
         self.when_fed_empty_character()
         self.then_its_state_is_READ_HEADER()
 
-    def test_that_message_defixer_turns_to_READ_BODY_state_when_fed_semicolon(self):  # nopep8
+    def test_that_message_defixer_turns_to_READ_BODY_state_when_fed_colon(self):  # nopep8
         self.given_a_message_defixer()
         self.when_fed("2:")
         self.then_its_state_is_READ_BODY()
@@ -32,7 +32,7 @@ class MessageDefixerTest(unittest.TestCase):
         self.when_fed("22")
         self.then_its_state_is_READ_HEADER()
 
-    def test_that_message_defixer_turns_to_READ_BODY_state_when_fed_two_characters_then_a_semicolon(self):  # nopep8
+    def test_that_message_defixer_turns_to_READ_BODY_state_when_fed_two_characters_then_a_colon(self):  # nopep8
         self.given_a_message_defixer()
         self.when_fed("22:")
         self.then_its_state_is_READ_BODY()
