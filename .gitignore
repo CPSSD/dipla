@@ -1,5 +1,9 @@
 # Ignore PyCharm IDE files
-.idea*
+.idea/
+*.iws
+/out/
+.idea_modules/
+atlassian-ide-plugin.xml
 
 # Ignore vim files
 [._]*.s[a-w][a-z]
