@@ -30,7 +30,7 @@ class Dipla:
     def data_source(function):
         def read_function_wrapper(source, location):
             return function(source)
-        return function
+        return read_function_wrapper
 
     @staticmethod
     def read_data_source(read_function, source):
