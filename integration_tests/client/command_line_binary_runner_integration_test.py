@@ -1,7 +1,6 @@
 from unittest import TestCase
 from dipla.environment import PROJECT_DIRECTORY
 from dipla.client.command_line_binary_runner import CommandLineBinaryRunner
-from dipla.shared import uid_generator
 
 
 class CommandLineBinaryRunnerIntegrationTest(TestCase):
@@ -9,7 +8,6 @@ class CommandLineBinaryRunnerIntegrationTest(TestCase):
     def setUp(self):
         self.filepath = ""
         self.arguments = []
-        self.existing_ids = []
 
     def test_that_exception_is_thrown_when_binary_doesnt_exist(self):
         self.given_a_non_existent_binary()
@@ -26,14 +24,14 @@ class CommandLineBinaryRunnerIntegrationTest(TestCase):
         self.given_using_a_github_resource()
         self.given_searching_for("word")
         self.when_the_binary_is_run()
-        self.then_the_result_will_be(["3"])
+        self.then_the_result_will_be("3")
 
     def test_that_binary_produces_valid_output_with_another_url(self):
         self.given_a_web_count_binary()
         self.given_using_another_github_resource()
         self.given_searching_for("BLARG")
         self.when_the_binary_is_run()
-        self.then_the_result_will_be(["4"])
+        self.then_the_result_will_be("4")
 
     def given_a_non_existent_binary(self):
         self.filepath = "/dont_exist/binary"
@@ -47,29 +45,22 @@ class CommandLineBinaryRunnerIntegrationTest(TestCase):
                         "web_count/web_count.exe"
 
     def given_using_a_github_resource(self):
-        uid = uid_generator.generate_uid(
-            length=4, existing_uids=self.existing_ids)
         resource_url = github_resource("master/txt/word_count.txt")
-        self.arguments.append([resource_url])
+        self.arguments.append(resource_url)
 
     def given_using_another_github_resource(self):
-        uid = uid_generator.generate_uid(
-            length=4, existing_uids=self.existing_ids)
         resource_url = github_resource("master/txt/word_count_again.txt")
-        self.arguments.append([resource_url])
+        self.arguments.append(resource_url)
 
     def given_searching_for(self, word):
-        uid = uid_generator.generate_uid(
-            length=4, existing_uids=self.existing_ids)
-        self.arguments.append([word])
+        self.arguments.append(word)
 
     def when_attempting_to_run_binary(self):
         pass
 
     def when_the_binary_is_run(self):
         self.runner = CommandLineBinaryRunner()
-        self.result = self.runner.run(
-            self.filepath, self.arguments)
+        self.result = self.runner.run(self.filepath, self.arguments)
 
     def then_a_FileNotFoundError_will_be_thrown(self):
         with self.assertRaises(FileNotFoundError):
