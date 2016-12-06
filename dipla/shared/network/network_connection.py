@@ -144,14 +144,15 @@ class SocketConnection(threading.Thread):
             sent_successfully = self._attempt_send(encoded)
 
     def _attempt_send(self, encoded_message):
+        success = False
         try:
             self._connection.send(encoded_message)
-            return True
+            success = True
         except AttributeError:
             print(ATTRIBUTE_ERROR_SEND_MESSAGE.format(self._label))
         except socket.error as e:
             self._recover_from_sending_error(e)
-        return False
+        return success
 
     def _stop_connection_element(self, connection_element):
         try:
@@ -213,24 +214,27 @@ class ClientConnection(SocketConnection):
     def _perform_connection_step(self):
         print(START_CONNECTING_MESSAGE.format(self._label))
         try:
-            print(ATTEMPTING_CONNECT_MESSAGE.format(self._label,
-                                                    self._host_address,
-                                                    self._host_port))
-            self._connection.connect((self._host_address, self._host_port))
-            self._connected = True
-            print(CONNECTION_ESTABLISHED_MESSAGE.format(
-                self._label,
-                self._host_address
-            ))
+            self._connect_to_endpoint()
         except socket.error as socket_error:
-            if socket_error.errno == errno.ECONNREFUSED:
-                raise ConnectionFailedError("Connection Refused.")
-            elif socket_error.errno == errno.ECONNRESET:
-                raise ConnectionFailedError("Connection Reset.")
-            elif socket_error.errno == errno.EINPROGRESS:
-                raise ConnectionShouldStopError("Operation now in progress.")
-            else:
-                raise socket_error
+            self._recover_from_connection_error(socket_error)
+
+    def _connect_to_endpoint(self):
+        print(ATTEMPTING_CONNECT_MESSAGE.format(
+            self._label, self._host_address, self._host_port))
+        self._connection.connect((self._host_address, self._host_port))
+        self._connected = True
+        print(CONNECTION_ESTABLISHED_MESSAGE.format(
+            self._label, self._host_address))
+
+    def _recover_from_connection_error(self, socket_error):
+        if socket_error.errno == errno.ECONNREFUSED:
+            raise ConnectionFailedError("Connection Refused.")
+        elif socket_error.errno == errno.ECONNRESET:
+            raise ConnectionFailedError("Connection Reset.")
+        elif socket_error.errno == errno.EINPROGRESS:
+            raise ConnectionShouldStopError("Operation now in progress.")
+        else:
+            raise socket_error
 
     def _cleanup(self):
         self._stop_event.set()
@@ -252,29 +256,38 @@ class ServerConnection(SocketConnection):
                                                "ServerConnection")
 
     def _prepare_socket(self):
+        self._socket = socket.socket()
+        self._socket.setblocking(True)
+        self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self._bind_socket()
+        self._socket.listen(5)
+
+    def _bind_socket(self):
         try:
-            self._socket = socket.socket()
-            self._socket.setblocking(True)
-            self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self._socket.bind(('localhost', self._host_port))
-            self._socket.listen(5)
         except OverflowError:
             raise ConnectionPreparationFailedError(ILLEGAL_PORT_BIND_MESSAGE)
 
     def _perform_connection_step(self):
         print(START_CONNECTING_MESSAGE.format(self._label))
         try:
-            self._connection, self._connection_address = self._socket.accept()
-            self._connected = True
-            print(CONNECTION_ESTABLISHED_MESSAGE.format(
-                self._label,
-                self._connection_address
-            ))
+            self._accept_incoming_connection()
         except OSError as os_error:
-            if os_error.errno == errno.EINVAL:
-                print(CLOSED_WHILE_ACCEPTING_MESSAGE.format(self._label))
-            else:
-                raise os_error
+            self._recover_from_connection_error(os_error)
+
+    def _accept_incoming_connection(self):
+        self._connection, self._connection_address = self._socket.accept()
+        self._connected = True
+        print(CONNECTION_ESTABLISHED_MESSAGE.format(
+            self._label,
+            self._connection_address
+        ))
+
+    def _recover_from_connection_error(self, os_error):
+        if os_error.errno == errno.EINVAL:
+            print(CLOSED_WHILE_ACCEPTING_MESSAGE.format(self._label))
+        else:
+            raise os_error
 
     def _cleanup(self):
         self._stop_event.set()
