@@ -137,31 +137,11 @@ class SocketConnection(threading.Thread):
         pass  # ABSTRACT
 
 
-class EventListener(object):
-
-    def on_message(self, connection, message):
-        pass  # ABSTRACT
-
-    def on_error(self, connection, error):
-        pass  # ABSTRACT
-
-    def on_close(self, connection, reason):
-        pass  # ABSTRACT
-
-
-class ConnectionShouldStopError(Exception):
-    pass
-
-
-class ConnectionFailedError(Exception):
-    pass
-
-
-class ConnectionPreparationFailedError(Exception):
-    pass
-
-
 class ClientConnection(SocketConnection):
+    """
+    The ClientConnection is a subclass of a SocketConnection. It is used to
+    establish a connection with an already-listening ServerConnection.
+    """
 
     def __init__(self, host_address, host_port, event_listener):
         super(ClientConnection, self).__init__(host_address,
@@ -202,6 +182,11 @@ class ClientConnection(SocketConnection):
 
 
 class ServerConnection(SocketConnection):
+    """
+    The ServerConnection is a subclass of a SocketConnection. It is used to
+    bind a socket to a port during the connection process and accept an
+    incoming ClientConnection.
+    """
 
     def __init__(self, host_port, event_listener):
         super(ServerConnection, self).__init__("localhost",
@@ -239,6 +224,39 @@ class ServerConnection(SocketConnection):
         self._stop_connection_element(self._socket)
         self._connected = False
 
+
+class EventListener(object):
+
+    def on_message(self, connection, message):
+        pass  # ABSTRACT
+
+    def on_error(self, connection, error):
+        pass  # ABSTRACT
+
+    def on_close(self, connection, reason):
+        pass  # ABSTRACT
+
+
+class ConnectionShouldStopError(Exception):
+    pass
+
+
+class ConnectionFailedError(Exception):
+    pass
+
+
+class ConnectionPreparationFailedError(Exception):
+    pass
+
+
+"""
+The following constants are strings which are used heavily when:
+* Generating error messages.
+* Generating logger statements.
+
+I have separated them because it greatly improves the readability of the
+classes above, and makes it easier to stay within PEP8's character limit.
+"""
 
 UNEXPECTED_ERROR_MESSAGE = "CRITICAL: Unexpected {} occurred in {}... {}"
 

@@ -1,9 +1,9 @@
 import functools
 import unittest
 import time
-from dipla.shared.network.network import ClientConnection
-from dipla.shared.network.network import ServerConnection
-from dipla.shared.network.network import EventListener
+from dipla.shared.network.network_connection import ClientConnection
+from dipla.shared.network.network_connection import ServerConnection
+from dipla.shared.network.network_connection import EventListener
 
 
 ASSERTION_TIMEOUT = 0.4
