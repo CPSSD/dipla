@@ -131,6 +131,11 @@ class SocketConnection(threading.Thread):
         print(EXPECTED_ERROR_MESSAGE.format(self._label, reason))
         self._event_listener.on_error(self, reason)
 
+    def _emit_open_event(self):
+        print(CONNECTION_ESTABLISHED_MESSAGE.format(
+            self._label, self._host_address))
+        self._event_listener.on_open(self, "Connection established.")
+
     def _should_still_run(self):
         return not self._stop_event.is_set()
 
@@ -215,6 +220,7 @@ class ClientConnection(SocketConnection):
         print(START_CONNECTING_MESSAGE.format(self._label))
         try:
             self._connect_to_endpoint()
+            self._emit_open_event()
         except socket.error as socket_error:
             self._recover_from_connection_error(socket_error)
 
@@ -223,8 +229,6 @@ class ClientConnection(SocketConnection):
             self._label, self._host_address, self._host_port))
         self._connection.connect((self._host_address, self._host_port))
         self._connected = True
-        print(CONNECTION_ESTABLISHED_MESSAGE.format(
-            self._label, self._host_address))
 
     def _recover_from_connection_error(self, socket_error):
         if socket_error.errno == errno.ECONNREFUSED:
@@ -272,6 +276,7 @@ class ServerConnection(SocketConnection):
         print(START_CONNECTING_MESSAGE.format(self._label))
         try:
             self._accept_incoming_connection()
+            self._emit_open_event()
         except OSError as os_error:
             self._recover_from_connection_error(os_error)
 

@@ -6,7 +6,7 @@ from dipla.shared.network.network_connection import ServerConnection
 from dipla.shared.network.network_connection import EventListener
 
 
-ASSERTION_TIMEOUT = 0.4
+ASSERTION_TIMEOUT = 10
 
 
 class ClientConnectionTest(unittest.TestCase):
@@ -129,6 +129,13 @@ class ClientConnectionTest(unittest.TestCase):
         self.when_client_connection_sends("World!")
         self.then_server_connection_receives("World!")
 
+    def test_that_client_event_listener_receives_open_notification_upon_connecting(self):  # nopep8
+        self.given_running_server_connection()
+        self.given_client_connection()
+        self.then_client_does_not_receive_open_notification()
+        self.when_client_connection_starts()
+        self.then_client_receives_open_notification()
+
     def given_server_is_offline(self):
         pass
 
@@ -169,6 +176,16 @@ class ClientConnectionTest(unittest.TestCase):
 
     def when_server_connection_directly_sends(self, message):
         self.server_connection._attempt_send_with_timeout(message)
+
+    def then_client_does_not_receive_open_notification(self):
+        def does_not_receive_open():
+            return not self.client_event_listener._opened
+        assert_with_timeout(self, does_not_receive_open, ASSERTION_TIMEOUT)
+
+    def then_client_receives_open_notification(self):
+        def receives_open():
+            return self.client_event_listener._opened
+        assert_with_timeout(self, receives_open, ASSERTION_TIMEOUT)
 
     def then_client_is_connected(self):
         def connected():
@@ -347,6 +364,13 @@ class ServerConnectionTest(unittest.TestCase):
         self.when_server_connection_sends("World!")
         self.then_client_connection_receives("World!")
 
+    def test_that_server_event_listener_receives_open_notification_when_connection_established(self):  # nopep8
+        self.given_a_server_connection()
+        self.when_listening_for_client_connection()
+        self.then_server_does_not_receive_open_notification()
+        self.when_client_connects()
+        self.then_server_receives_open_notification()
+
     def given_a_server_connection(self):
         self.given_a_server_connection_on_port(51111)
 
@@ -438,6 +462,20 @@ class ServerConnectionTest(unittest.TestCase):
 
         received_expected = functools.partial(received_message, message)
         assert_with_timeout(self, received_expected, ASSERTION_TIMEOUT)
+
+    def then_server_does_not_receive_open_notification(self):
+        def not_received_open_notification():
+            return not self.server_event_listener._opened
+        assert_with_timeout(self,
+                            not_received_open_notification,
+                            ASSERTION_TIMEOUT)
+
+    def then_server_receives_open_notification(self):
+        def receives_open_notification():
+            return self.server_event_listener._opened
+        assert_with_timeout(self,
+                            receives_open_notification,
+                            ASSERTION_TIMEOUT)
 
     def then_server_does_not_receive_close_notification(self):
         def not_received_close_notification():
@@ -617,6 +655,10 @@ class EventSavingEventListener(EventListener):
         self._last_message = None
         self._last_error = None
         self._closed = False
+        self._opened = False
+
+    def on_open(self, connection, message):
+        self._opened = True
 
     def on_message(self, connection, message):
         print("!!!!!!!!!!!CLIENT? RECEIVED: {}".format(message))
