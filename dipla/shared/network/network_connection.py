@@ -9,6 +9,22 @@ from dipla.shared.network.message_prefixer import prefix_message
 
 
 class SocketConnection(threading.Thread):
+    """
+    This class represents a network connection that uses sockets. It contains
+    the more general code related to bi-directional network communication,
+    such as "sending" and "receiving" functionality.
+
+    THIS CLASS SHOULD NOT BE INSTANTIATED; IT IS TO BE INHERITED ONLY.
+
+    It provides templates for methods such as _prepare_socket,
+    _perform_connection_procedure, and _cleanup, that MUST be implemented
+    by the subclasses/inheritors of this class.
+
+    It also provides a standard way of "catching" certain events, and emitting
+    them to a NetworkEventListener object. This NetworkEventListener object
+    will have methods triggered by these events, such as...
+    on_message, on_open, on_close, and on_error.
+    """
 
     DATA_ENCODING = "UTF-8"
 
@@ -128,13 +144,13 @@ class SocketConnection(threading.Thread):
                 raise socket_error
 
     def _prepare_socket(self):
-        pass  # ABSTRACT
+        pass  # ABSTRACT: To be implemented by inheritors.
 
     def _perform_connection_procedure(self):
-        pass  # ABSTRACT
+        pass  # ABSTRACT: To be implemented by inheritors.
 
     def _cleanup(self):
-        pass  # ABSTRACT
+        pass  # ABSTRACT: To be implemented by inheritors.
 
 
 class ClientConnection(SocketConnection):
@@ -227,6 +243,9 @@ class ServerConnection(SocketConnection):
 
 class EventListener(object):
 
+    def on_open(self, connection, message):
+        pass  # ABSTRACT
+
     def on_message(self, connection, message):
         pass  # ABSTRACT
 
@@ -254,7 +273,7 @@ The following constants are strings which are used heavily when:
 * Generating error messages.
 * Generating logger statements.
 
-I have separated them because it greatly improves the readability of the
+I have extracted them because it greatly improves the readability of the
 classes above, and makes it easier to stay within PEP8's character limit.
 """
 
