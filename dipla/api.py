@@ -91,8 +91,10 @@ class Dipla:
         get_task = Task(
             task_uid,
             'get',
-            MachineType.Server,
+            MachineTypes.server,
             complete_check=Dipla.complete_on_eof)
+        # Generate a uid for the source (bridge) from the get task to
+        # the task provided in the promise
         source_uid = uid_generator.generate_uid(length=8, existing_uids=[])
         get_task.add_data_source(DataSource.create_source_from_task(
             Dipla.task_queue.get_task(promise.task_uid), source_uid))

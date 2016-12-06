@@ -33,7 +33,7 @@ def main():
     serverside_task = Task(
         serverside_task_uid,
         'serverside',
-        MachineType.Server,
+        MachineType.server,
         complete_check=complete_on_eof)
 
     iterable_source_uid1 = generate_uid(existing=[])
@@ -45,7 +45,7 @@ def main():
     fibonacci_task = Task(
         fibonacci_task_uid,
         'fibonacci',
-        MachineType.Client,
+        MachineType.client,
         complete_check=complete_on_eof)
     
     serverside_source_uid = generate_uid(existing=[])
@@ -58,7 +58,7 @@ def main():
     negate_task = Task(
         negate_task_uid,
         'negate',
-        MachineType.Client,
+        MachineType.client,
         complete_check=complete_on_eof)
 
     iterable_source_uid2 = generate_uid(existing=[])
@@ -71,7 +71,7 @@ def main():
     reduce_task = Task(
         reduce_task_uid,
         'reduce',
-        MachineType.Client,
+        MachineType.client,
         complete_check=complete_on_eof)
     
     fibonacci_task_source_uid = generate_uid(existing=[])
