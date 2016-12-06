@@ -16,9 +16,8 @@ class BinaryRunnerServiceTest(TestCase):
 
     def given_sample_json_data(self):
         self.json_data = {
-            'task_uid': 'bar',
-            'task_instructions': 'foo',
-            'arguments': [[1, 2, 3]]
+            "task_instructions": "foo",
+            "data_instructions": "bar"
         }
 
     def given_a_binary_runner_service(self):
@@ -34,7 +33,7 @@ class BinaryRunnerServiceTest(TestCase):
 
     def then_the_binary_runner_will_receive_the_correct_arguments(self):
         correct_filepath = self.path_that_should_be_run
-        correct_arguments = self.json_data['arguments']
+        correct_arguments = self.json_data["data_instructions"]
         runner = self.mock_binary_runner
         self.assertTrue(runner.received(correct_filepath, correct_arguments))
 

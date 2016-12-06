@@ -7,7 +7,6 @@ import dipla.server.task_queue
 
 from dipla.server.worker_group import WorkerGroup, Worker
 from dipla.shared.services import ServiceError
-from dipla.shared.message_generator import generate_message
 from base64 import b64encode
 
 
@@ -64,29 +63,15 @@ class BinaryManager:
         raise KeyError('No matching binaries found for this platform')
 
 
-class ServiceParams:
-
-    def __init__(self, server, worker):
-        self.server = server
-        self.worker = worker
-
-
 class ServerServices:
 
     def __init__(self):
-        """
-        Raising an exception will transmit it back to the client. A
-        ServiceError lets you include a specific error code to allow
-        the client to better choose what to do with it.
-
-        The services provided here expect a data object of type
-        ServiceParams that carry the server that is calling the service
-        as well as the worker that owns the websocket that called the
-        service
-        """
+        # Raising an exception will transmit it back to the client. A
+        # ServiceError lets you include a specific error code to allow
+        # the client to better choose what to do with it.
         self.services = {
             'get_binaries': self._handle_get_binaries,
-            'binaries_received': self._handle_binary_received,
+            'get_instructions': self._handle_get_instructions,
             'client_result': self._handle_client_result,
             'runtime_error': self._handle_runtime_error,
         }
@@ -96,11 +81,10 @@ class ServerServices:
             return self.services[label]
         raise KeyError("Label '{}' does not have a handler".format(label))
 
-    def _handle_get_binaries(self, message, params):
+    def _handle_get_binaries(self, message, server):
         platform = message['platform']
         try:
-            encoded_binaries = params.server.binary_manager.get_binaries(
-                platform)
+            encoded_binaries = server.binary_manager.get_binaries(platform)
         except KeyError as e:
             raise ServiceError(e, 2)
 
@@ -109,33 +93,25 @@ class ServerServices:
         }
         return data
 
-    def _handle_binary_received(self, message, params):
-        # Worker has downloaded binary and is ready to do tasks
+    def _handle_get_instructions(self, message, server):
+        data = {}
         try:
-            params.server.worker_group.add_worker(params.worker)
-        except ValueError:
-            # TODO(cianlr): Log something here indicating the error
-            data = {'details': 'UserID already taken', 'code': 0}
-            params.server.send(websocket, 'runtime_error', data)
-            return None
-        # If there was extra tasks that no others could do, try and
-        # assign it to this worker, as it should be the only ready one
-        # If there are other workers it is okay to distribute tasks to
-        # them too
-        params.server.distribute_tasks()
+            task = server.task_queue.pop_task()
+            data['task_instructions'] = task.task_instructions
+            data['data_instructions'] = json.dumps(
+                {d.name: d.get_value() for d in task.data_instructions})
+        except task_queue.TaskQueueEmpty as e:
+            data['command'] = 'quit'
+        return data
+
+    def _handle_client_result(self, message, server):
+        data_type = message['type']
+        value = message['value']
+        print('New client result of type "%s": %s' % (data_type, value))
+        server.task_queue.add_new_data(data_type, value)
         return None
 
-    def _handle_client_result(self, message, params):
-        task_id = message['task_uid']
-        results = message['results']
-        server = params.server
-        for result in results:
-            server.task_queue.add_result(task_id, result)
-        server.worker_group.return_worker(params.worker.uid)
-        server.distribute_tasks()
-        return None
-
-    def _handle_runtime_error(self, message, params):
+    def _handle_runtime_error(self, message, server):
         print('Client had an error (code %d): %s' % (message['code'],
                                                      message['details']))
         return None
@@ -173,7 +149,18 @@ class Server:
 
     async def websocket_handler(self, websocket, path):
         user_id = self.worker_group.generate_uid()
-        worker = Worker(user_id, websocket, quality=0.5)
+        try:
+            self.worker_group.add_worker(
+                Worker(user_id, websocket, quality=0.5))
+        except ValueError:
+            # TODO(cianlr): Log something here indicating the error
+            data = {'details': 'UserID already taken', 'code': 0}
+            await self._send_message(websocket, 'runtime_error', data)
+            return
+        # This is kind of unusual, we add a new worker to the group and
+        # then pull out whatever is at the top of the group and repurpose
+        # the thread to handle that worker, but it works for now.
+        worker = self.worker_group.lease_worker()
         try:
             # recv() raises a ConnectionClosed exception when the client
             # disconnects, which breaks out of the while True loop.
@@ -184,12 +171,12 @@ class Server:
                     message = self._decode_message(
                         await worker.websocket.recv())
                     service = self.services.get_service(message['label'])
-                    response_data = service(
-                        message['data'], params=ServiceParams(self, worker))
+                    response_data = service(message['data'], self)
                     if response_data is None:
                         continue
-                    self.send(
-                        worker.websocket, message['label'], response_data)
+                    await self._send_message(worker.websocket,
+                                             message['label'],
+                                             response_data)
                 except (ValueError, KeyError) as e:
                     # If there is a general error that isn't service specific
                     # then send a message with the 'runtime_error' label.
@@ -197,34 +184,20 @@ class Server:
                         'details': 'Error during websocket loop: %s' % str(e),
                         'code': 1,
                     }
-                    self.send(worker.websocket, 'runtime_error', data)
+                    await self._send_message(worker.websocket,
+                                             'runtime_error',
+                                             data)
                 except ServiceError as e:
                     # This error has a specific code to transmit attached to it
                     data = {'details': str(e), 'code': e.code}
-                    self.send(worker.websocket, 'runtime_error', data)
+                    await self._send_message(worker.websocket,
+                                             'runtime_error',
+                                             data)
         except websockets.exceptions.ConnectionClosed as e:
             print(worker.uid + " has closed the connection")
         finally:
-            if worker.uid in self.worker_group.worker_uids():
-                self.worker_group.remove_worker(worker.uid)
-
-    def distribute_tasks(self):
-        # By leasing workers without specifying an id, we get the
-        # highest quality worker for the task
-        while self.worker_group.has_available_worker():
-            if not self.task_queue.has_next_input():
-                break
-
-            task_input = self.task_queue.pop_task_input()
-
-            # Create the message and send it
-            data = {}
-            data['task_instructions'] = task_input.task_instructions
-            data['task_uid'] = task_input.task_uid
-            data['arguments'] = task_input.values
-            # TODO(Update the documentation with this)
-            worker = self.worker_group.lease_worker()
-            self.send(worker.websocket, 'run_instructions', data)
+            self.worker_group.return_worker(worker.uid)
+            self.worker_group.remove_worker(worker.uid)
 
     def _decode_message(self, message):
         message_dict = json.loads(message)
@@ -234,11 +207,11 @@ class Server:
         return message_dict
 
     async def _send_message(self, socket, label, data):
-        message = generate_message(label, data)
-        await socket.send(json.dumps(message))
-
-    def send(self, socket, label, data):
-        asyncio.ensure_future(self._send_message(socket, label, data))
+        response = {
+            'label': label,
+            'data': data,
+        }
+        await socket.send(json.dumps(response))
 
     def start(self):
         start_server = websockets.serve(
