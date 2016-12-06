@@ -409,5 +409,5 @@ class MachineType(Enum):
     """
     An enum used to represent a type of machine
     """
-    Server = 1
-    Client = 2
+    server = 1
+    client = 2
