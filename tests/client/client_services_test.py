@@ -69,8 +69,8 @@ class DummyClient:
 
 class MockBinaryRunner(CommandLineBinaryRunner):
 
-    def run(self, filepath, arguments):
-        self.filepath = filepath
+    def run(self, file_path, arguments):
+        self.filepath = file_path
         self.arguments = arguments
 
     def received(self, filepath, arguments):
