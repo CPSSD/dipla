@@ -6,13 +6,14 @@ import time
 import logging
 import os
 
+from dipla.client.quality_scorer import QualityScorer
 from dipla.shared.services import ServiceError
 from dipla.shared.message_generator import generate_message
 
 
 class Client(object):
 
-    def __init__(self, server_address):
+    def __init__(self, server_address, quality_scorer=None):
         """Create the client.
 
         server_address, string: The address of the websocket server to
@@ -21,6 +22,11 @@ class Client(object):
         self.logger = logging.getLogger(__name__)
         # the number of times to try to connect before giving up
         self.connect_tries_limit = 8
+        # A class to be used to assign a quality to this client
+        if quality_scorer:
+            self.quality_scorer = quality_scorer
+        else:
+            self.quality_scorer = QualityScorer()
 
     def inject_services(self, services):
         # TODO: Refactor Client
@@ -130,6 +136,9 @@ class Client(object):
         # TODO(ndonn): Add better info for Windows and Mac versions
         return os.name
 
+    def _get_quality(self):
+        return self.quality_scorer.get_quality()
+
     def start(self):
         """Send the get_binary message, and start the communication loop
         in a new thread."""
@@ -142,7 +151,8 @@ class Client(object):
             return
         receive_task = asyncio.ensure_future(self.receive_loop())
         data = {
-            'platform': self._get_platform()
+            'platform': self._get_platform(),
+            'quality': self._get_quality(),
         }
         self.send(generate_message('get_binaries', data))
 
