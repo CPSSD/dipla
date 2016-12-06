@@ -17,12 +17,12 @@ class SocketConnection(threading.Thread):
     THIS CLASS SHOULD NOT BE INSTANTIATED; IT IS TO BE INHERITED ONLY.
 
     It provides templates for methods such as _prepare_socket,
-    _perform_connection_procedure, and _cleanup, that MUST be implemented
+    _perform_connection_step, and _cleanup, that MUST be implemented
     by the subclasses/inheritors of this class.
 
     It also provides a standard way of "catching" certain events, and emitting
     them to a NetworkEventListener object. This NetworkEventListener object
-    will have methods triggered by these events, such as...
+    will have methods triggered by these events, such as:
     on_message, on_open, on_close, and on_error.
     """
 
@@ -30,39 +30,28 @@ class SocketConnection(threading.Thread):
 
     def __init__(self, host_address, host_port, event_listener, label):
         super(SocketConnection, self).__init__()
+        self._message_defixer = MessageDefixer()
+        self._event_listener = event_listener
+        self._stop_event = threading.Event()
         self._host_address = host_address
         self._host_port = host_port
-        self._event_listener = event_listener
         self._connection = None
-        self._label = label
-        self._stop_event = threading.Event()
         self._connected = False
-        self._message_defixer = MessageDefixer()
-        try:
-            self._prepare_socket()
-        except ConnectionPreparationFailedError as reason:
-            self._event_listener.on_error(self, reason)
+        self._label = label
+        self._init_socket()
 
     def run(self):
         try:
-            self._perform_connection_procedure()
-            self._connected = True
+            self._perform_connection_step()
             self._receive_messages()
         except ConnectionShouldStopError as reason:
-            print(EXPECTED_ERROR_MESSAGE.format(self._label,
-                                                type(reason),
-                                                reason))
+            print(EXPECTED_ERROR_MESSAGE.format(self._label, reason))
             self._event_listener.on_close(self, reason)
         except ConnectionFailedError as reason:
-            print(EXPECTED_ERROR_MESSAGE.format(self._label,
-                                                type(reason),
-                                                reason))
+            print(EXPECTED_ERROR_MESSAGE.format(self._label, reason))
             self._event_listener.on_error(self, reason)
         except socket.error as socket_error:
-            print(UNEXPECTED_ERROR_MESSAGE.format("socket error",
-                                                  self._label,
-                                                  socket_error))
-            self._event_listener.on_error(self, socket_error)
+            self._trigger_on_error(socket_error)
         except Exception as error:
             print(UNEXPECTED_ERROR_MESSAGE.format("non-socket error",
                                                   self._label,
@@ -72,53 +61,83 @@ class SocketConnection(threading.Thread):
             self._cleanup()
             self._event_listener.on_close(self, CLEANUP_MESSAGE)
 
-    def stop(self):
-        print(STOP_MESSAGE.format(self._label))
-        self._cleanup()
-        self.join()
-        print(STOP_SUCCESS_MESSAGE.format(self._label))
-
-    def _receive_messages(self):
-        while not self._stop_event.is_set():
-            try:
-                data = self._connection.recv(1)
-                message = data.decode(SocketConnection.DATA_ENCODING)
-                if message:
-                    print(RECEIVED_MESSAGE_MESSAGE.format(self._label, message))
-                    try:
-                        self._message_defixer.feed_character(message)
-                        try:
-                            full_message = self._message_defixer.get_defixed_message()
-                            self._event_listener.on_message(self, full_message)
-                        except NoMessageException:
-                            pass
-                    except IllegalHeaderException:
-                        raise ConnectionShouldStopError(CORRUPT_HEADER_MESSAGE)
-                else:
-                    stop_reason = EMPTY_MESSAGE_MESSAGE.format(self._label)
-                    raise ConnectionShouldStopError(stop_reason)
-            except socket.error as socket_error:
-                if socket_error.errno == errno.ENOTCONN:
-                    print(RECEIVE_NOT_CONNECTED_MESSAGE.format(self._label))
-                else:
-                    raise socket_error
-
-    def is_connected(self):
-        print(CHECK_CONNECTED_MESSAGE.format(self._label))
-        return self._connected
-
     def send(self, message):
         print(SEND_MESSAGE_MESSAGE.format(self._label), message)
         message = prefix_message(message)
         self._directly_send(message)
         print(SENT_MESSAGE_MESSAGE.format(self._label))
 
+    def stop(self):
+        print(STOP_MESSAGE.format(self._label))
+        self._cleanup()
+        self.join()
+        print(STOP_SUCCESS_MESSAGE.format(self._label))
+
+    def is_connected(self):
+        print(CHECK_CONNECTED_MESSAGE.format(self._label))
+        return self._connected
+
+    def _receive_messages(self):
+        while self._still_running():
+            try:
+                self._read_byte_from_socket()
+                self._handle_received_byte()
+            except socket.error as socket_error:
+                self._recover_from_receival(socket_error)
+
+    def _recover_from_receival(self, socket_error):
+        if socket_error.errno == errno.ENOTCONN:
+            print(RECEIVE_NOT_CONNECTED_MESSAGE.format(self._label))
+        else:
+            raise socket_error
+
+    def _read_byte_from_socket(self):
+        byte_of_data = self._connection.recv(1)
+        decoded_byte = byte_of_data.decode(SocketConnection.DATA_ENCODING)
+        self._decoded_byte = decoded_byte
+
+    def _handle_received_byte(self):
+        decoded_byte = self._decoded_byte
+        if decoded_byte is not "":
+            self._handle_received_message(decoded_byte)
+        else:
+            stop_reason = EMPTY_MESSAGE_MESSAGE.format(self._label)
+            raise ConnectionShouldStopError(stop_reason)
+
+    def _handle_received_message(self, message):
+        print(RECEIVED_MESSAGE_MESSAGE.format(self._label, message))
+        try:
+            self._message_defixer.feed_character(message)
+            try:
+                full_message = self._message_defixer.get_defixed_message()
+                self._event_listener.on_message(self, full_message)
+            except NoMessageException:
+                pass
+        except IllegalHeaderException:
+            raise ConnectionShouldStopError(CORRUPT_HEADER_MESSAGE)
+
+    def _init_socket(self):
+        try:
+            self._prepare_socket()
+        except ConnectionPreparationFailedError as reason:
+            self._event_listener.on_error(self, reason)
+
+    def _trigger_on_error(self, socket_error):
+        print(UNEXPECTED_ERROR_MESSAGE.format("socket error",
+                                              self._label,
+                                              socket_error))
+        self._event_listener.on_error(self, socket_error)
+
+    def _still_running(self):
+        return not self._stop_event.is_set()
+
     def _directly_send(self, message):
         start_time = time.time()
         end_time = start_time + 4
         while time.time() < end_time:
             try:
-                self._connection.send(message.encode(SocketConnection.DATA_ENCODING))
+                encoded_message = message.encode(SocketConnection.DATA_ENCODING)
+                self._connection.send(encoded_message)
                 break
             except AttributeError:
                 print(ATTRIBUTE_ERROR_SEND_MESSAGE.format(self._label))
@@ -146,7 +165,7 @@ class SocketConnection(threading.Thread):
     def _prepare_socket(self):
         pass  # ABSTRACT: To be implemented by inheritors.
 
-    def _perform_connection_procedure(self):
+    def _perform_connection_step(self):
         pass  # ABSTRACT: To be implemented by inheritors.
 
     def _cleanup(self):
@@ -170,13 +189,14 @@ class ClientConnection(SocketConnection):
         self._connection.setblocking(True)
         self._connection.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-    def _perform_connection_procedure(self):
+    def _perform_connection_step(self):
         print(START_CONNECTING_MESSAGE.format(self._label))
         try:
             print(ATTEMPTING_CONNECT_MESSAGE.format(self._label,
                                                     self._host_address,
                                                     self._host_port))
             self._connection.connect((self._host_address, self._host_port))
+            self._connected = True
             print(CONNECTION_ESTABLISHED_MESSAGE.format(
                 self._label,
                 self._host_address
@@ -220,10 +240,11 @@ class ServerConnection(SocketConnection):
         except OverflowError:
             raise ConnectionPreparationFailedError(ILLEGAL_PORT_BIND_MESSAGE)
 
-    def _perform_connection_procedure(self):
+    def _perform_connection_step(self):
         print(START_CONNECTING_MESSAGE.format(self._label))
         try:
             self._connection, self._connection_address = self._socket.accept()
+            self._connected = True
             print(CONNECTION_ESTABLISHED_MESSAGE.format(
                 self._label,
                 self._connection_address
@@ -279,7 +300,7 @@ classes above, and makes it easier to stay within PEP8's character limit.
 
 UNEXPECTED_ERROR_MESSAGE = "CRITICAL: Unexpected {} occurred in {}... {}"
 
-EXPECTED_ERROR_MESSAGE = "{} caught a {}: {}"
+EXPECTED_ERROR_MESSAGE = "{} caught an expected error: {}"
 
 STOP_MESSAGE = "{} has been requested to shut down."
 
