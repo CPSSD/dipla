@@ -1,6 +1,5 @@
+import string
 from queue import Queue, Empty
-
-DIGITS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 
 
 class MessageDefixer(object):
@@ -28,7 +27,7 @@ class MessageDefixer(object):
         if character != "":
             self._feed_buffer += character
             if self._state == MessageDefixer.READ_HEADER_STATE:
-                if character in DIGITS:
+                if character in string.digits:
                     pass
                 elif character == ':':
                     self._expected_message_length = int(self._feed_buffer[:-1])
