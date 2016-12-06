@@ -71,6 +71,11 @@ def main():
         ('negate', 'negate'),
         ('reduce', 'reduce')
     ])
+    bm.add_binary_paths('.*win32.*', [
+        ('fibonacci', 'fibonacci'),
+        ('negate', 'negate'),
+        ('reduce', 'reduce')
+    ])
 
     s = Server(tq, bm)
     print('Starting server')
