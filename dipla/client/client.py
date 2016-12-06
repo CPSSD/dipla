@@ -6,14 +6,14 @@ import time
 import logging
 import os
 
-from dipla.client.quality_test import QualityTest
+from dipla.client.quality_scorer import QualityScorer
 from dipla.shared.services import ServiceError
 from dipla.shared.message_generator import generate_message
 
 
 class Client(object):
 
-    def __init__(self, server_address, quality_test=None):
+    def __init__(self, server_address, quality_scorer=None):
         """Create the client.
 
         server_address, string: The address of the websocket server to
@@ -23,7 +23,10 @@ class Client(object):
         # the number of times to try to connect before giving up
         self.connect_tries_limit = 8
         # A class to be used to assign a quality to this client
-        self.quality_test = quality_test if quality_test else QualityTest()
+        if quality_scorer:
+            self.quality_scorer = quality_scorer
+        else:
+            self.quality_scorer = QualityScorer()
 
     def inject_services(self, services):
         # TODO: Refactor Client
@@ -134,7 +137,7 @@ class Client(object):
         return os.name
 
     def _get_quality(self):
-        return self.quality_test.get_quality()
+        return self.quality_scorer.get_quality()
 
     def start(self):
         """Send the get_binary message, and start the communication loop
