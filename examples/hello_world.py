@@ -1,5 +1,6 @@
 from os import path
 import sys
+# Append to path so that this script can access the dipla package
 sys.path.append(path.abspath('../dipla'))
 
 from dipla.api import Dipla
