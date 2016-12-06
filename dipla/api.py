@@ -42,7 +42,11 @@ class Dipla:
 
     @staticmethod
     def data_source(function):
-        def read_function_wrapper(source, location): 
+        def read_function_wrapper(source, location):
+            # Abstract the ability to return multiple results from the
+            # user, always give them one input and expect one output.
+            # Give them each value in the source and convert their
+            # output to a single value array
             if len(source) > 0:
                 return [function(source.pop(0))]
         return read_function_wrapper
@@ -62,7 +66,7 @@ class Dipla:
         read_task = Task(
             task_uid,
             'read_data_source',
-            MachineType.Server,
+            MachineType.server,
             complete_check=Dipla.complete_on_eof)
 
         source_uid = uid_generator.generate_uid(length=8, existing_uids=[])

@@ -119,7 +119,7 @@ class ServerServices:
             params.server.send(websocket, 'runtime_error', data)
             return None
         # If there was extra tasks that no others could do, try and
-        # assign it to this worker, as it should be the only ready one.
+        # assign it to this worker, as it should be the only ready one
         # If there are other workers it is okay to distribute tasks to
         # them too
         params.server.distribute_tasks()
@@ -227,7 +227,7 @@ class Server:
                 # Flag the server to terminate, all tasks are inactive
                 self.keep_running = False
 
-            if task_input.machine_type == MachineType.Client:
+            if task_input.machine_type == MachineType.client:
                 # Create the message and send it
                 data = {}
                 data['task_instructions'] = task_input.task_instructions
@@ -236,12 +236,12 @@ class Server:
                 # TODO(Update the documentation with this)
                 worker = self.worker_group.lease_worker()
                 self.send(worker.websocket, 'run_instructions', data)
-            elif task_input.machine_type == MachineType.Server:
-                # Server side functions tasks do not have any matching
-                # binaries, so we skip the send-to-client stage and move
-                # the read data straight to the results. All server side
-                # tasks have one argument, so extract the values for
-                # that lone argument
+            elif task_input.machine_type == MachineType.server:
+                # Server side tasks do not have any maching binaries, so
+                # we skip the send-to-client stage and move the read
+                # data straight to the results. All server side tasks
+                # have one argument, so extract the values for that lone
+                # argument
                 task_values = task_input.values[0]
                 for result in task_values:
                     self.task_queue.add_result(task_input.task_uid, result)
