@@ -44,7 +44,7 @@ class Dipla:
         # The Task name is only used to run binaries, which does not
         # happen when reading a data source, so we simply call this
         # 'read_data_source' as it is never used
-        read_task = Task(task_uid, 'read_data_source', MachineType.Server)
+        read_task = Task(task_uid, 'read_data_source', MachineType.server)
         source_uid = uid_generator.generate_uid(length=8, existing_uids=[])
         read_task.add_data_source(DataSource.create_source_from_iterable(
             source, source_uid, read_function))

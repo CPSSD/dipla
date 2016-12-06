@@ -217,7 +217,7 @@ class Server:
 
             task_input = self.task_queue.pop_task_input()
 
-            if task_input.machine_type == MachineType.Client:
+            if task_input.machine_type == MachineType.client:
                 # Create the message and send it
                 data = {}
                 data['task_instructions'] = task_input.task_instructions
@@ -226,7 +226,7 @@ class Server:
                 # TODO(Update the documentation with this)
                 worker = self.worker_group.lease_worker()
                 self.send(worker.websocket, 'run_instructions', data)
-            elif task_input.machine_type == MachineType.Server:
+            elif task_input.machine_type == MachineType.server:
                 # Server side tasks do not have any maching binaries, so
                 # we skip the send-to-client stage and move the read
                 # data straight to the results. All server side tasks
