@@ -97,6 +97,7 @@ class ServerServices:
         raise KeyError("Label '{}' does not have a handler".format(label))
 
     def _handle_get_binaries(self, message, params):
+        params.worker.set_quality(message['quality'])
         platform = message['platform']
         try:
             encoded_binaries = server.binary_manager.get_binaries(platform)
@@ -172,7 +173,7 @@ class Server:
 
     async def websocket_handler(self, websocket, path):
         user_id = self.worker_group.generate_uid()
-        worker = Worker(user_id, websocket, quality=0.5)
+        worker = Worker(user_id, websocket)
         try:
             # recv() raises a ConnectionClosed exception when the client
             # disconnects, which breaks out of the while True loop.
