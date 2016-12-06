@@ -87,7 +87,7 @@ class Dipla:
         task_uid = Dipla._generate_task_id()
 
         # Get function is given a complete function so that the server
-        # will terminate once it runs out
+        # will terminate once it runs out of values
         get_task = Task(
             task_uid,
             'get',
