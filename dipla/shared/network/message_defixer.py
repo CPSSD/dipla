@@ -15,19 +15,19 @@ class MessageDefixer(object):
     users.
     """
 
-    STATES = ["READ_HEADER", "READ_BODY"]
+    READ_HEADER_STATE = 0
+    READ_BODY_STATE = 1
 
     def __init__(self):
         self._full_messages = Queue()
-        self._state_index = 0
-        self._state = MessageDefixer.STATES[self._state_index]
+        self._state = 0
         self._feed_buffer = ""
         self._expected_message_length = 0
 
     def feed_character(self, character):
         if character != "":
             self._feed_buffer += character
-            if self._state == "READ_HEADER":
+            if self._state == MessageDefixer.READ_HEADER_STATE:
                 if character in DIGITS:
                     pass
                 elif character == ':':
@@ -37,7 +37,7 @@ class MessageDefixer(object):
                 else:
                     error = "Header must be numeric. Was fed: '{}'"
                     raise IllegalHeaderException(error.format(character))
-            elif self._state == "READ_BODY":
+            elif self._state == MessageDefixer.READ_BODY_STATE:
                 if len(self._feed_buffer) == self._expected_message_length:
                     self._full_messages.put(self._feed_buffer)
                     self._feed_buffer = ""
@@ -53,10 +53,9 @@ class MessageDefixer(object):
         return self._state
 
     def _increment_state(self):
-        self._state_index += 1
-        if self._state_index == len(MessageDefixer.STATES):
-            self._state_index = 0
-        self._state = MessageDefixer.STATES[self._state_index]
+        self._state += 1
+        if self._state == 2:
+            self._state = 0
 
 
 class NoMessageException(Exception):

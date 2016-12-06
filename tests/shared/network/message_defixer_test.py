@@ -164,10 +164,10 @@ class MessageDefixerTest(unittest.TestCase):
         self.operation = self.when_a_defixed_message_is_requested
 
     def then_its_state_is_READ_HEADER(self):
-        self.assert_message_defixer_state("READ_HEADER")
+        self.assert_message_defixer_state(MessageDefixer.READ_HEADER_STATE)
 
     def then_its_state_is_READ_BODY(self):
-        self.assert_message_defixer_state("READ_BODY")
+        self.assert_message_defixer_state(MessageDefixer.READ_BODY_STATE)
 
     def then_the_defixed_message_is(self, expected_message):
         self.assertEquals(expected_message, self.defixed_message)
