@@ -104,13 +104,6 @@ class WorkerGroup:
         """
         return [x.uid for x in self._all_workers()]
 
-    def has_available_worker(self):
-        """
-        Returns:
-         - True if there are workers available in the ready_worker set
-        """
-        return len(self.ready_workers) > 0
-
     def _all_workers(self):
         """
         Returns:
