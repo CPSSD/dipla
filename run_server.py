@@ -61,6 +61,10 @@ def main():
         ('negate', 'negate'),
         ('reduce', 'reduce')
     ])
+    bm.add_binary_paths('.*win32.*', [
+        ('add', '/win32/add/path'),
+        ('sub', '/win32/sub/path'),
+    ])
 
     s = Server(tq, bm)
     print('Starting server')
