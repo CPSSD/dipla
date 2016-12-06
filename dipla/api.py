@@ -58,8 +58,8 @@ class Dipla:
 
     @staticmethod
     def read_data_source(read_function, source):
-        task_uid = Dipla._generate_task_id()  
-        
+        task_uid = Dipla._generate_task_id()
+
         # The Task name is only used to run binaries, which does not
         # happen when reading a data source, so we simply call this
         # 'read_data_source' as it is never used
@@ -84,7 +84,7 @@ class Dipla:
 
     @staticmethod
     def get(promise):
-        task_uid = Dipla._generate_task_id() 
+        task_uid = Dipla._generate_task_id()
 
         # Get function is given a complete function so that the server
         # will terminate once it runs out
@@ -104,6 +104,7 @@ class Dipla:
         server.start()
 
         return get_task.task_output
+
 
 class Promise:
 

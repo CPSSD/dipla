@@ -15,7 +15,7 @@ class DiplaAPITest(unittest.TestCase):
         self.assertIsNotNone(promised.task_uid)
 
 #    def test_get_on_data_source(self):
-#        
+#
 #        def read_function(input_value):
 #            return int(input)
 #

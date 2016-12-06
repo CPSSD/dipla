@@ -113,7 +113,7 @@ class TaskQueue:
 
         self._nodes[task_id].task_item.add_result(result)
         if self.is_task_open(task_id):
-            self.activate_new_tasks(self._nodes[task_id].dependees) 
+            self.activate_new_tasks(self._nodes[task_id].dependees)
 
     def get_task(self, task_uid):
         return self._nodes[task_uid].task_item
