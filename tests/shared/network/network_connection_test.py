@@ -449,7 +449,8 @@ class ServerConnectionTest(unittest.TestCase):
     def then_server_receives_number_of_bytes(self, num_of_bytes):
         def received_expected_bytes(expected):
             try:
-                return len(self.server_event_listener._last_message) == expected
+                length = len(self.server_event_listener._last_message)
+                return length == expected
             except TypeError:
                 return False
         received_large_message = functools.partial(received_expected_bytes,

@@ -368,13 +368,13 @@ SENT_MESSAGE_MESSAGE = "{} sent message successfully."
 CONNECTION_ELEMENT_CLOSED_MESSAGE = "A {} connection element has been shut " \
                                     "down & closed. "
 
-ATTRIBUTE_ERROR_CLOSE_MESSAGE = "{}: There is no connection attribute to close."
+ATTRIBUTE_ERROR_CLOSE_MESSAGE = "{}: There is no connected attribute to close."
 
 CONNECTION_NOT_OPEN_STOP_MESSAGE = "{} e: Shutting down a connection " \
                                    "element before it was established."
 
-STOP_CONNECTION_ELEMENT_TWICE_MESSAGE = "{} e: Tried to clean up a connection" \
-                                        "element for second time."
+STOP_CONNECTION_ELEMENT_TWICE_MESSAGE = "{} e: Tried to clean up a " \
+                                        "connection element for second time."
 
 START_CONNECTING_MESSAGE = "{} has begun the connection process."
 
