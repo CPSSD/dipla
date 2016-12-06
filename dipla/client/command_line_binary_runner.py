@@ -10,7 +10,27 @@ class CommandLineBinaryRunner(object):
 
     def run(self, filepath, arguments):
         if self._binary_exists(filepath):
-            return self._run_binary(filepath, arguments)
+            # Run at least once. If arguments were provided, work out
+            # how many sets of inputs were provided
+            expected_runs = 1
+            if len(arguments) > 0:
+                expected_runs = len(arguments[0])
+            # Check all the rest of the arguments have the same number of
+            # values as the first
+            for argument_values in arguments[1:]:
+                if not len(argument_values) == expected_runs:
+                    raise InvalidArgumentsError(
+                        "Non-uniform number of values supplied to run binary")
+            results = []
+            for input_index in range(expected_runs):
+                # Collect the i'th value for each argument
+                next_values = []
+                for argument_values in arguments:
+                    next_values.append(
+                        argument_values[input_index])
+                # Run the next set of input values
+                results.append(self._run_binary(filepath, next_values))
+            return results
         else:
             error_message = "Could not locate binary: '{}'".format(filepath)
             self._logger.error(error_message)
@@ -22,7 +42,7 @@ class CommandLineBinaryRunner(object):
     def _run_binary(self, filepath, arguments):
         self._logger.debug("About to run binary %s" % filepath)
         process = Popen(
-            args=[filepath] + arguments,
+            args=[filepath] + [str(x) for x in arguments],
             stdin=PIPE,
             stdout=PIPE,
             stderr=PIPE,
@@ -30,3 +50,11 @@ class CommandLineBinaryRunner(object):
         )
         process_output = process.communicate(None)[0]
         return process_output.strip().decode()
+
+
+class InvalidArgumentsError(Exception):
+    """
+    An exception raised when the invalid arguments are supplied for
+    running a binary
+    """
+    pass
