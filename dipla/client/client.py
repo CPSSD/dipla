@@ -144,8 +144,7 @@ class Client(object):
         data = {
             'platform': self._get_platform()
         }
-        self.send(generate_message('binaries_received', {}))
-        # self.send(generate_message('get_binaries', data))
+        self.send(generate_message('get_binaries', data))
 
         loop.run_until_complete(receive_task)
         self.start()

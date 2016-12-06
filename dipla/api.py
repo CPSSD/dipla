@@ -43,7 +43,7 @@ class Dipla:
     @staticmethod
     def data_source(function):
         def read_function_wrapper(source, location): 
-            while len(source) > 0:
+            if len(source) > 0:
                 return [function(source.pop(0))]
         return read_function_wrapper
 
@@ -66,6 +66,9 @@ class Dipla:
             complete_check=Dipla.complete_on_eof)
 
         source_uid = uid_generator.generate_uid(length=8, existing_uids=[])
+        # Create a reader task that consumes the input source being read,
+        # this does not move the location because consuming the values
+        # will cause the read function to find new values anyway
         read_task.add_data_source(DataSource.create_source_from_iterable(
             source,
             source_uid,
@@ -79,6 +82,8 @@ class Dipla:
     def get(promise):
         task_uid = Dipla._generate_task_id() 
 
+        # Get function is given a complete function so that the server
+        # will terminate once it runs out
         get_task = Task(
             task_uid,
             'get',
