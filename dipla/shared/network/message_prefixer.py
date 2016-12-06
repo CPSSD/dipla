@@ -1,5 +1,3 @@
-
-
 def prefix_message(message):
     """
     Prepares a message to be sent across a TCP connection by prefixing
