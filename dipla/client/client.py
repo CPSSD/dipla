@@ -78,7 +78,6 @@ class Client(object):
         """Task for handling messages received from server"""
         try:
             while True:
-                self.logger.warning('iter')
                 message = await self.websocket.recv()
                 try:
                     self._handle(message)
