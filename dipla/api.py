@@ -14,8 +14,6 @@ class Dipla:
     # TODO(StefanKennedy) Set up data sources to run indefinitely
     @staticmethod
     def complete_on_eof(streamer):
-        if len(streamer.stream) == 0:
-            return True
         if streamer.stream_location >= len(streamer.stream):
             return True
         return False
@@ -91,7 +89,7 @@ class Dipla:
         get_task = Task(
             task_uid,
             'get',
-            MachineTypes.server,
+            MachineType.server,
             complete_check=Dipla.complete_on_eof)
         # Generate a uid for the source (bridge) from the get task to
         # the task provided in the promise
