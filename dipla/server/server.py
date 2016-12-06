@@ -128,7 +128,6 @@ class ServerServices:
     def _handle_client_result(self, message, params):
         task_id = message['task_uid']
         results = message['results']
-        print(results)
         server = params.server
         for result in results:
             server.task_queue.add_result(task_id, result)
@@ -262,10 +261,10 @@ class Server:
         asyncio.ensure_future(self._send_message(socket, label, data))
 
     def start(self):
-        self.websocket_server = websockets.serve(
+        server = websockets.serve(
             self.websocket_handler,
             "localhost",
             8765)
 
-        asyncio.get_event_loop().run_until_complete(self.websocket_server)
+        asyncio.get_event_loop().run_until_complete(server)
         asyncio.get_event_loop().run_forever()
