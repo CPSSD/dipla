@@ -54,6 +54,7 @@ class TaskQueue:
         active = True
         for instruction in item.data_instructions:
             # If instruction is from an iterable then it wont be a task
+            # and wont have a task id
             if instruction.source_task_uid is None:
                 continue
 
