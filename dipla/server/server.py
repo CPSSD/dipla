@@ -227,11 +227,11 @@ class Server:
                 worker = self.worker_group.lease_worker()
                 self.send(worker.websocket, 'run_instructions', data)
             elif task_input.machine_type == MachineType.Server:
-                # Server side functions tasks do not have any maching
-                # binaries, so we skip the send-to-client stage and move
-                # the read data straight to the results. All server side
-                # tasks have one argument, so  extract the values for
-                # that lone argument
+                # Server side tasks do not have any maching binaries, so
+                # we skip the send-to-client stage and move the read
+                # data straight to the results. All server side tasks
+                # have one argument, so extract the values for that lone
+                # argument
                 task_values = task_input.values[0]
                 for result in task_values:
                     self.task_queue.add_result(task_input.task_uid, result)

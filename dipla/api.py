@@ -29,7 +29,12 @@ class Dipla:
     @staticmethod
     def data_source(function):
         def read_function_wrapper(source, location):
-            return function(source)
+            # Abstract the ability to return multiple results from the
+            # user, always give them one input and expect one output.
+            # Give them each value in the source and convert their
+            # output to a single value array
+            while len(source) > 0:
+                return [function(source.pop(0))]
         return read_function_wrapper
 
     @staticmethod
