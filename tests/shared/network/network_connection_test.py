@@ -165,10 +165,10 @@ class ClientConnectionTest(unittest.TestCase):
         self.server_connection.stop()
 
     def when_client_connection_directly_sends(self, message):
-        self.client_connection._directly_send(message)
+        self.client_connection._attempt_send_with_timeout(message)
 
     def when_server_connection_directly_sends(self, message):
-        self.server_connection._directly_send(message)
+        self.server_connection._attempt_send_with_timeout(message)
 
     def then_client_is_connected(self):
         def connected():
@@ -382,10 +382,10 @@ class ServerConnectionTest(unittest.TestCase):
         self.client_connection.send(message)
 
     def when_client_connection_directly_sends(self, message):
-        self.client_connection._directly_send(message)
+        self.client_connection._attempt_send_with_timeout(message)
 
     def when_server_connection_directly_sends(self, message):
-        self.server_connection._directly_send(message)
+        self.server_connection._attempt_send_with_timeout(message)
 
     def when_client_sends_number_of_bytes(self, num_of_bytes):
         bytes_to_send = generate_bytes(num_of_bytes)
