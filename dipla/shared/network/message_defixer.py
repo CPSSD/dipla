@@ -40,7 +40,7 @@ class MessageDefixer(object):
                 if len(self._feed_buffer) == self._expected_message_length:
                     self._full_messages.put(self._feed_buffer)
                     self._feed_buffer = ""
-                    self._increment_state()
+                    self._reset_state()
 
     def get_defixed_message(self):
         try:
@@ -53,8 +53,9 @@ class MessageDefixer(object):
 
     def _increment_state(self):
         self._state += 1
-        if self._state == 2:
-            self._state = 0
+
+    def _reset_state(self):
+        self._state = 0
 
 
 class NoMessageException(Exception):
