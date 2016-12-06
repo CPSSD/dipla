@@ -26,7 +26,7 @@ class TaskQueue:
         # from this set. Since we may be streaming data, at a point in
         # time it is possible that all the data from the input stream
         # has been consumed and we need to wait on more before this task
-        # can continue, but the task is still active despite of this
+        # can continue, but the task is still active in spite of this
         self._active_tasks = set()
         # _nodes are the TaskQueueNodes that make up the linked list
         # structure. The keys of the dictionary are the task ids and
@@ -172,18 +172,15 @@ class TaskQueueNode:
             raise DataStreamerEmpty(
                 "Attempted to read input from an empty source")
 
-        arguments_order = []
-        arguments_values = {}
+        arguments = []
         for dependency in self.dependencies:
             argument_id = dependency.source_uid
-            arguments_order.append(argument_id)
-            arguments_values[argument_id] = dependency.data_streamer.read()
+            arguments.append(dependency.data_streamer.read())
         return TaskInput(
             self.task_item.uid,
             self.task_item.instructions,
             self.task_item.machine_type,
-            arguments_order,
-            arguments_values)
+            arguments)
 
     def has_next_input(self):
         if len(self.dependencies) == 0:
@@ -319,13 +316,7 @@ class DataStreamer:
 
 class TaskInput:
 
-    def __init__(
-            self,
-            task_uid,
-            task_instructions,
-            machine_type,
-            arguments_order,
-            values):
+    def __init__(self, task_uid, task_instructions, machine_type, values):
         """
         This is what is given out by the task queue when some values
         are requested from a pop/peek etc. The values attribute
@@ -340,9 +331,6 @@ class TaskInput:
         machine_type is an instance of the MachineType Enum, used to
         represent which type of machine this task should be run on
 
-        arguments_order is a list of dependency task_uids that tracks
-        the order that arguments should be given to the task
-
         values are the actual data values (not a promise) that are sent
         to clients to execute the task and return the results. It is a
         dictionary of the task_uid that this data is coming from (the
@@ -351,7 +339,6 @@ class TaskInput:
         self.task_uid = task_uid
         self.task_instructions = task_instructions
         self.machine_type = machine_type
-        self.arguments_order = arguments_order
         self.values = values
 
 
@@ -377,8 +364,8 @@ class Task:
         Initalises the Task
 
         Params:
-         - data_source: An iteratable object that can be used to read
-        the input for this task
+         - uid: An identifier, different to the task/executable name
+        that can be used to uniquely identify this task
          - task_instructions: An object used to represent instructions
         on what task should be carried out on the data
          - machine_type: A MachineType enum instance that determines
