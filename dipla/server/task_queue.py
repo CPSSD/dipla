@@ -226,7 +226,7 @@ class DataSource:
 
     def read_all_values(stream, location):
         # Copy the values to a new list and return it
-        return list(stream)
+        return list(stream)[location:]
 
     def any_data_available(stream, location):
         return len(stream) - location > 0

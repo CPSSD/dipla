@@ -10,6 +10,20 @@ class Dipla:
     binary_manager = BinaryManager()
     task_queue = TaskQueue()
 
+    # Stop reading the data source once we hit EOF
+    # TODO(StefanKennedy) Set up data sources to run indefinitely
+    @staticmethod
+    def complete_on_eof(streamer):
+        if len(streamer.stream) == 0:
+            return True
+        if streamer.stream_location >= len(streamer.stream):
+            return True
+        return False
+
+    @staticmethod
+    def stream_not_empty(stream, location):
+        return len(stream) > 0
+
     @staticmethod
     def distributable(function):
         """
@@ -40,17 +54,7 @@ class Dipla:
 
     @staticmethod
     def read_data_source(read_function, source):
-        task_uid = Dipla._generate_task_id() 
-        
-        # Stop reading the data source once we hit EOF
-        # TODO(StefanKennedy) Set up data sources to run indefinitely
-        def complete_on_eof(streamer):
-            print("Testing complete")
-            if len(streamer.stream) == 0:
-                return True
-            if streamer.stream_location >= len(streamer.stream):
-                return True
-            return False
+        task_uid = Dipla._generate_task_id()  
         
         # The Task name is only used to run binaries, which does not
         # happen when reading a data source, so we simply call this
@@ -59,11 +63,15 @@ class Dipla:
             task_uid,
             'read_data_source',
             MachineType.Server,
-            complete_check=complete_on_eof)
+            complete_check=Dipla.complete_on_eof)
 
         source_uid = uid_generator.generate_uid(length=8, existing_uids=[])
         read_task.add_data_source(DataSource.create_source_from_iterable(
-            source, source_uid, read_function, location_changer=None))
+            source,
+            source_uid,
+            read_function,
+            availability_check=Dipla.stream_not_empty,
+            location_changer=lambda x, y: False))
         Dipla.task_queue.push_task(read_task)
         return Promise(task_uid)
 
@@ -71,7 +79,11 @@ class Dipla:
     def get(promise):
         task_uid = Dipla._generate_task_id() 
 
-        get_task = Task(task_uid, 'get', MachineType.Server)
+        get_task = Task(
+            task_uid,
+            'get',
+            MachineType.Server,
+            complete_check=Dipla.complete_on_eof)
         source_uid = uid_generator.generate_uid(length=8, existing_uids=[])
         get_task.add_data_source(DataSource.create_source_from_task(
             Dipla.task_queue.get_task(promise.task_uid), source_uid))

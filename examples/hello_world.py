@@ -7,12 +7,7 @@ from dipla.api import Dipla
 input_data = ["1", "2", "3", "4", "5"]
 @Dipla.data_source
 def read_function(input_value):
-    print(input_value)
-    try:
-        int(str(input_value)) * 2
-    except:
-        print("Error")
-    return 1
+    return int(str(input_value)) * 2
 
 # Convert the input_data list to a form that dipla can use for
 # distributing

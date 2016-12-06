@@ -180,7 +180,6 @@ class Server:
             # recv() raises a ConnectionClosed exception when the client
             # disconnects, which breaks out of the while True loop.
             while True:
-                print("Inside while loop")
                 try:
                     # Parse the message, get the corresponding service, send
                     # back the response.
@@ -221,13 +220,11 @@ class Server:
         # highest quality worker for the task
         while self.worker_group.has_available_worker():
             if not self.task_queue.has_next_input():
-                print("Breaking cause task queue has nothing left to read")
                 break
 
             task_input = self.task_queue.pop_task_input()
             if self.task_queue.is_inactive():
                 # Flag the server to terminate, all tasks are inactive
-                print("Setting keep running to false")
                 self.keep_running = False
 
             if task_input.machine_type == MachineType.Client:
@@ -240,10 +237,10 @@ class Server:
                 worker = self.worker_group.lease_worker()
                 self.send(worker.websocket, 'run_instructions', data)
             elif task_input.machine_type == MachineType.Server:
-                # Server side functions tasks do not have any maching
+                # Server side functions tasks do not have any matching
                 # binaries, so we skip the send-to-client stage and move
                 # the read data straight to the results. All server side
-                # tasks have one argument, so  extract the values for
+                # tasks have one argument, so extract the values for
                 # that lone argument
                 task_values = task_input.values[0]
                 for result in task_values:
