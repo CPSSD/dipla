@@ -7,6 +7,7 @@ import dipla.server.task_queue
 
 from dipla.server.worker_group import WorkerGroup, Worker
 from dipla.shared.services import ServiceError
+from dipla.shared.message_generator import generate_message
 from base64 import b64encode
 
 
@@ -15,38 +16,77 @@ class BinaryManager:
     def __init__(self):
         self.platform_re_list = []
 
-    def add_platform(self, platform_re, task_list):
+    def add_binary_paths(self, platform_re, task_list):
         # Ensure task_list is a correcly formatted list of tuples containing a
         # task name string and path string.
+        self._check_task_list(task_list)
+        b64_binaries = []
+        for task_name, binary_path in task_list:
+            with open(binary_path, 'rb') as binary:
+                # Read the bytes of the binary and base64 encode them.
+                binary_b64_bytes = b64encode(binary.read())
+                # Turn the bytes of the base64 into a UTF-8 string.
+                b64_binaries.append(
+                    (task_name, binary_b64_bytes.decode('UTF-8')))
+
+        self.platform_re_list.append((re.compile(platform_re), b64_binaries))
+
+    def add_encoded_binaries(self, platform_re, task_list):
+        self._check_task_list(task_list)
+        self.platform_re_list.append((re.compile(platform_re), task_list))
+
+    def _check_task_list(self, task_list):
         for task_tuple in task_list:
             if not isinstance(task_tuple, tuple):
                 raise ValueError('task_list must be a list of tuples.')
-            task_name, binary_path = task_tuple
+            task_name, path_or_bin = task_tuple
             if not isinstance(task_name, str):
                 raise ValueError(
                     'The first element of each tuple must be a string.')
-            if not isinstance(binary_path, str):
+            if not isinstance(path_or_bin, str):
                 raise ValueError(
                     'The second element of each tuple must be a string.')
 
-        self.platform_re_list.append((re.compile(platform_re), task_list))
-
     def get_binaries(self, platform):
+        """
+        Get's all the binaries with regexes that match the given platform.
+
+        If multiple tasks match then it returns all of them, this allows
+        generic binaries to be mixed with platform specific ones.
+        """
+        full_task_list = []
         for platform_re, task_list in self.platform_re_list:
             if platform_re.match(platform):
-                return task_list
+                full_task_list.extend(task_list)
+
+        if full_task_list:
+            return full_task_list
         raise KeyError('No matching binaries found for this platform')
+
+
+class ServiceParams:
+
+    def __init__(self, server, worker):
+        self.server = server
+        self.worker = worker
 
 
 class ServerServices:
 
     def __init__(self):
-        # Raising an exception will transmit it back to the client. A
-        # ServiceError lets you include a specific error code to allow
-        # the client to better choose what to do with it.
+        """
+        Raising an exception will transmit it back to the client. A
+        ServiceError lets you include a specific error code to allow
+        the client to better choose what to do with it.
+
+        The services provided here expect a data object of type
+        ServiceParams that carry the server that is calling the service
+        as well as the worker that owns the websocket that called the
+        service
+        """
         self.services = {
             'get_binaries': self._handle_get_binaries,
-            'get_instructions': self._handle_get_instructions,
+            'binaries_received': self._handle_binary_received,
             'client_result': self._handle_client_result,
             'runtime_error': self._handle_runtime_error,
         }
@@ -56,44 +96,46 @@ class ServerServices:
             return self.services[label]
         raise KeyError("Label '{}' does not have a handler".format(label))
 
-    def _handle_get_binaries(self, message, server):
+    def _handle_get_binaries(self, message, params):
+        params.worker.set_quality(message['quality'])
         platform = message['platform']
         try:
-            task_list = server.binary_manager.get_binaries(platform)
+            encoded_binaries = server.binary_manager.get_binaries(platform)
         except KeyError as e:
             raise ServiceError(e, 2)
 
-        encoded_binaries = {}
-        for task_name, path in task_list:
-            with open(path, 'rb') as binary:
-                binary_bytes = binary.read()
-            encoded_bytes = b64encode(binary_bytes)
-            encoded_binaries[task_name] = encoded_bytes.decode('utf-8')
-
         data = {
-            'base64_binaries': encoded_binaries,
+            'base64_binaries': dict(encoded_binaries),
         }
         return data
 
-    def _handle_get_instructions(self, message, server):
-        data = {}
+    def _handle_binary_received(self, message, params):
+        # Worker has downloaded binary and is ready to do tasks
         try:
-            task = server.task_queue.pop_task()
-            data['task_instructions'] = task.task_instructions
-            data['data_instructions'] = json.dumps(
-                {d.name: d.get_value() for d in task.data_instructions})
-        except task_queue.TaskQueueEmpty as e:
-            data['command'] = 'quit'
-        return data
-
-    def _handle_client_result(self, message, server):
-        data_type = message['type']
-        value = message['value']
-        print('New client result of type "%s": %s' % (data_type, value))
-        server.task_queue.add_new_data(data_type, value)
+            params.server.worker_group.add_worker(params.worker)
+        except ValueError:
+            # TODO(cianlr): Log something here indicating the error
+            data = {'details': 'UserID already taken', 'code': 0}
+            params.server.send(websocket, 'runtime_error', data)
+            return None
+        # If there was extra tasks that no others could do, try and
+        # assign it to this worker, as it should be the only ready one
+        # If there are other workers it is okay to distribute tasks to
+        # them too
+        params.server.distribute_tasks()
         return None
 
-    def _handle_runtime_error(self, message, server):
+    def _handle_client_result(self, message, params):
+        task_id = message['task_uid']
+        results = message['results']
+        server = params.server
+        for result in results:
+            server.task_queue.add_result(task_id, result)
+        server.worker_group.return_worker(params.worker.uid)
+        server.distribute_tasks()
+        return None
+
+    def _handle_runtime_error(self, message, params):
         print('Client had an error (code %d): %s' % (message['code'],
                                                      message['details']))
         return None
@@ -131,18 +173,7 @@ class Server:
 
     async def websocket_handler(self, websocket, path):
         user_id = self.worker_group.generate_uid()
-        try:
-            self.worker_group.add_worker(
-                Worker(user_id, websocket, quality=0.5))
-        except ValueError:
-            # TODO(cianlr): Log something here indicating the error
-            data = {'details': 'UserID already taken', 'code': 0}
-            await self._send_message(websocket, 'runtime_error', data)
-            return
-        # This is kind of unusual, we add a new worker to the group and
-        # then pull out whatever is at the top of the group and repurpose
-        # the thread to handle that worker, but it works for now.
-        worker = self.worker_group.lease_worker()
+        worker = Worker(user_id, websocket)
         try:
             # recv() raises a ConnectionClosed exception when the client
             # disconnects, which breaks out of the while True loop.
@@ -153,12 +184,12 @@ class Server:
                     message = self._decode_message(
                         await worker.websocket.recv())
                     service = self.services.get_service(message['label'])
-                    response_data = service(message['data'], self)
+                    response_data = service(
+                        message['data'], params=ServiceParams(self, worker))
                     if response_data is None:
                         continue
-                    await self._send_message(worker.websocket,
-                                             message['label'],
-                                             response_data)
+                    self.send(
+                        worker.websocket, message['label'], response_data)
                 except (ValueError, KeyError) as e:
                     # If there is a general error that isn't service specific
                     # then send a message with the 'runtime_error' label.
@@ -166,20 +197,34 @@ class Server:
                         'details': 'Error during websocket loop: %s' % str(e),
                         'code': 1,
                     }
-                    await self._send_message(worker.websocket,
-                                             'runtime_error',
-                                             data)
+                    self.send(worker.websocket, 'runtime_error', data)
                 except ServiceError as e:
                     # This error has a specific code to transmit attached to it
                     data = {'details': str(e), 'code': e.code}
-                    await self._send_message(worker.websocket,
-                                             'runtime_error',
-                                             data)
+                    self.send(worker.websocket, 'runtime_error', data)
         except websockets.exceptions.ConnectionClosed as e:
             print(worker.uid + " has closed the connection")
         finally:
-            self.worker_group.return_worker(worker.uid)
-            self.worker_group.remove_worker(worker.uid)
+            if worker.uid in self.worker_group.worker_uids():
+                self.worker_group.remove_worker(worker.uid)
+
+    def distribute_tasks(self):
+        # By leasing workers without specifying an id, we get the
+        # highest quality worker for the task
+        while self.worker_group.has_available_worker():
+            if not self.task_queue.has_next_input():
+                break
+
+            task_input = self.task_queue.pop_task_input()
+
+            # Create the message and send it
+            data = {}
+            data['task_instructions'] = task_input.task_instructions
+            data['task_uid'] = task_input.task_uid
+            data['arguments'] = task_input.values
+            # TODO(Update the documentation with this)
+            worker = self.worker_group.lease_worker()
+            self.send(worker.websocket, 'run_instructions', data)
 
     def _decode_message(self, message):
         message_dict = json.loads(message)
@@ -189,11 +234,11 @@ class Server:
         return message_dict
 
     async def _send_message(self, socket, label, data):
-        response = {
-            'label': label,
-            'data': data,
-        }
-        await socket.send(json.dumps(response))
+        message = generate_message(label, data)
+        await socket.send(json.dumps(message))
+
+    def send(self, socket, label, data):
+        asyncio.ensure_future(self._send_message(socket, label, data))
 
     def start(self):
         start_server = websockets.serve(

@@ -1,6 +1,7 @@
 from dipla.client.client import Client
 from dipla.client.client_services import BinaryRunnerService
 from dipla.client.client_services import BinaryReceiverService
+from dipla.client.client_services import ServerErrorService
 from dipla.client.command_line_binary_runner import CommandLineBinaryRunner
 from dipla.shared import logutils
 import sys
@@ -26,6 +27,7 @@ def create_services(client):
     services = {
         BinaryRunnerService.get_label(): _create_binary_runner(client),
         BinaryReceiverService.get_label(): _create_binary_receiver(client),
+        ServerErrorService.get_label(): ServerErrorService(client)
     }
     return services
 

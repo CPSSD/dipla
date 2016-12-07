@@ -104,6 +104,13 @@ class WorkerGroup:
         """
         return [x.uid for x in self._all_workers()]
 
+    def has_available_worker(self):
+        """
+        Returns:
+         - True if there are workers available in the ready_worker set
+        """
+        return len(self.ready_workers) > 0
+
     def _all_workers(self):
         """
         Returns:
@@ -126,7 +133,7 @@ class Worker:
     WorkerGroup.
     """
 
-    def __init__(self, uid, websocket, quality):
+    def __init__(self, uid, websocket, quality=None):
         """
         Initalises the worker.
 
@@ -140,6 +147,18 @@ class Worker:
         self.uid = uid
         self._quality = quality
         self.websocket = websocket
+
+    def set_quality(self, quality):
+        """
+        Sets the quality of the worker if not previously provided.
+
+        Raises:
+         - AttributeError: If quality has already been set
+        """
+        if self._quality is not None:
+            raise AttributeError("Quality attribute already assigned")
+        else:
+            self._quality = quality
 
     def quality(self):
         """

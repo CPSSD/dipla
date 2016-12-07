@@ -20,9 +20,10 @@ node {
   
     try {
       stage ('Install Dependencies') {
-        sh 'sudo apt-get install --upgrade -y python3'
-        sh 'sudo apt-get install --upgrade -y python3-pip'
-        //sh 'sudo pip3 install virtualenv'
+        sh 'sudo add-apt-repository ppa:fkrull/deadsnakes'
+        sh 'sudo apt-get update'
+        sh 'sudo apt-get install -y python3.5'
+        //sh 'sudo python3.5 -m "pip" install virtualenv'
       }
   
       stage ('Create Test Results Folder') {
@@ -30,12 +31,12 @@ node {
       }
   
       stage ('Setup virtualenv') {
-        //sh 'virtualenv -p python3 venv'
+        //sh 'virtualenv -p python3.5 venv'
         //sh 'source venv/bin/activate'
       }
   
       stage ('Install pip dependencies') {
-        sh 'pip3 install --upgrade -r requirements.txt'
+        sh 'python3.5 -m "pip" install --upgrade -r requirements.txt'
       }
   
       stage ('Run python linter') {
@@ -48,7 +49,7 @@ node {
       }
  
       stage ('Run Tests') {
-        sh 'nosetests -v'
+        sh 'python3.5 -m "nose" -v'
       }
   
       stage ('Generate Reports') {
