@@ -256,3 +256,14 @@ class TaskQueueTest(unittest.TestCase):
     def test_is_task_open_on_missing_task(self):
         with self.assertRaises(KeyError):
             self.queue.is_task_open("foo")
+
+    def test_get_bad_task_by_id(self):
+        with self.assertRaises(KeyError):
+            self.queue.get_task_by_id('abcdefghijk')
+
+    def test_get_good_task_by_id(self):
+        given_task = Task("foo", "sample task", MachineType.client)
+        self.queue.push_task(given_task)
+        gotten_task = self.queue.get_task_by_id("foo")
+        self.assertEqual(given_task.uid, gotten_task.uid)
+        self.assertEqual(given_task.instructions, gotten_task.instructions)
