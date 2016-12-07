@@ -62,9 +62,14 @@ class Dipla:
                 source_uid = uid_generator.generate_uid(
                     length=8,
                     existing_uids=Dipla.task_queue.get_task_ids())
-                task.add_data_source(DataSource.create_source_From_iterable(
+                task.add_data_source(DataSource.create_source_from_iterable(
                     arg,
                     source_uid))
+            elif type(arg) is Promise:
+                arg_uid = arg.task_uid
+                task.add_data_source(DataSource.create_source_from_task(
+                    None, # Dipla.task_queue.get_task(arg_uid),
+                    arg_uid))
         Dipla.task_queue.push_task(task)
         return Promise(task_uid)
 
