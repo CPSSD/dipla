@@ -100,12 +100,12 @@ class ServerServices:
         params.worker.set_quality(message['quality'])
         platform = message['platform']
         try:
-            encoded_binaries = server.binary_manager.get_binaries(platform)
+            encoded_bins = params.server.binary_manager.get_binaries(platform)
         except KeyError as e:
             raise ServiceError(e, 2)
 
         data = {
-            'base64_binaries': dict(encoded_binaries),
+            'base64_binaries': dict(encoded_bins),
         }
         return data
 
