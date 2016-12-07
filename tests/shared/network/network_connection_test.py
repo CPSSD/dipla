@@ -662,7 +662,6 @@ class EventSavingEventListener(EventListener):
         self._opened = True
 
     def on_message(self, connection, message):
-        print("!!!!!!!!!!!CLIENT? RECEIVED: {}".format(message))
         self._last_message = message
 
     def on_error(self, connection, error):
