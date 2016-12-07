@@ -142,6 +142,12 @@ class TaskQueue:
     def get_task_ids(self):
         return self._nodes.keys()
 
+    def get_task_by_id(self, task_uid):
+        if task_uid not in self._nodes:
+            raise KeyError(
+                "Attempted to get a get a task that is not in the queue")
+        return self._nodes[task_uid].task_item
+
 
 class TaskQueueEmpty(queue.Empty):
     """

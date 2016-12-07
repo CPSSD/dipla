@@ -68,7 +68,7 @@ class Dipla:
             elif type(arg) is Promise:
                 arg_uid = arg.task_uid
                 task.add_data_source(DataSource.create_source_from_task(
-                    None, # Dipla.task_queue.get_task(arg_uid),
+                    Dipla.task_queue.get_task_by_id(arg_uid),
                     arg_uid))
             else:
                 raise UnsupportedInput()
@@ -80,6 +80,7 @@ class Promise:
 
     def __init__(self, promise_uid):
         self.task_uid = promise_uid
+
 
 class UnsupportedInput(Exception):
     """
