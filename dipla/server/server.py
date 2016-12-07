@@ -100,12 +100,12 @@ class ServerServices:
         params.worker.set_quality(message['quality'])
         platform = message['platform']
         try:
-            encoded_binaries = server.binary_manager.get_binaries(platform)
+            encoded_bins = params.server.binary_manager.get_binaries(platform)
         except KeyError as e:
             raise ServiceError(e, 2)
 
         data = {
-            'base64_binaries': dict(encoded_binaries),
+            'base64_binaries': dict(encoded_bins),
         }
         return data
 
@@ -240,11 +240,11 @@ class Server:
     def send(self, socket, label, data):
         asyncio.ensure_future(self._send_message(socket, label, data))
 
-    def start(self):
+    def start(self, address='localhost', port=8765):
         start_server = websockets.serve(
             self.websocket_handler,
-            "localhost",
-            8765)
+            address,
+            port)
 
         asyncio.get_event_loop().run_until_complete(start_server)
         asyncio.get_event_loop().run_forever()

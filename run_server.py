@@ -1,3 +1,5 @@
+import sys
+
 from dipla.server.server import Server, BinaryManager
 from dipla.server.task_queue import TaskQueue, Task, DataSource
 from dipla.shared import uid_generator
@@ -6,7 +8,7 @@ def generate_uid(existing):
     return uid_generator.generate_uid(
         length = 8, existing_uids=existing)
 
-def main():
+def main(argv):
     tq = TaskQueue()
     
     root_source = [1, 2, 3, 4, 5]
@@ -68,7 +70,14 @@ def main():
 
     s = Server(tq, bm)
     print('Starting server')
-    s.start()
+    address, port = 'localhost', 8765
+    if len(argv) > 1:
+        if ':' in argv[1]:
+            address, port = argv[1].split(':')
+            port = int(port)
+        else:
+            address = argv[1]
+    s.start(address, port)
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv)
