@@ -75,10 +75,9 @@ class Client(object):
         await self.websocket.send(message)
 
     async def receive_loop(self):
-        """Task for handling messages received from server"""
+        """Task for handling messages received from server."""
         try:
             while True:
-                self.logger.warning('iter')
                 message = await self.websocket.recv()
                 try:
                     self._handle(message)
