@@ -19,7 +19,7 @@ class SocketConnection(threading.Thread, metaclass=abc.ABCMeta):
     the more general code related to bi-directional network communication,
     such as "sending" and "receiving" functionality.
 
-    THIS CLASS SHOULD NOT BE INSTANTIATED; IT IS TO BE INHERITED ONLY.
+    THIS CLASS CANNOT BE INSTANTIATED; IT IS TO BE INHERITED ONLY.
 
     It provides templates for methods such as _prepare_socket,
     _perform_connection_step, and _cleanup, that MUST be implemented
