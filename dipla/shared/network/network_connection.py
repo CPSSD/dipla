@@ -114,7 +114,7 @@ class SocketConnection(threading.Thread):
             full_message = self._message_defixer.get_defixed_message()
             self._event_listener.on_message(self, full_message)
             self._logger.debug(
-                RECEIVED_MESSAGE_MESSAGE,self._label, full_message)
+                RECEIVED_MESSAGE_MESSAGE, self._label, full_message)
         except NoMessageException:
             pass
 
