@@ -1,5 +1,5 @@
 import unittest
-from dipla.api import Dipla
+from dipla.api import Dipla, UnsupportedInput
 
 
 class DiplaAPITest(unittest.TestCase):
@@ -21,3 +21,12 @@ class DiplaAPITest(unittest.TestCase):
         input_data = [1,2,3,4,5]
         promised = Dipla.apply_distributable(func, input_data)
         self.assertIsNotNone(promised.task_uid)
+
+    def test_apply_distributable_handles_bad_value(self):
+        @Dipla.distributable
+        def func(input_value):
+            return input_value
+
+        input_data = -42
+        self.assertRaises(UnsupportedInput,
+            Dipla.apply_distributable, func, input_data)

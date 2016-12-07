@@ -56,7 +56,7 @@ class Dipla:
         task_uid = uid_generator.generate_uid(
             length=8,
             existing_uids=Dipla.task_queue.get_task_ids())
-        task = Task(None, function.__name__, MachineType.client)
+        task = Task(task_uid, function.__name__, MachineType.client)
         for arg in args:
             if type(arg) is list:
                 source_uid = uid_generator.generate_uid(
@@ -70,6 +70,8 @@ class Dipla:
                 task.add_data_source(DataSource.create_source_from_task(
                     None, # Dipla.task_queue.get_task(arg_uid),
                     arg_uid))
+            else:
+                raise UnsupportedInput()
         Dipla.task_queue.push_task(task)
         return Promise(task_uid)
 
@@ -78,6 +80,13 @@ class Promise:
 
     def __init__(self, promise_uid):
         self.task_uid = promise_uid
+
+class UnsupportedInput(Exception):
+    """
+    An exception that is raised when an input of an unsupported type is
+    applied to a distributable
+    """
+    pass
 
 # Remember that the function's __name__ is the task name in apply_distributable
 # task_name = function.__name__
