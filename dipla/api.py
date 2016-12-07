@@ -53,6 +53,25 @@ class Dipla:
 
     @staticmethod
     def apply_distributable(function, *args):
+        """
+        Takes a distributable function, and any number of further arguments
+        where each is a list of immediate values or a Promise of future values,
+        and adds that function to the task queue.
+
+        Params:
+         - function: A function decorated with @Dipla.distributable, that the
+        user wants to give some input to.
+         - n further arguments, where each is a list of immediate values (eg.
+        [1, 2, 3, 4, 5]) or a Promise of values (eg. result_of_other_func).
+
+        Raises:
+         - UnsupportedInput if an input is given to a function that is not one
+        of the above mentioned types.
+
+        Returns:
+         - A Promise, which can be used later as the input to another task,
+        or the user can await its results.
+        """
         task_uid = uid_generator.generate_uid(
             length=8,
             existing_uids=Dipla.task_queue.get_task_ids())
