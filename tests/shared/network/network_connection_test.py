@@ -644,6 +644,15 @@ class EchoEventListener(EventListener):
     def __init__(self):
         self._last_message = None
 
+    def on_open(self, connection, message):
+        pass
+
+    def on_error(self, connection, error):
+        pass
+
+    def on_close(self, connection, reason):
+        pass
+
     def on_message(self, connection, message):
         self._last_message = message
         message = "Echo: " + message

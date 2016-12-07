@@ -1,3 +1,4 @@
+import abc
 import errno
 import socket
 import threading
@@ -310,19 +311,19 @@ class ServerConnection(SocketConnection):
         self._connected = False
 
 
-class EventListener(object):
+class EventListener(metaclass=abc.ABCMeta):
 
-    def on_open(self, connection, message):
-        pass  # ABSTRACT
+    @abc.abstractmethod
+    def on_open(self, connection, message): pass
 
-    def on_message(self, connection, message):
-        pass  # ABSTRACT
+    @abc.abstractmethod
+    def on_message(self, connection, message): pass
 
-    def on_error(self, connection, error):
-        pass  # ABSTRACT
+    @abc.abstractmethod
+    def on_error(self, connection, error): pass
 
-    def on_close(self, connection, reason):
-        pass  # ABSTRACT
+    @abc.abstractmethod
+    def on_close(self, connection, reason): pass
 
 
 class ConnectionShouldStopError(Exception):
