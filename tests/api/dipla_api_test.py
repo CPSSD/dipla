@@ -12,3 +12,12 @@ class DiplaAPITest(unittest.TestCase):
 
         promised = Dipla.read_data_source(input_data, data_source_function)
         self.assertIsNotNone(promised.task_uid)
+
+    def test_apply_distributable_with_immediate_values(self):
+        @Dipla.distributable
+        def func(input_value):
+            return input_value
+
+        input_data = [1,2,3,4,5]
+        promised = Dipla.apply_distributable(func, input_data)
+        self.assertIsNotNone(promised.task_uid)

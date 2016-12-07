@@ -341,13 +341,9 @@ class TaskInput:
         self.machine_type = machine_type
         self.values = values
 
-        for dependency in self.dependencies:
-            if not dependency.data_streamer.has_available_data():
-                return False
-        return True
 
-
-class DataStreamerEmpty(Exception):
+# Abstraction of the information necessary to represent a task
+class Task:
     """
     This is a class that should encapsulate all the information a client needs
     to excecute a piece of work.
@@ -357,7 +353,6 @@ class DataStreamerEmpty(Exception):
     produces any results. It could also be only whenever the task has produced
     all of the results that it will produce
     """
-    pass
 
     def __init__(
             self,
@@ -409,26 +404,6 @@ class DataStreamerEmpty(Exception):
     def _open_task(self):
         self.open = True
 
-    def __init__(self, task_uid, task_instructions, values):
-        """
-        This is what is given out by the task queue when some values
-        are requested from a pop/peek etc. The values attribute
-        is real data (as opposed to a promise) that will be sent to
-        clients who then run it
-
-        task_uid is the unique identifier of this instance of the task
-
-        task_instructions are used to inform clients which runnable to
-        execute
-
-        values are the actual data values (not a promise) that are sent
-        to clients to execute the task and return the results. It is a
-        dictionary of the task_uid that this data is coming from (the
-        source) to a list of the actual data values
-        """
-        self.task_uid = task_uid
-        self.task_instructions = task_instructions
-        self.values = values
 
 class MachineType(Enum):
     """
