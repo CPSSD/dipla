@@ -5,6 +5,7 @@ using information such as the task identifier and input data
 
 import queue  # needed to inherit exception from
 import sys
+from enum import Enum
 
 
 class TaskQueue:
@@ -138,6 +139,9 @@ class TaskQueue:
                 "Attempted to check if task was open that is not in the queue")
         return self._nodes[task_uid].task_item.open
 
+    def get_task_ids(self):
+        return self._nodes.keys()
+
 
 class TaskQueueEmpty(queue.Empty):
     """
@@ -175,6 +179,7 @@ class TaskQueueNode:
         return TaskInput(
             self.task_item.uid,
             self.task_item.instructions,
+            self.task_item.machine_type,
             arguments)
 
     def has_next_input(self):
@@ -311,7 +316,7 @@ class DataStreamer:
 
 class TaskInput:
 
-    def __init__(self, task_uid, task_instructions, values):
+    def __init__(self, task_uid, task_instructions, machine_type, values):
         """
         This is what is given out by the task queue when some values
         are requested from a pop/peek etc. The values attribute
@@ -323,6 +328,9 @@ class TaskInput:
         task_instructions are used to inform clients which runnable to
         execute
 
+        machine_type is an instance of the MachineType Enum, used to
+        represent which type of machine this task should be run on
+
         values are the actual data values (not a promise) that are sent
         to clients to execute the task and return the results. It is a
         dictionary of the task_uid that this data is coming from (the
@@ -330,11 +338,16 @@ class TaskInput:
         """
         self.task_uid = task_uid
         self.task_instructions = task_instructions
+        self.machine_type = machine_type
         self.values = values
 
+        for dependency in self.dependencies:
+            if not dependency.data_streamer.has_available_data():
+                return False
+        return True
 
-# Abstraction of the information necessary to represent a task
-class Task:
+
+class DataStreamerEmpty(Exception):
     """
     This is a class that should encapsulate all the information a client needs
     to excecute a piece of work.
@@ -344,8 +357,14 @@ class Task:
     produces any results. It could also be only whenever the task has produced
     all of the results that it will produce
     """
+    pass
 
-    def __init__(self, uid, task_instructions, open_check=lambda x: True):
+    def __init__(
+            self,
+            uid,
+            task_instructions,
+            machine_type,
+            open_check=lambda x: True):
         """
         Initalises the Task
 
@@ -354,7 +373,10 @@ class Task:
         that can be used to uniquely identify this task
          - task_instructions: An object used to represent instructions
         on what task should be carried out on the data
-         - open_check:  A function that returns true if it can determine
+         - machine_type: A MachineType enum instance that determines
+        what type of machine this task should be run on (e.g. Server,
+        client)
+         - open_check: A function that returns true if it can determine
         that this task is open. This function should take one argument
         which is the result that is received from the client The default
         lambda function used here causes the completion check to return
@@ -363,6 +385,7 @@ class Task:
         """
         self.uid = uid
         self.instructions = task_instructions
+        self.machine_type = machine_type
         self.data_instructions = []
 
         self.open_check = open_check
@@ -385,3 +408,31 @@ class Task:
 
     def _open_task(self):
         self.open = True
+
+    def __init__(self, task_uid, task_instructions, values):
+        """
+        This is what is given out by the task queue when some values
+        are requested from a pop/peek etc. The values attribute
+        is real data (as opposed to a promise) that will be sent to
+        clients who then run it
+
+        task_uid is the unique identifier of this instance of the task
+
+        task_instructions are used to inform clients which runnable to
+        execute
+
+        values are the actual data values (not a promise) that are sent
+        to clients to execute the task and return the results. It is a
+        dictionary of the task_uid that this data is coming from (the
+        source) to a list of the actual data values
+        """
+        self.task_uid = task_uid
+        self.task_instructions = task_instructions
+        self.values = values
+
+class MachineType(Enum):
+    """
+    An enum used to represent a type of machine
+    """
+    server = 1
+    client = 2
