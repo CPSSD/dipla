@@ -10,7 +10,14 @@ from logging import FileHandler
 
 def main(argv):
     init_logger(argv)
-    client = Client('ws://localhost:8765')
+    if len(argv) > 1:
+        server_address = argv[1]
+        # Allow addresses to be specified without port
+        if not server_address.endswith('8765'):
+            server_address += ':8765'
+    else:
+        server_address = 'localhost:8765'
+    client = Client('ws://{}'.format(server_address))
     services = create_services(client)
     client.inject_services(services)
     client.start()
