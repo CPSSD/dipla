@@ -77,14 +77,14 @@ class Dipla:
             existing_uids=Dipla.task_queue.get_task_ids())
         task = Task(task_uid, function.__name__, MachineType.client)
         for arg in args:
-            if type(arg) is list:
+            if isinstance(arg, list):
                 source_uid = uid_generator.generate_uid(
                     length=8,
                     existing_uids=Dipla.task_queue.get_task_ids())
                 task.add_data_source(DataSource.create_source_from_iterable(
                     arg,
                     source_uid))
-            elif type(arg) is Promise:
+            elif isinstance(arg, Promise):
                 arg_uid = arg.task_uid
                 task.add_data_source(DataSource.create_source_from_task(
                     Dipla.task_queue.get_task_by_id(arg_uid),
@@ -107,16 +107,6 @@ class UnsupportedInput(Exception):
     applied to a distributable
     """
     pass
-
-    @staticmethod
-    def apply_distributable(function, *args):
-        uid = None
-        task = Task(uid, function.__name__)
-	for arg in args:
-            pass
-        task_queue.push_task(task)
-        return task
-        
 
 # Remember that the function's __name__ is the task name in apply_distributable
 # task_name = function.__name__
