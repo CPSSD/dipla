@@ -2,6 +2,7 @@ import errno
 import socket
 import threading
 import time
+import logging
 from dipla.shared.network.message_defixer import MessageDefixer
 from dipla.shared.network.message_defixer import NoMessageException
 from dipla.shared.network.message_defixer import IllegalHeaderException
@@ -33,6 +34,7 @@ class SocketConnection(threading.Thread):
 
     def __init__(self, host_address, host_port, event_listener, label):
         super(SocketConnection, self).__init__()
+        self._logger = logging.getLogger(__name__)
         self._message_defixer = MessageDefixer()
         self._event_listener = event_listener
         self._stop_event = threading.Event()
@@ -60,19 +62,19 @@ class SocketConnection(threading.Thread):
             self._emit_final_close()
 
     def send(self, message):
-        print(SEND_MESSAGE_MESSAGE.format(self._label), message)
+        self._logger.debug(SEND_MESSAGE_MESSAGE, message)
         message = prefix_message(message)
         self._attempt_send_with_timeout(message)
-        print(SENT_MESSAGE_MESSAGE.format(self._label))
+        self._logger.debug(SENT_MESSAGE_MESSAGE, self._label)
 
     def stop(self):
-        print(STOP_MESSAGE.format(self._label))
+        self._logger.debug(STOP_MESSAGE, self._label)
         self._cleanup()
         self.join()
-        print(STOP_SUCCESS_MESSAGE.format(self._label))
+        self._logger.debug(STOP_SUCCESS_MESSAGE, self._label)
 
     def is_connected(self):
-        print(CHECK_CONNECTED_MESSAGE.format(self._label))
+        self._logger.debug(CHECK_CONNECTED_MESSAGE, self._label)
         return self._connected
 
     def _init_socket(self):
@@ -99,11 +101,9 @@ class SocketConnection(threading.Thread):
             self._feed_byte_to_defixer(self._decoded_byte)
             self._check_defixer_for_full_message()
         else:
-            stop_reason = EMPTY_MESSAGE_MESSAGE.format(self._label)
-            raise ConnectionShouldStopError(stop_reason)
+            raise ConnectionShouldStopError(EMPTY_MESSAGE_MESSAGE, self._label)
 
     def _feed_byte_to_defixer(self, message):
-        print(RECEIVED_MESSAGE_MESSAGE.format(self._label, message))
         try:
             self._message_defixer.feed_character(message)
         except IllegalHeaderException:
@@ -113,27 +113,30 @@ class SocketConnection(threading.Thread):
         try:
             full_message = self._message_defixer.get_defixed_message()
             self._event_listener.on_message(self, full_message)
+            self._logger.debug(
+                RECEIVED_MESSAGE_MESSAGE,self._label, full_message)
         except NoMessageException:
             pass
 
     def _emit_unexpected_error(self, error_type, error):
-        print(UNEXPECTED_ERROR_MESSAGE.format(error_type, self._label, error))
+        self._logger.debug(
+            UNEXPECTED_ERROR_MESSAGE, error_type, self._label, error)
         self._event_listener.on_error(self, error)
 
     def _emit_expected_close(self, reason):
-        print(EXPECTED_ERROR_MESSAGE.format(self._label, reason))
+        self._logger.debug(EXPECTED_ERROR_MESSAGE, self._label, reason)
         self._event_listener.on_close(self, reason)
 
     def _emit_final_close(self):
         self._event_listener.on_close(self, CLEANUP_MESSAGE)
 
     def _emit_expected_error(self, reason):
-        print(EXPECTED_ERROR_MESSAGE.format(self._label, reason))
+        self._logger.debug(EXPECTED_ERROR_MESSAGE, self._label, reason)
         self._event_listener.on_error(self, reason)
 
     def _emit_open_event(self):
-        print(CONNECTION_ESTABLISHED_MESSAGE.format(
-            self._label, self._host_address))
+        self._logger.debug(
+            CONNECTION_ESTABLISHED_MESSAGE, self._label, self._host_address)
         self._event_listener.on_open(self, "Connection established.")
 
     def _should_still_run(self):
@@ -154,7 +157,7 @@ class SocketConnection(threading.Thread):
             self._connection.send(encoded_message)
             success = True
         except AttributeError:
-            print(ATTRIBUTE_ERROR_SEND_MESSAGE.format(self._label))
+            self._logger.debug(ATTRIBUTE_ERROR_SEND_MESSAGE, self._label)
         except socket.error as e:
             self._recover_from_sending_error(e)
         return success
@@ -163,29 +166,30 @@ class SocketConnection(threading.Thread):
         try:
             connection_element.shutdown(socket.SHUT_RDWR)
             connection_element.close()
-            print(CONNECTION_ELEMENT_CLOSED_MESSAGE.format(self._label))
+            self._logger.debug(CONNECTION_ELEMENT_CLOSED_MESSAGE, self._label)
         except AttributeError:
-            print(ATTRIBUTE_ERROR_CLOSE_MESSAGE.format(self._label))
+            self._logger.debug(ATTRIBUTE_ERROR_CLOSE_MESSAGE, self._label)
         except socket.error as socket_error:
             self._recover_from_disconnect_error(socket_error)
 
     def _recover_from_receival_error(self, socket_error):
         if socket_error.errno == errno.ENOTCONN:
-            print(RECEIVE_NOT_CONNECTED_MESSAGE.format(self._label))
+            self._logger.debug(RECEIVE_NOT_CONNECTED_MESSAGE, self._label)
         else:
             raise socket_error
 
     def _recover_from_sending_error(self, socket_error):
         if socket_error.errno == errno.EPIPE:
-            print(BROKEN_PIPE_SEND_MESSAGE.format(self._label))
+            self._logger.debug(BROKEN_PIPE_SEND_MESSAGE, self._label)
         else:
             raise socket_error
 
     def _recover_from_disconnect_error(self, socket_error):
         if socket_error.errno == errno.ENOTCONN:
-            print(CONNECTION_NOT_OPEN_STOP_MESSAGE.format(self._label))
+            self._logger.debug(CONNECTION_NOT_OPEN_STOP_MESSAGE, self._label)
         elif socket_error.errno == errno.EBADF:
-            print(STOP_CONNECTION_ELEMENT_TWICE_MESSAGE.format(self._label))
+            self._logger.debug(
+                STOP_CONNECTION_ELEMENT_TWICE_MESSAGE, self._label)
         else:
             raise socket_error
 
@@ -217,7 +221,7 @@ class ClientConnection(SocketConnection):
         self._connection.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
     def _perform_connection_step(self):
-        print(START_CONNECTING_MESSAGE.format(self._label))
+        self._logger.debug(START_CONNECTING_MESSAGE, self._label)
         try:
             self._connect_to_endpoint()
             self._emit_open_event()
@@ -225,8 +229,12 @@ class ClientConnection(SocketConnection):
             self._recover_from_connection_error(socket_error)
 
     def _connect_to_endpoint(self):
-        print(ATTEMPTING_CONNECT_MESSAGE.format(
-            self._label, self._host_address, self._host_port))
+        self._logger.debug(
+            ATTEMPTING_CONNECT_MESSAGE,
+            self._label,
+            self._host_address,
+            self._host_port
+        )
         self._connection.connect((self._host_address, self._host_port))
         self._connected = True
 
@@ -273,7 +281,7 @@ class ServerConnection(SocketConnection):
             raise ConnectionPreparationFailedError(ILLEGAL_PORT_BIND_MESSAGE)
 
     def _perform_connection_step(self):
-        print(START_CONNECTING_MESSAGE.format(self._label))
+        self._logger.debug(START_CONNECTING_MESSAGE, self._label)
         try:
             self._accept_incoming_connection()
             self._emit_open_event()
@@ -283,14 +291,15 @@ class ServerConnection(SocketConnection):
     def _accept_incoming_connection(self):
         self._connection, self._connection_address = self._socket.accept()
         self._connected = True
-        print(CONNECTION_ESTABLISHED_MESSAGE.format(
+        self._logger.debug(
+            CONNECTION_ESTABLISHED_MESSAGE,
             self._label,
             self._connection_address
-        ))
+        )
 
     def _recover_from_connection_error(self, os_error):
         if os_error.errno == errno.EINVAL:
-            print(CLOSED_WHILE_ACCEPTING_MESSAGE.format(self._label))
+            self._logger.debug(CLOSED_WHILE_ACCEPTING_MESSAGE, self._label)
         else:
             raise os_error
 
@@ -337,54 +346,54 @@ I have extracted them because it greatly improves the readability of the
 classes above, and makes it easier to stay within PEP8's character limit.
 """
 
-UNEXPECTED_ERROR_MESSAGE = "CRITICAL: Unexpected {} occurred in {}... {}"
+UNEXPECTED_ERROR_MESSAGE = "CRITICAL: Unexpected %s occurred in %s... %s"
 
-EXPECTED_ERROR_MESSAGE = "{} caught an expected error: {}"
+EXPECTED_ERROR_MESSAGE = "%s caught an expected error: %s"
 
-STOP_MESSAGE = "{} has been requested to shut down."
+STOP_MESSAGE = "%s has been requested to shut down."
 
-STOP_SUCCESS_MESSAGE = "{} has been shut down and joined with calling thread."
+STOP_SUCCESS_MESSAGE = "%s has been shut down and joined with calling thread."
 
-RECEIVED_MESSAGE_MESSAGE = "{} received message: {}"
+RECEIVED_MESSAGE_MESSAGE = "%s received message: %s"
 
-EMPTY_MESSAGE_MESSAGE = "{}'s received message was empty, indicating a " \
+EMPTY_MESSAGE_MESSAGE = "%s's received message was empty, indicating a " \
                         "closed connection. "
 
-RECEIVE_NOT_CONNECTED_MESSAGE = "{} e: Tried to receive when not connected."
+RECEIVE_NOT_CONNECTED_MESSAGE = "%s e: Tried to receive when not connected."
 
 CLEANUP_MESSAGE = "Connection has been closed in cleanup function"
 
-CHECK_CONNECTED_MESSAGE = "{} has been requested to check if it is connected"
+CHECK_CONNECTED_MESSAGE = "%s has been requested to check if it is connected"
 
-SEND_MESSAGE_MESSAGE = "{} has been requested to send:"
+SEND_MESSAGE_MESSAGE = "%s has been requested to send:"
 
-ATTRIBUTE_ERROR_SEND_MESSAGE = "{} e: Can't send message yet. No connection."
+ATTRIBUTE_ERROR_SEND_MESSAGE = "%s e: Can't send message yet. No connection."
 
-BROKEN_PIPE_SEND_MESSAGE = "{} e: Broken pipe error when sending because " \
+BROKEN_PIPE_SEND_MESSAGE = "%s e: Broken pipe error when sending because " \
                            "connection not open. "
 
-SENT_MESSAGE_MESSAGE = "{} sent message successfully."
+SENT_MESSAGE_MESSAGE = "%s sent message successfully."
 
-CONNECTION_ELEMENT_CLOSED_MESSAGE = "A {} connection element has been shut " \
+CONNECTION_ELEMENT_CLOSED_MESSAGE = "A %s connection element has been shut " \
                                     "down & closed. "
 
-ATTRIBUTE_ERROR_CLOSE_MESSAGE = "{}: There is no connected attribute to close."
+ATTRIBUTE_ERROR_CLOSE_MESSAGE = "%s: There is no connected attribute to close."
 
-CONNECTION_NOT_OPEN_STOP_MESSAGE = "{} e: Shutting down a connection " \
+CONNECTION_NOT_OPEN_STOP_MESSAGE = "%s e: Shutting down a connection " \
                                    "element before it was established."
 
-STOP_CONNECTION_ELEMENT_TWICE_MESSAGE = "{} e: Tried to clean up a " \
+STOP_CONNECTION_ELEMENT_TWICE_MESSAGE = "%s e: Tried to clean up a " \
                                         "connection element for second time."
 
-START_CONNECTING_MESSAGE = "{} has begun the connection process."
+START_CONNECTING_MESSAGE = "%s has begun the connection process."
 
 ILLEGAL_PORT_BIND_MESSAGE = "Attempted to bind to invalid port number."
 
-ATTEMPTING_CONNECT_MESSAGE = "{} attempting to establish connection to ({}:{})"
+ATTEMPTING_CONNECT_MESSAGE = "%s attempting to establish connection to (%s:%s)"
 
-CONNECTION_ESTABLISHED_MESSAGE = "{} established connection with {}."
+CONNECTION_ESTABLISHED_MESSAGE = "%s established connection with %s."
 
-CLOSED_WHILE_ACCEPTING_MESSAGE = "{} shut down while accepting connection."
+CLOSED_WHILE_ACCEPTING_MESSAGE = "%s shut down while accepting connection."
 
 CORRUPT_HEADER_MESSAGE = "Received corrupted header, indicating malicious " \
                          "behaviour from sender. "
