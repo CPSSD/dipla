@@ -219,6 +219,9 @@ class ClientConnection(SocketConnection):
     def _prepare_socket(self):
         self._connection = socket.socket()
         self._connection.setblocking(True)
+        self._enable_reusable_addresses()
+
+    def _enable_reusable_addresses(self):
         self._connection.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
     def _perform_connection_step(self):
