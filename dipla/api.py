@@ -51,6 +51,10 @@ class Dipla:
         Dipla.task_queue.push_task(read_task)
         return Promise(task_uid)
 
+    @staticmethod
+    def apply_distributable(function, *args):
+        pass
+
 
 class Promise:
 
