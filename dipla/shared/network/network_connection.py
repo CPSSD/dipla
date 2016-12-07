@@ -63,7 +63,7 @@ class SocketConnection(threading.Thread, metaclass=abc.ABCMeta):
             self._emit_final_close()
 
     def send(self, message):
-        self._logger.debug(SEND_MESSAGE_MESSAGE, message)
+        self._logger.debug(SEND_MESSAGE_MESSAGE, self._label, message)
         message = prefix_message(message)
         self._attempt_send_with_timeout(message)
         self._logger.debug(SENT_MESSAGE_MESSAGE, self._label)
@@ -369,7 +369,7 @@ CLEANUP_MESSAGE = "Connection has been closed in cleanup function"
 
 CHECK_CONNECTED_MESSAGE = "%s has been requested to check if it is connected"
 
-SEND_MESSAGE_MESSAGE = "%s has been requested to send:"
+SEND_MESSAGE_MESSAGE = "%s has been requested to send: %s"
 
 ATTRIBUTE_ERROR_SEND_MESSAGE = "%s e: Can't send message yet. No connection."
 

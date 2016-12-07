@@ -371,6 +371,18 @@ class ServerConnectionTest(unittest.TestCase):
         self.when_client_connects()
         self.then_server_receives_open_notification()
 
+    def test_that_server_event_listener_can_send_messages_while_receiving_large_amounts_of_data(self):  # nopep8
+        self.given_a_server_connection()
+        self.when_listening_for_client_connection()
+        self.when_client_connects()
+        self.then_server_receives_open_notification()
+        self.when_client_sends_number_of_bytes(5000)
+        self.when_server_connection_sends("Hello")
+        self.then_client_connection_receives("Hello")
+        self.when_server_connection_sends("World!")
+        self.then_client_connection_receives("World!")
+        self.then_server_receives_number_of_bytes(5000)
+
     def given_a_server_connection(self):
         self.given_a_server_connection_on_port(51111)
 
