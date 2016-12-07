@@ -149,7 +149,7 @@ class SocketConnection(threading.Thread, metaclass=abc.ABCMeta):
         end_time = start_time + timeout
         encoded = message.encode(SocketConnection.DATA_ENCODING)
         sent_successfully = False
-        while time.time() < end_time and sent_successfully is False:
+        while time.time() < end_time and not sent_successfully:
             sent_successfully = self._attempt_send(encoded)
 
     def _attempt_send(self, encoded_message):
