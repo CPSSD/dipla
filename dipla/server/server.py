@@ -240,11 +240,11 @@ class Server:
     def send(self, socket, label, data):
         asyncio.ensure_future(self._send_message(socket, label, data))
 
-    def start(self):
+    def start(self, address='localhost', port=8765):
         start_server = websockets.serve(
             self.websocket_handler,
-            "localhost",
-            8765)
+            address,
+            port)
 
         asyncio.get_event_loop().run_until_complete(start_server)
         asyncio.get_event_loop().run_forever()
