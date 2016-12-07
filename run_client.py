@@ -13,7 +13,7 @@ def main(argv):
     if len(argv) > 1:
         server_address = argv[1]
         # Allow addresses to be specified without port
-        if not server_address.endswith('8765'):
+        if ':' not in server_address:
             server_address += ':8765'
     else:
         server_address = 'localhost:8765'
