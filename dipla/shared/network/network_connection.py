@@ -13,7 +13,7 @@ from dipla.shared.network.message_prefixer import prefix_message
 EMPTY = ""
 
 
-class SocketConnection(threading.Thread):
+class SocketConnection(threading.Thread, metaclass=abc.ABCMeta):
     """
     This class represents a network connection that uses sockets. It contains
     the more general code related to bi-directional network communication,
@@ -194,14 +194,14 @@ class SocketConnection(threading.Thread):
         else:
             raise socket_error
 
-    def _prepare_socket(self):
-        pass  # ABSTRACT: To be implemented by inheritors.
+    @abc.abstractmethod
+    def _prepare_socket(self): pass
 
-    def _perform_connection_step(self):
-        pass  # ABSTRACT: To be implemented by inheritors.
+    @abc.abstractmethod
+    def _perform_connection_step(self): pass
 
-    def _cleanup(self):
-        pass  # ABSTRACT: To be implemented by inheritors.
+    @abc.abstractmethod
+    def _cleanup(self): pass
 
 
 class ClientConnection(SocketConnection):
