@@ -38,7 +38,7 @@ def _create_binary_runner(client):
 
 
 def _create_binary_receiver(client):
-    return BinaryReceiverService(client, 'binary')
+    return BinaryReceiverService(client, './binary')
 
 
 if __name__ == '__main__':
