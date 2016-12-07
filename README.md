@@ -60,33 +60,18 @@ You can check if your code complies with the PEP8 style guide using `pep8`.
 Here's an example of some code you could write and distribute.
 
 ```python
-import functools
-from dipla.api.decorators import distributable
-from dipla.api.decorators import task_input
+from os import path
+import sys
+sys.path.append(path.abspath('../dipla'))
 
-@distributable
-def square(number):
-    return number**2
+from dipla.api import Dipla
 
-@distributable
-def remove_large(result, output_values):
-    if result > 1000000:
-        return
-    else:
-        output_values.append(result)
+input_data = ["1", "2", "3", "4", "5"]
+@Dipla.data_source
+def read_function(input_value):
+    return int(input_value) * 2
 
-
-@task_input
-def fetch_number_from(database):
-    next_number = int(database.get_next())
-    return next_number
-
-
-def driver():
-    database = get_database()
-    input_instructions = functools.partial(fetch_number_from, database)
-    result = square(input_instructions)
-    filtered = []
-    filter(result, filtered)
-    dipla.api.run()
+# Convert the input_data list to a form that dipla can use for
+# distributing
+data_source = Dipla.read_data_source(read_function, input_data) 
 ```
