@@ -53,6 +53,14 @@ class Dipla:
 
     @staticmethod
     def apply_distributable(function, *args):
+        task = Task(None, function.__name__, MachineType.client)
+        for arg in args:
+            if type(arg) is list:
+                source_uid = uid_generator.generate_uid(
+                    length=8, existing_uids=Dipla.task_queue.get_task_ids())
+                task.add_data_source(DataSource.create_source_From_iterable(
+                    arg,
+                    source_uid))
         pass
 
 
