@@ -1,4 +1,4 @@
-from shared.network.network_connection import EventListener
+from dipla.shared.network.network_connection import EventListener
 
 
 class EventSavingEventListener(EventListener):
