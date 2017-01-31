@@ -35,6 +35,7 @@ class TaskQueueTest(unittest.TestCase):
 
         sample_task = Task(
             "bar", "", MachineType.client, check_result_says_done)
+        sample_task = Task("bar", "", check_result_says_done)
         sample_task.add_data_source(
             DataSource.create_source_from_iterable([], "foo"))
         self.queue.push_task(sample_task)
@@ -138,6 +139,12 @@ class TaskQueueTest(unittest.TestCase):
         self.queue.push_task(second_task)
 
         dependent_task = Task("baz", "dependent task", MachineType.client)
+        self.queue.push_task(first_task)
+
+        second_task = Task("bar", "second task")
+        self.queue.push_task(second_task)
+
+        dependent_task = Task("baz", "dependent task")
         dependent_task.add_data_source(
             DataSource.create_source_from_task(first_task, "foobar"))
         dependent_task.add_data_source(

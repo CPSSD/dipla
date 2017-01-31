@@ -97,15 +97,15 @@ class ServerServices:
         raise KeyError("Label '{}' does not have a handler".format(label))
 
     def _handle_get_binaries(self, message, params):
+        params.worker.set_quality(message['quality'])
         platform = message['platform']
         try:
-            encoded_binaries = params.server.binary_manager.get_binaries(
-                platform)
+            encoded_bins = params.server.binary_manager.get_binaries(platform)
         except KeyError as e:
             raise ServiceError(e, 2)
 
         data = {
-            'base64_binaries': dict(encoded_binaries),
+            'base64_binaries': dict(encoded_bins),
         }
         return data
 
@@ -175,7 +175,7 @@ class Server:
 
     async def websocket_handler(self, websocket, path):
         user_id = self.worker_group.generate_uid()
-        worker = Worker(user_id, websocket, quality=0.5)
+        worker = Worker(user_id, websocket)
         try:
             # recv() raises a ConnectionClosed exception when the client
             # disconnects, which breaks out of the while True loop.
@@ -260,11 +260,11 @@ class Server:
     def send(self, socket, label, data):
         asyncio.ensure_future(self._send_message(socket, label, data))
 
-    def start(self):
-        server = websockets.serve(
+    def start(self, address='localhost', port=8765):
+        start_server = websockets.serve(
             self.websocket_handler,
-            "localhost",
-            8765)
+            address,
+            port)
 
         asyncio.get_event_loop().run_until_complete(server)
         asyncio.get_event_loop().run_forever()

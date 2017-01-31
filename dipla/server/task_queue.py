@@ -173,6 +173,7 @@ class TaskQueueNode:
         This class acts as a node in a linked list using its
         dependencies as the previous nodes and it's dependees as the
         next nodes
+<<<<<<< HEAD
         """
         self.task_item = task_item
         self.dependencies = task_item.data_instructions
@@ -363,6 +364,12 @@ class TaskInput:
         self.machine_type = machine_type
         self.values = values
 
+class MachineType(Enum):
+    """
+    An enum used to represent a type of machine
+    """
+    server = 1
+    client = 2
 
 # Abstraction of the information necessary to represent a task
 class Task:
@@ -376,13 +383,7 @@ class Task:
     all of the results that it will produce
     """
 
-    def __init__(
-            self,
-            uid,
-            task_instructions,
-            machine_type,
-            open_check=lambda x: True,
-            complete_check=lambda x: False):
+    def __init__(self, uid, task_instructions, open_check=lambda x: True):
         """
         Initalises the Task
 
@@ -391,30 +392,19 @@ class Task:
         that can be used to uniquely identify this task
          - task_instructions: An object used to represent instructions
         on what task should be carried out on the data
-         - machine_type: A MachineType enum instance that determines
-        what type of machine this task should be run on (e.g. Server,
-        client)
-         - open_check: A function that returns true if it can determine
+         - open_check:  A function that returns true if it can determine
         that this task is open. This function should take one argument
         which is the result that is received from the client The default
         lambda function used here causes the completion check to return
         true when any result is received back from the server. A task
         being open is defined in the docstring for the Task class
-         - complete_check: A function that returns true if it can
-        determine that this task should be completed, and no longer
-        be used for any distributed operation. This defaults to a
-        function that always returns False so that the task does not
-        close. This takes the remaining, unread stream as an argument
         """
         self.uid = uid
         self.instructions = task_instructions
-        self.machine_type = machine_type
         self.data_instructions = []
 
         self.open_check = open_check
         self.open = False
-        self.complete_check = complete_check
-        self.complete = False
 
         self.task_output = []
 
@@ -433,14 +423,3 @@ class Task:
 
     def _open_task(self):
         self.open = True
-
-    def complete_task(self):
-        self.complete = True
-
-
-class MachineType(Enum):
-    """
-    An enum used to represent a type of machine
-    """
-    server = 1
-    client = 2
