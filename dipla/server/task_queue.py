@@ -5,6 +5,7 @@ using information such as the task identifier and input data
 
 import queue  # needed to inherit exception from
 import sys
+from enum import Enum
 
 
 class TaskQueue:
@@ -53,6 +54,7 @@ class TaskQueue:
         active = True
         for instruction in item.data_instructions:
             # If instruction is from an iterable then it wont be a task
+            # and wont have a task id
             if instruction.source_task_uid is None:
                 continue
 
@@ -98,7 +100,12 @@ class TaskQueue:
 
         for task_uid in self._active_tasks:
             if self._nodes[task_uid].has_next_input():
-                return self._nodes[task_uid].next_input()
+                # Read some data from this task, and if check if we've
+                # completed it
+                popped = self._nodes[task_uid].next_input()
+                if self.is_task_complete(task_uid):
+                    self._active_tasks.remove(task_uid)
+                return popped
 
     def add_result(self, task_id, result):
         if task_id not in self._nodes:
@@ -109,8 +116,8 @@ class TaskQueue:
         if self.is_task_open(task_id):
             self.activate_new_tasks(self._nodes[task_id].dependees)
 
-    # TODO(StefanKennedy) Add functionality to close a task (take out of
-    # active task set) This would happen if reading an input hit EOF
+    def get_task(self, task_uid):
+        return self._nodes[task_uid].task_item
 
     def activate_new_tasks(self, ids):
         """
@@ -138,6 +145,18 @@ class TaskQueue:
                 "Attempted to check if task was open that is not in the queue")
         return self._nodes[task_uid].task_item.open
 
+    def is_task_complete(self, task_uid):
+        if task_uid not in self._nodes:
+            raise KeyError(
+                "Tried to check if task was complete that is not in the queue")
+        return self._nodes[task_uid].task_item.complete
+
+    def is_inactive(self):
+        return len(self._active_tasks) == 0
+
+    def get_task_ids(self):
+        return self._nodes.keys()
+
 
 class TaskQueueEmpty(queue.Empty):
     """
@@ -155,6 +174,7 @@ class TaskQueueNode:
         This class acts as a node in a linked list using its
         dependencies as the previous nodes and it's dependees as the
         next nodes
+<<<<<<< HEAD
         """
         self.task_item = task_item
         self.dependencies = task_item.data_instructions
@@ -168,13 +188,22 @@ class TaskQueueNode:
             raise DataStreamerEmpty(
                 "Attempted to read input from an empty source")
 
+        complete = False
         arguments = []
         for dependency in self.dependencies:
             argument_id = dependency.source_uid
             arguments.append(dependency.data_streamer.read())
+            # If any dependencies do not have data available the
+            if self.task_item.complete_check(dependency.data_streamer):
+                complete = True
+
+        if complete:
+            self.task_item.complete_task()
+
         return TaskInput(
             self.task_item.uid,
             self.task_item.instructions,
+            self.task_item.machine_type,
             arguments)
 
     def has_next_input(self):
@@ -199,7 +228,7 @@ class DataSource:
 
     def read_all_values(stream, location):
         # Copy the values to a new list and return it
-        return list(stream)
+        return list(stream)[location:]
 
     def any_data_available(stream, location):
         return len(stream) - location > 0
@@ -311,7 +340,7 @@ class DataStreamer:
 
 class TaskInput:
 
-    def __init__(self, task_uid, task_instructions, values):
+    def __init__(self, task_uid, task_instructions, machine_type, values):
         """
         This is what is given out by the task queue when some values
         are requested from a pop/peek etc. The values attribute
@@ -323,6 +352,9 @@ class TaskInput:
         task_instructions are used to inform clients which runnable to
         execute
 
+        machine_type is an instance of the MachineType Enum, used to
+        represent which type of machine this task should be run on
+
         values are the actual data values (not a promise) that are sent
         to clients to execute the task and return the results. It is a
         dictionary of the task_uid that this data is coming from (the
@@ -330,8 +362,15 @@ class TaskInput:
         """
         self.task_uid = task_uid
         self.task_instructions = task_instructions
+        self.machine_type = machine_type
         self.values = values
 
+class MachineType(Enum):
+    """
+    An enum used to represent a type of machine
+    """
+    server = 1
+    client = 2
 
 # Abstraction of the information necessary to represent a task
 class Task:
