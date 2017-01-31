@@ -11,7 +11,7 @@ class Dipla:
     task_queue = TaskQueue()
 
     # Stop reading the data source once we hit EOF
-    # TODO(StefanKennedy) Set up data sources to run indefinitely
+    # TODO(StefanKennedy) Set up data sources to run indefinitely.
     @staticmethod
     def complete_on_eof(streamer):
         if streamer.stream_location >= len(streamer.stream):
