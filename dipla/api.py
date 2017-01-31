@@ -50,23 +50,15 @@ class Dipla:
         return read_function_wrapper
 
     @staticmethod
-    def _generate_task_id():
-        return uid_generator.generate_uid(
-            length=8, existing_uids=[Dipla.task_queue.get_task_ids()])
-
-    @staticmethod
     def read_data_source(read_function, source):
-        task_uid = Dipla._generate_task_id()
-
+        task_uid = uid_generator.generate_uid(
+            length=8, existing_uids=Dipla.task_queue.get_task_ids())
         # The Task name is only used to run binaries, which does not
         # happen when reading a data source, so we simply call this
-        # 'read_data_source' as it is never used
-        read_task = Task(
-            task_uid,
-            'read_data_source',
-            MachineType.server,
-            complete_check=Dipla.complete_on_eof)
-
+        # 'read_data_source' as it is never used. This actually creates
+        # a Task object from the provided read function, so we will add
+        # it to the TaskQueue as a Server task
+        read_task = Task(task_uid, 'read_data_source', MachineType.server)
         source_uid = uid_generator.generate_uid(length=8, existing_uids=[])
         # Create a reader task that consumes the input source being read,
         # this does not move the location because consuming the values
