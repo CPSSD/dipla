@@ -13,3 +13,8 @@ def read_function(input_value):
 # Convert the input_data list to a form that dipla can use for
 # distributing
 data_source = Dipla.read_data_source(read_function, input_data) 
+
+out = Dipla.get(data_source)
+
+for o in out:
+    print(o)

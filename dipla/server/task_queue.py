@@ -100,7 +100,12 @@ class TaskQueue:
 
         for task_uid in self._active_tasks:
             if self._nodes[task_uid].has_next_input():
-                return self._nodes[task_uid].next_input()
+                # Read some data from this task, and if check if we've
+                # completed it
+                popped = self._nodes[task_uid].next_input()
+                if self.is_task_complete(task_uid):
+                    self._active_tasks.remove(task_uid)
+                return popped
 
     def add_result(self, task_id, result):
         if task_id not in self._nodes:
@@ -111,8 +116,8 @@ class TaskQueue:
         if self.is_task_open(task_id):
             self.activate_new_tasks(self._nodes[task_id].dependees)
 
-    # TODO(StefanKennedy) Add functionality to close a task (take out of
-    # active task set) This would happen if reading an input hit EOF
+    def get_task(self, task_uid):
+        return self._nodes[task_uid].task_item
 
     def activate_new_tasks(self, ids):
         """
@@ -140,6 +145,15 @@ class TaskQueue:
                 "Attempted to check if task was open that is not in the queue")
         return self._nodes[task_uid].task_item.open
 
+    def is_task_complete(self, task_uid):
+        if task_uid not in self._nodes:
+            raise KeyError(
+                "Tried to check if task was complete that is not in the queue")
+        return self._nodes[task_uid].task_item.complete
+
+    def is_inactive(self):
+        return len(self._active_tasks) == 0
+
     def get_task_ids(self):
         return self._nodes.keys()
 
@@ -160,6 +174,7 @@ class TaskQueueNode:
         This class acts as a node in a linked list using its
         dependencies as the previous nodes and it's dependees as the
         next nodes
+<<<<<<< HEAD
         """
         self.task_item = task_item
         self.dependencies = task_item.data_instructions
@@ -173,10 +188,18 @@ class TaskQueueNode:
             raise DataStreamerEmpty(
                 "Attempted to read input from an empty source")
 
+        complete = False
         arguments = []
         for dependency in self.dependencies:
             argument_id = dependency.source_uid
             arguments.append(dependency.data_streamer.read())
+            # If any dependencies do not have data available the
+            if self.task_item.complete_check(dependency.data_streamer):
+                complete = True
+
+        if complete:
+            self.task_item.complete_task()
+
         return TaskInput(
             self.task_item.uid,
             self.task_item.instructions,
@@ -205,7 +228,7 @@ class DataSource:
 
     def read_all_values(stream, location):
         # Copy the values to a new list and return it
-        return list(stream)
+        return list(stream)[location:]
 
     def any_data_available(stream, location):
         return len(stream) - location > 0
@@ -342,6 +365,12 @@ class TaskInput:
         self.machine_type = machine_type
         self.values = values
 
+class MachineType(Enum):
+    """
+    An enum used to represent a type of machine
+    """
+    server = 1
+    client = 2
 
 # Abstraction of the information necessary to represent a task
 class Task:
@@ -355,12 +384,7 @@ class Task:
     all of the results that it will produce
     """
 
-    def __init__(
-            self,
-            uid,
-            task_instructions,
-            machine_type,
-            open_check=lambda x: True):
+    def __init__(self, uid, task_instructions, open_check=lambda x: True):
         """
         Initalises the Task
 
@@ -369,10 +393,7 @@ class Task:
         that can be used to uniquely identify this task
          - task_instructions: An object used to represent instructions
         on what task should be carried out on the data
-         - machine_type: A MachineType enum instance that determines
-        what type of machine this task should be run on (e.g. Server,
-        client)
-         - open_check: A function that returns true if it can determine
+         - open_check:  A function that returns true if it can determine
         that this task is open. This function should take one argument
         which is the result that is received from the client The default
         lambda function used here causes the completion check to return
@@ -381,7 +402,6 @@ class Task:
         """
         self.uid = uid
         self.instructions = task_instructions
-        self.machine_type = machine_type
         self.data_instructions = []
 
         self.open_check = open_check
@@ -404,11 +424,3 @@ class Task:
 
     def _open_task(self):
         self.open = True
-
-
-class MachineType(Enum):
-    """
-    An enum used to represent a type of machine
-    """
-    server = 1
-    client = 2
