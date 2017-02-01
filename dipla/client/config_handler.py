@@ -34,7 +34,7 @@ class ConfigHandler:
         with open(filename, 'r') as conf_file:
             conf_dict = json.load(conf_file)
         if not isinstance(conf_dict, dict):
-            raise InvalidConfig("Config must be in the form of a dict")
+            raise InvalidConfigException("Config must be in the form of a dict")
 
         for param in conf_dict:
             self.add_param(param, conf_dict[param])
@@ -45,11 +45,13 @@ class ConfigHandler:
 
     def __check_param(self, param_name, param_value):
         if param_name not in self.config_types:
-            raise InvalidConfig("Unknown parameter '{}'".format(param_name))
+            raise InvalidConfigException(
+                "Unknown parameter '{}'".format(param_name))
         if not isinstance(param_value, self.config_types[param_name]):
-            raise InvalidConfig("Parameter '{}' isn't of type '{}'".format(
-                param_name, self.config_types[param_name]))
+            raise InvalidConfigException(
+                "Parameter '{}' isn't of type '{}'".format(
+                    param_name, self.config_types[param_name]))
 
 
-class InvalidConfig(Exception):
+class InvalidConfigException(Exception):
     pass
