@@ -13,6 +13,10 @@ class StatisticsUpdater:
         check_statistic_exists(statistic, self.__statistics)
         self.__statistics[statistic] += 1
 
+    def decrement(self, statistic):
+        check_statistic_exists(statistic, self.__statistics)
+        self.__statistics[statistic] -= 1
+
     def overwrite(self, statistic, value):
         """Overwrites a statistic's old value with a new one."""
         check_statistic_exists(statistic, self.__statistics)

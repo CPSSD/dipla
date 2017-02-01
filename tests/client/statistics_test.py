@@ -25,6 +25,16 @@ class StatisticsUpdaterTest(unittest.TestCase):
         self.when_incrementing("y")
         self.then_the_statistic_is("y", 3)
 
+    def test_that_statistics_can_be_decremented_individually(self):
+        self.given_a_statistics_updater()
+        self.when_decrementing("x")
+        self.when_decrementing("x")
+        self.then_the_statistic_is("x", -2)
+        self.when_decrementing("y")
+        self.when_decrementing("y")
+        self.when_decrementing("y")
+        self.then_the_statistic_is("y", -3)
+
     def test_that_statistics_can_be_overwritten_individually(self):
         self.given_a_statistics_updater()
         self.when_overwriting("x", 500)
@@ -47,6 +57,9 @@ class StatisticsUpdaterTest(unittest.TestCase):
 
     def when_incrementing(self, statistic):
         self.statistics_updater.increment(statistic)
+
+    def when_decrementing(self, statistic):
+        self.statistics_updater.decrement(statistic)
 
     def when_overwriting(self, statistic, value):
         self.statistics_updater.overwrite(statistic, value)
