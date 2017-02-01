@@ -5,14 +5,17 @@ from dipla.server.task_queue import TaskQueue, Task, DataSource, MachineType
 from dipla.shared import uid_generator
 from dipla.api import Dipla
 
+
 def generate_uid(existing):
     return uid_generator.generate_uid(
-        length = 8, existing_uids=existing)
+        length=8, existing_uids=existing)
+
 
 def main(argv):
     tq = TaskQueue()
-    
+
     root_source = [1, 2, 3, 4, 5]
+
     def consuming_read_function(stream, stream_location):
         values = list(stream)[stream_location:]
         stream.clear()
@@ -33,9 +36,9 @@ def main(argv):
         root_source, iterable_source_uid1))
 
     # Create the fibonacci task depending on root_source
-    fibonacci_task_uid = generate_uid(existing=[serverside_task_uid]) 
+    fibonacci_task_uid = generate_uid(existing=[serverside_task_uid])
     fibonacci_task = Task(fibonacci_task_uid, 'fibonacci', MachineType.client)
-    
+
     serverside_source_uid = generate_uid(existing=[])
     fibonacci_task.add_data_source(DataSource.create_source_from_task(
         serverside_task, serverside_source_uid))
@@ -53,11 +56,11 @@ def main(argv):
     reduce_task_uid = generate_uid(
         existing=[fibonacci_task_uid, negate_task_uid, serverside_task_uid])
     reduce_task = Task(reduce_task_uid, 'reduce', MachineType.client)
-    
+
     fibonacci_task_source_uid = generate_uid(existing=[])
     reduce_task.add_data_source(DataSource.create_source_from_task(
         fibonacci_task, fibonacci_task_source_uid, consuming_read_function))
-    
+
     negate_task_source_uid = generate_uid(existing=[fibonacci_task_source_uid])
     reduce_task.add_data_source(DataSource.create_source_from_task(
         negate_task, negate_task_source_uid, consuming_read_function))
