@@ -34,7 +34,8 @@ class ConfigHandler:
         with open(filename, 'r') as conf_file:
             conf_dict = json.load(conf_file)
         if not isinstance(conf_dict, dict):
-            raise InvalidConfigException("Config must be in the form of a dict")
+            raise InvalidConfigException(
+                "Config must be in the form of a dict")
 
         for param in conf_dict:
             self.add_param(param, conf_dict[param])
