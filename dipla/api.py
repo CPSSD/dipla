@@ -21,7 +21,6 @@ class Dipla:
     @staticmethod
     def stream_not_empty(stream, location):
         return len(stream) > 0
-      
 
     @staticmethod
     def distributable(function):
@@ -124,7 +123,7 @@ class Dipla:
         Dipla.task_queue.push_task(task)
         return Promise(task_uid)
 
-    @staticmethod  
+    @staticmethod
     def get(promise):
         task_uid = Dipla._generate_task_id()
 
@@ -160,7 +159,6 @@ class UnsupportedInput(Exception):
     applied to a distributable
     """
     pass
-=======
 
 
 # Remember that the function's __name__ is the task name in apply_distributable

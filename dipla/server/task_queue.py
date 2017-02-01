@@ -145,6 +145,12 @@ class TaskQueue:
                 "Attempted to check if task was open that is not in the queue")
         return self._nodes[task_uid].task_item.open
 
+    def get_task_by_id(self, task_uid):
+        if task_uid not in self._nodes:
+            raise KeyError(
+                "Attempted to get a get a task that is not in the queue")
+        return self._nodes[task_uid].task_item
+
     def is_task_complete(self, task_uid):
         if task_uid not in self._nodes:
             raise KeyError(
