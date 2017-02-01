@@ -17,6 +17,12 @@ class ConfigHandlerTest(TestCase):
         c = ConfigHandler(fill_defaults=False)
         self.assertEqual(c.params, {})
 
+    def test_defaults_applied(self):
+        c = ConfigHandler()
+        for param, value in ConfigHandler.config_defaults.items():
+            self.assertIn(param, c.params)
+            self.assertEqual(value, c.params[param])
+
     def test_param_can_be_added(self):
         c = ConfigHandler(fill_defaults=False)
         param_name, param_value = self.get_valid_param()

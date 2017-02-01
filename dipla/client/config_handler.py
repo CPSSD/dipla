@@ -3,7 +3,7 @@ import json
 
 class ConfigHandler:
     """
-    This class handles all the config parameters for the Dipla cleint.
+    This class handles all the config parameters for the Dipla client.
     Paramters can be accessed using the `my_config.params` dict.
 
     Values can be added manually (add_param) or by a file (parse_from_file)
@@ -33,9 +33,6 @@ class ConfigHandler:
     def parse_from_file(self, filename):
         with open(filename, 'r') as conf_file:
             conf_dict = json.load(conf_file)
-        if not isinstance(conf_dict, dict):
-            raise InvalidConfigException(
-                "Config must be in the form of a dict")
 
         for param in conf_dict:
             self.add_param(param, conf_dict[param])
