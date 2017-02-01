@@ -1,8 +1,8 @@
 import unittest
 from dipla.server import task_queue
 from dipla.server.task_queue import Task, TaskQueueNode, DataSource
-from dipla.server.task_queue import TaskQueueEmpty
-from dipla.server.task_queue import DataStreamerEmpty
+from dipla.server.task_queue import MachineType
+from dipla.server.task_queue import TaskQueueEmpty, DataStreamerEmpty
 
 
 class TaskQueueTest(unittest.TestCase):
@@ -12,7 +12,7 @@ class TaskQueueTest(unittest.TestCase):
 
     def test_push_task(self):
         # Tasks depending on iterables are always active
-        sample_task = Task("foo", "sample task")
+        sample_task = Task("foo", "sample task", MachineType.client)
         sample_task.add_data_source(
             DataSource.create_source_from_iterable([1, 2, 3], "baz"))
         self.assertFalse(self.queue.has_next_input())
@@ -21,7 +21,7 @@ class TaskQueueTest(unittest.TestCase):
 
     def test_add_result_to_task_with_default_checker(self):
         # Test task is marked as open on any result if no check provided
-        sample_task = Task("foo", "")
+        sample_task = Task("foo", "", MachineType.client)
         sample_task.add_data_source(
             DataSource.create_source_from_iterable([], "bar"))
         self.queue.push_task(sample_task)
@@ -33,7 +33,8 @@ class TaskQueueTest(unittest.TestCase):
         def check_result_says_done(result):
             return result == "done"
 
-        sample_task = Task("bar", "", check_result_says_done)
+        sample_task = Task(
+            "bar", "", MachineType.client, check_result_says_done)
         sample_task.add_data_source(
             DataSource.create_source_from_iterable([], "foo"))
         self.queue.push_task(sample_task)
@@ -47,7 +48,7 @@ class TaskQueueTest(unittest.TestCase):
             self.queue.add_result("bar", "result")
 
     def test_activate_new_tasks(self):
-        root_task = Task("root", "root task")
+        root_task = Task("root", "root task", MachineType.client)
 
         def consume_reader(stream, location):
             return stream.pop(0)
@@ -60,7 +61,7 @@ class TaskQueueTest(unittest.TestCase):
         self.queue.pop_task_input()
         self.assertFalse(self.queue.has_next_input())
 
-        next_task = Task("next", "next task")
+        next_task = Task("next", "next task", MachineType.client)
         next_task.add_data_source(
             DataSource.create_source_from_task(root_task, "bar"))
         self.queue.push_task(next_task)
@@ -79,7 +80,7 @@ class TaskQueueTest(unittest.TestCase):
 
     def test_pop_task_input_depending_on_iterable(self):
         # Test default reading all values from data source
-        sample_task = Task("foo", "sample task")
+        sample_task = Task("foo", "sample task", MachineType.client)
         sample_task.add_data_source(
             DataSource.create_source_from_iterable([1, 2, 3], "foo"))
         self.queue.push_task(sample_task)
@@ -91,7 +92,7 @@ class TaskQueueTest(unittest.TestCase):
 
     def test_pop_task_input_using_defined_read_function(self):
         # Test reading data source using specified function
-        sample_task = Task("bar", "sample task")
+        sample_task = Task("bar", "sample task", MachineType.client)
 
         def read_single_values(stream, location):
             return stream.pop(0)
@@ -113,12 +114,13 @@ class TaskQueueTest(unittest.TestCase):
         # Test reading data source from another task
         def completion_check(result):
             return result == 2
-        first_task = Task("baz", "first task", completion_check)
+        first_task = Task(
+            "baz", "first task", MachineType.client, completion_check)
         self.queue.push_task(first_task)
         self.queue.add_result("baz", 1)
         self.queue.add_result("baz", 2)
 
-        second_task = Task("foobar", "second task")
+        second_task = Task("foobar", "second task", MachineType.client)
         second_task.add_data_source(
             DataSource.create_source_from_task(first_task, "foo"))
         self.queue.push_task(second_task)
@@ -129,13 +131,19 @@ class TaskQueueTest(unittest.TestCase):
         self.assertEqual([[1, 2]], popped.values)
 
     def test_pop_task_with_multiple_inputs(self):
-        first_task = Task("foo", "first task")
+        first_task = Task("foo", "first task", MachineType.client)
         self.queue.push_task(first_task)
 
-        second_task = Task("bar", "second task")
+        second_task = Task("bar", "second task", MachineType.client)
         self.queue.push_task(second_task)
 
-        dependent_task = Task("baz", "dependent task")
+        dependent_task = Task("baz", "dependent task", MachineType.client)
+        self.queue.push_task(first_task)
+
+        second_task = Task("bar", "second task", MachineType.client)
+        self.queue.push_task(second_task)
+
+        dependent_task = Task("baz", "dependent task", MachineType.client)
         dependent_task.add_data_source(
             DataSource.create_source_from_task(first_task, "foobar"))
         dependent_task.add_data_source(
@@ -150,7 +158,7 @@ class TaskQueueTest(unittest.TestCase):
 
     def test_pop_task_from_empty_dependency(self):
         # Test that popping data from empty task throws error
-        sample_task3 = Task("foobaz", "sample task 3")
+        sample_task3 = Task("foobaz", "sample task 3", MachineType.client)
         sample_task3.add_data_source(
             DataSource.create_source_from_iterable([], "foo"))
         self.queue.push_task(sample_task3)
@@ -163,7 +171,7 @@ class TaskQueueTest(unittest.TestCase):
         self.assertFalse(self.queue.has_next_input())
 
         # Test queue with a task with no input returns false
-        sample_task = Task("foo", "sample task")
+        sample_task = Task("foo", "sample task", MachineType.client)
         sample_task.add_data_source(
             DataSource.create_source_from_iterable([], "bar"))
         self.queue.push_task(sample_task)
@@ -171,7 +179,7 @@ class TaskQueueTest(unittest.TestCase):
         self.assertFalse(self.queue.has_next_input())
 
         # Test queue with two tasks, one with input returns true
-        sample_task2 = Task("bar", "sample task 2")
+        sample_task2 = Task("bar", "sample task 2", MachineType.client)
         sample_task2.add_data_source(
             DataSource.create_source_from_iterable([1], "baz"))
         self.queue.push_task(sample_task2)
@@ -180,7 +188,7 @@ class TaskQueueTest(unittest.TestCase):
 
     def test_node_has_next_input_on_single_available_input(self):
         # Task with input returns true
-        sample_task = Task("foo", "sample task")
+        sample_task = Task("foo", "sample task", MachineType.client)
         sample_task.add_data_source(
             DataSource.create_source_from_iterable([1], "bar"))
 
@@ -189,7 +197,7 @@ class TaskQueueTest(unittest.TestCase):
 
     def test_node_has_next_input_on_empty_input(self):
         # Task without input returns false
-        sample_task = Task("bar", "sample task")
+        sample_task = Task("bar", "sample task", MachineType.client)
         sample_task.add_data_source(
             DataSource.create_source_from_iterable([], "foo"))
 
@@ -198,7 +206,7 @@ class TaskQueueTest(unittest.TestCase):
 
     def test_node_has_next_input_on_some_empty_inputs(self):
         # Task with two inputs, but one is empty returns false
-        sample_task = Task("baz", "sample task")
+        sample_task = Task("baz", "sample task", MachineType.client)
         sample_task.add_data_source(
             DataSource.create_source_from_iterable([1], "foo"))
         sample_task.add_data_source(
@@ -210,10 +218,9 @@ class TaskQueueTest(unittest.TestCase):
     def test_node_has_next_input_on_defined_read_function(self):
         # Task with one input value in a stream, but requires two
         # returns false
-        sample_task = Task("foobar", "sample task")
+        sample_task = Task("foobar", "sample task", MachineType.client)
 
         def require_2_values(stream, location):
-            print(len(stream))
             return len(stream) >= 2
         sample_task.add_data_source(DataSource.create_source_from_iterable(
             [1], "foo", availability_check=require_2_values))
@@ -223,7 +230,7 @@ class TaskQueueTest(unittest.TestCase):
 
     def test_node_next_input_depending_on_iterable(self):
         # Task with input returns correct values
-        sample_task = Task("foo", "sample task")
+        sample_task = Task("foo", "sample task", MachineType.client)
         sample_task.add_data_source(
             DataSource.create_source_from_iterable([1], "bar"))
 
@@ -232,7 +239,7 @@ class TaskQueueTest(unittest.TestCase):
 
     def test_node_next_input_depending_on_empty_iterable(self):
         # Task with no input raises error
-        sample_task = Task("bar", "sample task")
+        sample_task = Task("bar", "sample task", MachineType.client)
         sample_task.add_data_source(
             DataSource.create_source_from_iterable([], "foo"))
 
@@ -244,7 +251,7 @@ class TaskQueueTest(unittest.TestCase):
         # Task with custom reader returns correct value
         def read_individual_values(stream, location):
             return stream.pop(0)
-        sample_task = Task("baz", "sample task")
+        sample_task = Task("baz", "sample task", MachineType.server)
         sample_task.add_data_source(DataSource.create_source_from_iterable(
             [1, 2], "bar", read_individual_values, location_changer=None))
 

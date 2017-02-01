@@ -1,8 +1,9 @@
 import sys
 
 from dipla.server.server import Server, BinaryManager
-from dipla.server.task_queue import TaskQueue, Task, DataSource
+from dipla.server.task_queue import TaskQueue, Task, DataSource, MachineType
 from dipla.shared import uid_generator
+from dipla.api import Dipla
 
 def generate_uid(existing):
     return uid_generator.generate_uid(
@@ -23,17 +24,26 @@ def main(argv):
     # generation should not be done inside the Task constructor or
     # inside the add_data_source function
 
-    # Create the fibonacci task depending on root_source
-    fibonacci_task_uid = generate_uid(existing=[]) 
-    fibonacci_task = Task(fibonacci_task_uid, 'fibonacci')
-    
+    serverside_task_uid = generate_uid(existing=[])
+    serverside_task = Task(
+        serverside_task_uid, 'serverside', MachineType.server)
+
     iterable_source_uid1 = generate_uid(existing=[])
-    fibonacci_task.add_data_source(DataSource.create_source_from_iterable(
+    serverside_task.add_data_source(DataSource.create_source_from_iterable(
         root_source, iterable_source_uid1))
 
+    # Create the fibonacci task depending on root_source
+    fibonacci_task_uid = generate_uid(existing=[serverside_task_uid]) 
+    fibonacci_task = Task(fibonacci_task_uid, 'fibonacci', MachineType.client)
+    
+    serverside_source_uid = generate_uid(existing=[])
+    fibonacci_task.add_data_source(DataSource.create_source_from_task(
+        serverside_task, serverside_source_uid))
+
     # Create the negate task depending on root_source
-    negate_task_uid = generate_uid(existing=[fibonacci_task_uid])
-    negate_task = Task(negate_task_uid, 'negate')
+    negate_task_uid = generate_uid(
+        existing=[fibonacci_task_uid, serverside_task_uid])
+    negate_task = Task(negate_task_uid, 'negate', MachineType.client)
 
     iterable_source_uid2 = generate_uid(existing=[])
     negate_task.add_data_source(DataSource.create_source_from_iterable(
@@ -41,8 +51,8 @@ def main(argv):
 
     # Create the reduce task depending on the first two tasks
     reduce_task_uid = generate_uid(
-        existing=[fibonacci_task_uid, negate_task_uid])
-    reduce_task = Task(reduce_task_uid, 'reduce')
+        existing=[fibonacci_task_uid, negate_task_uid, serverside_task_uid])
+    reduce_task = Task(reduce_task_uid, 'reduce', MachineType.client)
     
     fibonacci_task_source_uid = generate_uid(existing=[])
     reduce_task.add_data_source(DataSource.create_source_from_task(
@@ -52,7 +62,7 @@ def main(argv):
     reduce_task.add_data_source(DataSource.create_source_from_task(
         negate_task, negate_task_source_uid, consuming_read_function))
 
-
+    tq.push_task(serverside_task)
     tq.push_task(fibonacci_task)
     tq.push_task(negate_task)
     tq.push_task(reduce_task)
@@ -64,8 +74,9 @@ def main(argv):
         ('reduce', 'reduce')
     ])
     bm.add_binary_paths('.*win32.*', [
-        ('add', '/win32/add/path'),
-        ('sub', '/win32/sub/path'),
+        ('fibonacci', 'fibonacci'),
+        ('negate', 'negate'),
+        ('reduce', 'reduce')
     ])
 
     s = Server(tq, bm)

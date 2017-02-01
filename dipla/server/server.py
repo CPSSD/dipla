@@ -3,8 +3,8 @@ import sys
 import json
 import asyncio
 import websockets
-import dipla.server.task_queue
 
+from dipla.server.task_queue import MachineType
 from dipla.server.worker_group import WorkerGroup, Worker
 from dipla.shared.services import ServiceError
 from dipla.shared.message_generator import generate_message
@@ -171,6 +171,8 @@ class Server:
         if not self.services:
             self.services = ServerServices()
 
+        self.keep_running = True
+
     async def websocket_handler(self, websocket, path):
         user_id = self.worker_group.generate_uid()
         worker = Worker(user_id, websocket)
@@ -186,6 +188,11 @@ class Server:
                     service = self.services.get_service(message['label'])
                     response_data = service(
                         message['data'], params=ServiceParams(self, worker))
+                    if not self.keep_running:
+                        # TODO(StefanKennedy) Research if there is a
+                        # more elegant way to stop the server
+                        asyncio.get_event_loop().stop()
+                        return
                     if response_data is None:
                         continue
                     self.send(
@@ -216,15 +223,28 @@ class Server:
                 break
 
             task_input = self.task_queue.pop_task_input()
+            if self.task_queue.is_inactive():
+                # Flag the server to terminate, all tasks are inactive
+                self.keep_running = False
 
-            # Create the message and send it
-            data = {}
-            data['task_instructions'] = task_input.task_instructions
-            data['task_uid'] = task_input.task_uid
-            data['arguments'] = task_input.values
-            # TODO(Update the documentation with this)
-            worker = self.worker_group.lease_worker()
-            self.send(worker.websocket, 'run_instructions', data)
+            if task_input.machine_type == MachineType.client:
+                # Create the message and send it
+                data = {}
+                data['task_instructions'] = task_input.task_instructions
+                data['task_uid'] = task_input.task_uid
+                data['arguments'] = task_input.values
+                # TODO(Update the documentation with this)
+                worker = self.worker_group.lease_worker()
+                self.send(worker.websocket, 'run_instructions', data)
+            elif task_input.machine_type == MachineType.server:
+                # Server side tasks do not have any maching binaries, so
+                # we skip the send-to-client stage and move the read
+                # data straight to the results. All server side tasks
+                # have one argument, so extract the values for that lone
+                # argument
+                task_values = task_input.values[0]
+                for result in task_values:
+                    self.task_queue.add_result(task_input.task_uid, result)
 
     def _decode_message(self, message):
         message_dict = json.loads(message)
@@ -241,10 +261,10 @@ class Server:
         asyncio.ensure_future(self._send_message(socket, label, data))
 
     def start(self, address='localhost', port=8765):
-        start_server = websockets.serve(
+        server = websockets.serve(
             self.websocket_handler,
             address,
             port)
 
-        asyncio.get_event_loop().run_until_complete(start_server)
+        asyncio.get_event_loop().run_until_complete(server)
         asyncio.get_event_loop().run_forever()
