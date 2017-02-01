@@ -2,11 +2,24 @@ import json
 
 
 class ConfigHandler:
+    """
+    This class handles all the config parameters for the Dipla cleint.
+    Paramters can be accessed using the `my_config.params` dict.
+
+    Values can be added manually (add_param) or by a file (parse_from_file)
+
+    The parameters are pre-populated using the config_defaults unless otherwise
+    specified when initalising the class.
+    """
 
     config_defaults = {
         'server_ip': 'localhost',
         'server_port': 8765,
     }
+
+    """
+    To add a configurable parameter to the config add its name and type here.
+    """
     config_types = {
         'server_ip': str,
         'server_port': int,
@@ -34,6 +47,7 @@ class ConfigHandler:
         if not isinstance(param_value, self.config_types[param_name]):
             raise InvalidConfig("Parameter '{}' isn't of type '{}'".format(
                 param_name, self.config_types[param_name]))
+
 
 class InvalidConfig(Exception):
     pass
