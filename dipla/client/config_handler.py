@@ -15,6 +15,7 @@ class ConfigHandler:
     config_defaults = {
         'server_ip': 'localhost',
         'server_port': 8765,
+        'log_file': 'DIPLA_CLIENT.log',
     }
 
     """
@@ -23,6 +24,7 @@ class ConfigHandler:
     config_types = {
         'server_ip': str,
         'server_port': int,
+        'log_file': str,
     }
 
     def __init__(self, fill_defaults=True):
