@@ -138,6 +138,12 @@ class TaskQueueTest(unittest.TestCase):
         self.queue.push_task(second_task)
 
         dependent_task = Task("baz", "dependent task", MachineType.client)
+        self.queue.push_task(first_task)
+
+        second_task = Task("bar", "second task", MachineType.client)
+        self.queue.push_task(second_task)
+
+        dependent_task = Task("baz", "dependent task", MachineType.client)
         dependent_task.add_data_source(
             DataSource.create_source_from_task(first_task, "foobar"))
         dependent_task.add_data_source(
@@ -215,7 +221,6 @@ class TaskQueueTest(unittest.TestCase):
         sample_task = Task("foobar", "sample task", MachineType.client)
 
         def require_2_values(stream, location):
-            print(len(stream))
             return len(stream) >= 2
         sample_task.add_data_source(DataSource.create_source_from_iterable(
             [1], "foo", availability_check=require_2_values))

@@ -11,11 +11,14 @@ The format of the message is as follows:
     "label": "get_binaries",
     "data": {
         "platform":"win32",
+        "quality": 0.31242089,
     }
 }
 ```
 
 The `platform` field should have an identifier for the OS and architecture the client is running on, so the server knows what binary version to send - eg `win32`, `Linux x86-64`, etc.
+
+The `quality` field should have a floating point value that gives an estimate of the quality of the client. Lower is better.
 
 ## server to client
 

@@ -8,8 +8,8 @@ class CommandLineBinaryRunner(object):
     def __init__(self):
         self._logger = getLogger(__name__)
 
-    def run(self, filepath, arguments):
-        if self._binary_exists(filepath):
+    def run(self, file_path, arguments):
+        if self._binary_exists(file_path):
             # Run at least once. If arguments were provided, work out
             # how many sets of inputs were provided
             expected_runs = 1
@@ -29,20 +29,20 @@ class CommandLineBinaryRunner(object):
                     next_values.append(
                         argument_values[input_index])
                 # Run the next set of input values
-                results.append(self._run_binary(filepath, next_values))
+                results.append(self._run_binary(file_path, next_values))
             return results
         else:
-            error_message = "Could not locate binary: '{}'".format(filepath)
+            error_message = "Could not locate binary: '{}'".format(file_path)
             self._logger.error(error_message)
             raise FileNotFoundError(error_message)
 
-    def _binary_exists(self, filepath):
-        return isfile(filepath)
+    def _binary_exists(self, file_path):
+        return isfile(file_path)
 
-    def _run_binary(self, filepath, arguments):
-        self._logger.debug("About to run binary %s" % filepath)
+    def _run_binary(self, file_path, arguments):
+        self._logger.debug("About to run binary %s" % file_path)
         process = Popen(
-            args=[filepath] + [str(x) for x in arguments],
+            args=[file_path] + [str(x) for x in arguments],
             stdin=PIPE,
             stdout=PIPE,
             stderr=PIPE,

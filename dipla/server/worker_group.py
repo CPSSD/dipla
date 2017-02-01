@@ -133,7 +133,7 @@ class Worker:
     WorkerGroup.
     """
 
-    def __init__(self, uid, websocket, quality):
+    def __init__(self, uid, websocket, quality=None):
         """
         Initalises the worker.
 
@@ -147,6 +147,18 @@ class Worker:
         self.uid = uid
         self._quality = quality
         self.websocket = websocket
+
+    def set_quality(self, quality):
+        """
+        Sets the quality of the worker if not previously provided.
+
+        Raises:
+         - AttributeError: If quality has already been set
+        """
+        if self._quality is not None:
+            raise AttributeError("Quality attribute already assigned")
+        else:
+            self._quality = quality
 
     def quality(self):
         """
