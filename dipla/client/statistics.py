@@ -10,12 +10,16 @@ class StatisticsUpdater:
 
     def increment(self, statistic):
         """Increments an integer statistic by 1."""
-        check_statistic_exists(statistic, self.__statistics)
-        self.__statistics[statistic] += 1
+        self.adjust(statistic, 1)
 
     def decrement(self, statistic):
+        """Decrements an integer statistic by 1"""
+        self.adjust(statistic, -1)
+
+    def adjust(self, statistic, amount):
+        """Adjust the value of a statistic by a specified amount"""
         check_statistic_exists(statistic, self.__statistics)
-        self.__statistics[statistic] -= 1
+        self.__statistics[statistic] += amount
 
     def overwrite(self, statistic, value):
         """Overwrites a statistic's old value with a new one."""
