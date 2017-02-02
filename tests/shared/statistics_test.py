@@ -2,7 +2,7 @@ import unittest
 
 import functools
 
-from dipla.client.statistics import StatisticsUpdater,\
+from dipla.shared.statistics import StatisticsUpdater,\
                                     StatisticsReader,\
                                     StatisticsError
 
