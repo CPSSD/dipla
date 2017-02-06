@@ -425,7 +425,8 @@ class Task:
          - task_instructions: An object used to represent instructions
         on what task should be carried out on the data
          - machine_type: A MachineType enum instance that determines
-        what type
+        what type of machine this task should be run on (e.g. Server,
+        Client)
          - open_check:  A function that returns true if it can determine
         that this task is open. This function should take one argument
         which is the result that is received from the client The default
