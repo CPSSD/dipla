@@ -56,7 +56,7 @@ def main(argv):
     reduce_task_uid = generate_uid(
         existing=[fibonacci_task_uid, negate_task_uid, serverside_task_uid])
     reduce_task = Task(reduce_task_uid, 'reduce', MachineType.client)
-    
+
     fibonacci_task_source_uid = generate_uid(existing=[])
     reduce_task.add_data_source(DataSource.create_source_from_task(
         fibonacci_task, fibonacci_task_source_uid, consuming_read_function))
