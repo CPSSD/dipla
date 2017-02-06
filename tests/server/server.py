@@ -57,3 +57,19 @@ class ServerTest(unittest.TestCase):
         self.server.send = mock_send
 
         self.server.distribute_tasks()
+
+    def test_distribute_tasks_runs_client_and_server_tasks_together(self):
+        self.worker_group.add_worker(Worker("fooworker", None))
+        self.client_task.add_data_source(self.sample_data_source)
+        self.server_task.add_data_source(
+         DataSource.create_source_from_iterable([5, 4, 3, 2, 1], "barsource"))
+
+        self.task_queue.push_task(self.client_task)
+        self.task_queue.push_task(self.server_task)
+
+        def mock_send(socket, label, data):
+            self.assertEquals([1, 2, 3, 4], data['arguments'][0])
+        self.server.send = mock_send
+
+        self.server.distribute_tasks()
+        self.assertEqual([5, 4, 3, 2, 1], self.server_task.task_output)

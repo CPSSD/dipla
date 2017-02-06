@@ -1,32 +1,34 @@
 from dipla.client.client import Client
+from dipla.client.config_handler import ConfigHandler
 from dipla.client.client_services import BinaryRunnerService
 from dipla.client.client_services import BinaryReceiverService
 from dipla.client.client_services import ServerErrorService
 from dipla.client.command_line_binary_runner import CommandLineBinaryRunner
 from dipla.shared import logutils
 import sys
+import argparse
 from logging import FileHandler
 
 
 def main(argv):
-    init_logger(argv)
-    if len(argv) > 1:
-        server_address = argv[1]
-        # Allow addresses to be specified without port
-        if ':' not in server_address:
-            server_address += ':8765'
-    else:
-        server_address = 'localhost:8765'
-    client = Client('ws://{}'.format(server_address))
+    parser = argparse.ArgumentParser(description="Start a Dipla client.")
+    parser.add_argument('-c', default='', dest='config_path')
+    args = parser.parse_args()
+
+    config = ConfigHandler()
+    if args.config_path:
+        config.parse_from_file(args.config_path)
+
+    init_logger(config.params['log_file'])
+
+    client = Client('ws://{}:{}'.format(
+        config.params['server_ip'], config.params['server_port']))
     services = create_services(client)
     client.inject_services(services)
     client.start()
 
 
-def init_logger(argv):
-    loc = 'DIPLA.log'
-    if len(argv) == 2:
-        loc = argv[1]
+def init_logger(loc):
     logutils.init(handler=FileHandler(loc))
 
 
