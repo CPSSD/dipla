@@ -148,6 +148,11 @@ class Worker:
         self._quality = quality
         self.websocket = websocket
 
+        # If set to true, this means that the work done by this worker
+        # will be ran on another worker to check for incorrect or
+        # malicious behaviour
+        self.verify_work = False
+
     def set_quality(self, quality):
         """
         Sets the quality of the worker if not previously provided.
