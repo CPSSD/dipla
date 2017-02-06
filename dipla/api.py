@@ -81,6 +81,49 @@ class Dipla:
         return Promise(task_uid)
 
     @staticmethod
+    def apply_distributable(function, *args):
+        """
+        Takes a distributable function, and any number of further arguments
+        where each is a list of immediate values or a Promise of future values,
+        and adds that function to the task queue.
+
+        Params:
+         - function: A function decorated with @Dipla.distributable, that the
+        user wants to give some input to.
+         - n further arguments, where each is a list of immediate values (eg.
+        [1, 2, 3, 4, 5]) or a Promise of values (eg. result_of_other_func).
+
+        Raises:
+         - UnsupportedInput if an input is given to a function that is not one
+        of the above mentioned types.
+
+        Returns:
+         - A Promise, which can be used later as the input to another task,
+        or the user can await its results.
+        """
+        task_uid = uid_generator.generate_uid(
+            length=8,
+            existing_uids=Dipla.task_queue.get_task_ids())
+        task = Task(task_uid, function.__name__, MachineType.client)
+        for arg in args:
+            if isinstance(arg, list):
+                source_uid = uid_generator.generate_uid(
+                    length=8,
+                    existing_uids=Dipla.task_queue.get_task_ids())
+                task.add_data_source(DataSource.create_source_from_iterable(
+                    arg,
+                    source_uid))
+            elif isinstance(arg, Promise):
+                arg_uid = arg.task_uid
+                task.add_data_source(DataSource.create_source_from_task(
+                    Dipla.task_queue.get_task_by_id(arg_uid),
+                    arg_uid))
+            else:
+                raise UnsupportedInput()
+        Dipla.task_queue.push_task(task)
+        return Promise(task_uid)
+
+    @staticmethod
     def get(promise):
         task_uid = Dipla._generate_task_id()
 
@@ -108,6 +151,15 @@ class Promise:
 
     def __init__(self, promise_uid):
         self.task_uid = promise_uid
+
+
+class UnsupportedInput(Exception):
+    """
+    An exception that is raised when an input of an unsupported type is
+    applied to a distributable
+    """
+    pass
+
 
 # Remember that the function's __name__ is the task name in apply_distributable
 # task_name = function.__name__
