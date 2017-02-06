@@ -233,7 +233,7 @@ class Server:
         # By leasing workers without specifying an id, we get the
         # highest quality worker for the task
         while self.task_queue.has_next_input():
-            # If workers are connected pop any kind of task inpt. If no
+            # If workers are connected pop any kind of task input. If no
             # workers are connected we must only get server task input
 
             task_input = self._get_distributable_task_input()
