@@ -218,11 +218,19 @@ class Server:
     def distribute_tasks(self):
         # By leasing workers without specifying an id, we get the
         # highest quality worker for the task
-        while self.worker_group.has_available_worker():
-            if not self.task_queue.has_next_input():
-                break
+        while self.task_queue.has_next_input():
+            # If workers are connected pop any kind of task inpt. If no
+            # workers are connected we must only get server task input
 
-            task_input = self.task_queue.pop_task_input()
+            if not self.worker_group.has_available_worker():
+                if self.task_queue.has_next_input(MachineType.server):
+                    task_input = self.task_queue.pop_task_input(
+                                    MachineType.server)
+                else:
+                    break
+            else:
+                task_input = self.task_queue.pop_task_input()
+
             if self.task_queue.is_inactive():
                 # Flag the server to terminate, all tasks are inactive
                 self.keep_running = False
