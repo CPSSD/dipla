@@ -73,7 +73,7 @@ class ServiceParams:
 
 class ServerServices:
 
-    def __init__(self):
+    def __init__(self, binary_manager):
         """
         Raising an exception will transmit it back to the client. A
         ServiceError lets you include a specific error code to allow
@@ -83,6 +83,9 @@ class ServerServices:
         ServiceParams that carry the server that is calling the service
         as well as the worker that owns the websocket that called the
         service
+
+        binary_manager is a BinaryManager instance containing the task
+        binaries that can be requested by a client
         """
         self.services = {
             'get_binaries': self._handle_get_binaries,
@@ -90,6 +93,7 @@ class ServerServices:
             'client_result': self._handle_client_result,
             'runtime_error': self._handle_runtime_error,
         }
+        self.binary_manager = binary_manager
 
     def get_service(self, label):
         if label in self.services:
@@ -100,7 +104,7 @@ class ServerServices:
         params.worker.set_quality(message['quality'])
         platform = message['platform']
         try:
-            encoded_bins = params.server.binary_manager.get_binaries(platform)
+            encoded_bins = self.binary_manager.get_binaries(platform)
         except KeyError as e:
             raise ServiceError(e, 2)
 
@@ -145,9 +149,8 @@ class Server:
 
     def __init__(self,
                  task_queue,
-                 binary_manager,
-                 worker_group=None,
-                 services=None):
+                 services,
+                 worker_group=None):
         """
         task_queue is a TaskQueue object that tasks to be run are taken from
 
@@ -161,15 +164,11 @@ class Server:
         default instance is used.
         """
         self.task_queue = task_queue
-        self.binary_manager = binary_manager
+        self.services = services
 
         self.worker_group = worker_group
         if not self.worker_group:
             self.worker_group = WorkerGroup()
-
-        self.services = services
-        if not self.services:
-            self.services = ServerServices()
 
         self.keep_running = True
 

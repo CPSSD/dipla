@@ -1,6 +1,6 @@
 import sys
 
-from dipla.server.server import Server, BinaryManager
+from dipla.server.server import BinaryManager, Server, ServerServices
 from dipla.server.task_queue import TaskQueue, Task, DataSource, MachineType
 from dipla.shared import uid_generator
 from dipla.api import Dipla
@@ -82,7 +82,7 @@ def main(argv):
         ('reduce', 'reduce')
     ])
 
-    s = Server(tq, bm)
+    s = Server(tq, ServerServices(bm))
     print('Starting server')
     address, port = 'localhost', 8765
     if len(argv) > 1:
