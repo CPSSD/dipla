@@ -67,13 +67,23 @@ class TaskQueue:
         if active:
             self._active_tasks.add(item.uid)
 
-    def has_next_input(self):
+    def has_next_input(self, machine_type=None):
         """
         Returns true if there are task input values that can be popped
         from the queue, or false if there are either no tasks or no
         available values for any tasks
+
+        machine_type is an instance of the MachineType enum. If
+        specified, this has_next method will only consider tasks of
+        this type. If this parameter is None it will have
+        MachineType.any_machine assigned to it
         """
+        if machine_type is None:
+            machine_type = MachineType.any_machine
         for task_uid in self._active_tasks:
+            if not self._nodes[task_uid].is_machine_type(machine_type):
+                continue
+
             if self._nodes[task_uid].has_next_input():
                 return True
 
@@ -81,11 +91,16 @@ class TaskQueue:
 
     # TODO(StefanKennedy) Add fallback in case popped values are lost
     # and we need to redistribute them
-    def pop_task_input(self):
+    def pop_task_input(self, machine_type=None):
         """
         Returns a TaskInput object that can be used to run a task as a
         These values will be taken from a task with its id present in
         the active_tasks set
+
+        machine_type is a MachineType enum instance indicating what type
+        of task input should be popped (Input for a task that will run
+        on the specified machine.) If this parameter is None it will
+        have MachineType.any_machine assigned to it
 
         Raises:
          - TaskQueueEmpty exception is there's no available tasks or
@@ -95,10 +110,16 @@ class TaskQueue:
          - The TaskInput object representing some of the data from an
         active task
         """
-        if not self.has_next_input():
+        if machine_type is None:
+            machine_type = MachineType.any_machine
+
+        if not self.has_next_input(machine_type):
             raise TaskQueueEmpty("Queue was empty and could not pop input")
 
         for task_uid in self._active_tasks:
+            if not self._nodes[task_uid].is_machine_type(machine_type):
+                continue
+
             if self._nodes[task_uid].has_next_input():
                 # Read some data from this task, and if check if we've
                 # completed it
@@ -219,6 +240,11 @@ class TaskQueueNode:
             if not dependency.data_streamer.has_available_data():
                 return False
         return True
+
+    def is_machine_type(self, machine_type):
+        if machine_type == MachineType.any_machine:
+            return True
+        return machine_type == self.task_item.machine_type
 
 
 class DataStreamerEmpty(Exception):
@@ -451,3 +477,4 @@ class MachineType(Enum):
     """
     server = 1
     client = 2
+    any_machine = 3

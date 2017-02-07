@@ -215,14 +215,31 @@ class Server:
             if worker.uid in self.worker_group.worker_uids():
                 self.worker_group.remove_worker(worker.uid)
 
+    def _get_distributable_task_input(self):
+        """
+        Used to get the next task input for either distributing to
+        clients or running on the server. This will consider whether
+        there are any available workers, and if not will only get server
+        side tasks. This is an implementation detail of at least the
+        distribute_tasks method.
+        """
+        if not self.worker_group.has_available_worker():
+            if self.task_queue.has_next_input(MachineType.server):
+                return self.task_queue.pop_task_input(MachineType.server)
+            return None
+        return self.task_queue.pop_task_input()
+
     def distribute_tasks(self):
         # By leasing workers without specifying an id, we get the
         # highest quality worker for the task
-        while self.worker_group.has_available_worker():
-            if not self.task_queue.has_next_input():
+        while self.task_queue.has_next_input():
+            # If workers are connected pop any kind of task input. If no
+            # workers are connected we must only get server task input
+
+            task_input = self._get_distributable_task_input()
+            if task_input is None:  # Happens when no input can be used
                 break
 
-            task_input = self.task_queue.pop_task_input()
             if self.task_queue.is_inactive():
                 # Flag the server to terminate, all tasks are inactive
                 self.keep_running = False
