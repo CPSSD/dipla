@@ -33,14 +33,13 @@ class SocketConnection(threading.Thread, metaclass=abc.ABCMeta):
 
     DATA_ENCODING = "UTF-8"
 
-    def __init__(self, host_address, host_port, event_listener, label):
+    def __init__(self, host_address, event_listener, label):
         super(SocketConnection, self).__init__()
         self._logger = logging.getLogger(__name__)
         self._message_defixer = MessageDefixer()
         self._event_listener = event_listener
         self._stop_event = threading.Event()
         self._host_address = host_address
-        self._host_port = host_port
         self._connection = None
         self._connected = False
         self._label = label
@@ -211,8 +210,8 @@ class ClientConnection(SocketConnection):
     """
 
     def __init__(self, host_address, host_port, event_listener):
+        self._host_port = host_port
         super(ClientConnection, self).__init__(host_address,
-                                               host_port,
                                                event_listener,
                                                "ClientConnection")
 
@@ -265,24 +264,16 @@ class ServerConnection(SocketConnection):
     incoming ClientConnection.
     """
 
-    def __init__(self, host_port, event_listener):
+    def __init__(self, socket_, event_listener):
+        self._socket = socket_
         super(ServerConnection, self).__init__("localhost",
-                                               host_port,
                                                event_listener,
                                                "ServerConnection")
 
     def _prepare_socket(self):
-        self._socket = socket.socket()
         self._socket.setblocking(True)
         self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self._bind_socket()
         self._socket.listen(5)
-
-    def _bind_socket(self):
-        try:
-            self._socket.bind(('localhost', self._host_port))
-        except OverflowError:
-            raise ConnectionPreparationFailedError(ILLEGAL_PORT_BIND_MESSAGE)
 
     def _perform_connection_step(self):
         self._logger.debug(START_CONNECTING_MESSAGE, self._label)
