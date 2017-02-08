@@ -88,7 +88,7 @@ def main(argv):
     parser = argparse.ArgumentParser(description="Start a Dipla server.")
     parser.add_argument('-u', default='localhost', dest='url')
     parser.add_argument('-p', default=8765, dest='port', type=int)
-    parser.add_argument('-pass', default=None, dest='password')
+    parser.add_argument('--pass', default=None, dest='password')
     args = parser.parse_args()
     s.start(args.url, args.port, args.password)
 
