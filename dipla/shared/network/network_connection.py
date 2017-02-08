@@ -218,10 +218,6 @@ class ClientConnection(SocketConnection):
     def _prepare_socket(self):
         self._connection = socket.socket()
         self._connection.setblocking(True)
-        self._enable_reusable_addresses()
-
-    def _enable_reusable_addresses(self):
-        self._connection.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
     def _perform_connection_step(self):
         self._logger.debug(START_CONNECTING_MESSAGE, self._label)
@@ -241,7 +237,8 @@ class ClientConnection(SocketConnection):
         self._connection.connect((self._host_address, self._host_port))
         self._connected = True
 
-    def _recover_from_connection_error(self, socket_error):
+    @staticmethod
+    def _recover_from_connection_error(socket_error):
         if socket_error.errno == errno.ECONNREFUSED:
             raise ConnectionFailedError("Connection Refused.")
         elif socket_error.errno == errno.ECONNRESET:
@@ -264,16 +261,14 @@ class ServerConnection(SocketConnection):
     incoming ClientConnection.
     """
 
-    def __init__(self, socket_, event_listener):
-        self._socket = socket_
+    def __init__(self, master_socket, event_listener):
+        self.__master_socket = master_socket
         super(ServerConnection, self).__init__("localhost",
                                                event_listener,
                                                "ServerConnection")
 
     def _prepare_socket(self):
-        self._socket.setblocking(True)
-        self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self._socket.listen(5)
+        self.__master_socket.listen(5)
 
     def _perform_connection_step(self):
         self._logger.debug(START_CONNECTING_MESSAGE, self._label)
@@ -284,7 +279,8 @@ class ServerConnection(SocketConnection):
             self._recover_from_connection_error(os_error)
 
     def _accept_incoming_connection(self):
-        self._connection, self._connection_address = self._socket.accept()
+        self._connection, self._connection_address = self.__master_socket.\
+            accept()
         self._connected = True
         self._logger.debug(
             CONNECTION_ESTABLISHED_MESSAGE,
@@ -301,7 +297,7 @@ class ServerConnection(SocketConnection):
     def _cleanup(self):
         self._stop_event.set()
         self._stop_connection_element(self._connection)
-        self._stop_connection_element(self._socket)
+        self._stop_connection_element(self.__master_socket)
         self._connected = False
 
 
