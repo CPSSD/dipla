@@ -13,7 +13,7 @@ from dipla.shared.message_generator import generate_message
 
 class Client(object):
 
-    def __init__(self, server_address, quality_scorer=None, password=None):
+    def __init__(self, server_address, quality_scorer=None, password=''):
         """Create the client.
 
         server_address, string: The address of the websocket server to
@@ -154,7 +154,7 @@ class Client(object):
             'platform': self._get_platform(),
             'quality': self._get_quality(),
         }
-        if self.password is not None:
+        if self.password != '':
             data['password'] = self.password
         self.send(generate_message('get_binaries', data))
 

@@ -16,7 +16,7 @@ class ConfigHandler:
         'server_ip': 'localhost',
         'server_port': 8765,
         'log_file': 'DIPLA_CLIENT.log',
-        'password': None
+        'password': ''
     }
 
     """
