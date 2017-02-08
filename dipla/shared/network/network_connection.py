@@ -257,8 +257,7 @@ class ClientConnection(SocketConnection):
 class ServerConnection(SocketConnection):
     """
     The ServerConnection is a subclass of a SocketConnection. It is used to
-    bind a socket to a port during the connection process and accept an
-    incoming ClientConnection.
+    accept an incoming ClientConnection.
     """
 
     def __init__(self, master_socket, event_listener):
@@ -377,8 +376,6 @@ STOP_CONNECTION_ELEMENT_TWICE_MESSAGE = "%s e: Tried to clean up a " \
                                         "connection element for second time."
 
 START_CONNECTING_MESSAGE = "%s has begun the connection process."
-
-ILLEGAL_PORT_BIND_MESSAGE = "Attempted to bind to invalid port number."
 
 ATTEMPTING_CONNECT_MESSAGE = "%s attempting to establish connection to (%s:%s)"
 
