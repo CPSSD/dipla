@@ -69,16 +69,18 @@ class ServerConnectionProvider(Thread):
             time.sleep(0.1)
 
     def __store_current_connection(self):
-        self.__established_connections.add(
+        self.__established_connections.put(
             self.__current_server_connection
         )
 
     def __stop_all_established_connections(self):
         self.__logger.debug(STOPPING_ESTABLISHED_MESSAGE)
-        for established_connection in self.__established_connections:
+        established_connections = self.__established_connections
+        while not established_connections.empty():
+            established_connection = established_connections.get_nowait()
             established_connection.stop()
         self.__logger.debug(STOPPED_ESTABLISHED_MESSAGE.format(
-            len(self.__established_connections)
+            established_connections.qsize()
         ))
 
     def __stop_current_server_connection(self):
