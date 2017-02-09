@@ -15,13 +15,12 @@ class ServerConnectionProvider(Thread):
 
     def __init__(self, established_connections, port, event_listener_class):
         self.__established_connections = established_connections
-        self.__port = port
         self.__event_listener_class = event_listener_class
-        super().__init__()
         self.__logger = logging.getLogger(__name__)
         self.__stop_event = Event()
         self.__current_server_connection = None
-        self.__bind_master_socket_to_port()
+        self.__bind_master_socket_to(port)
+        super().__init__()
         self.__logger.debug(CONSTRUCTOR_MESSAGE)
 
     def run(self):
@@ -39,13 +38,13 @@ class ServerConnectionProvider(Thread):
         self.join()
         self.__logger.debug(STOPPED_MESSAGE)
 
-    def __bind_master_socket_to_port(self):
+    def __bind_master_socket_to(self, port):
         self.__master_socket = socket.socket()
         self.__master_socket.setblocking(True)
         self.__master_socket.setsockopt(socket.SOL_SOCKET,
                                         socket.SO_REUSEADDR,
                                         1)
-        self.__master_socket.bind(('localhost', self.__port))
+        self.__master_socket.bind(('', port))
 
     def __create_new_server_connection(self):
         self.__logger.debug(CREATING_SERVER_CONNECTION_MESSAGE)
@@ -97,14 +96,14 @@ class ServerConnectionProvider(Thread):
             self.__master_socket.shutdown(socket.SHUT_RDWR)
             self.__logger.debug(SHUT_DOWN_MASTER_SOCKET_MESSAGE)
         except Exception as e:
-            self.__logger.critical(MASTER_SOCKET_BULLSHIT_MESSAGE.format(e))
+            self.__logger.critical(MASTER_SOCKET_FAILURE_MESSAGE.format(e))
 
         try:
             self.__logger.debug(CLOSING_MASTER_SOCKET_MESSAGE)
             self.__master_socket.close()
             self.__logger.debug(CLOSED_MASTER_SOCKET_MESSAGE)
         except Exception as e:
-            self.__logger.critical(MASTER_SOCKET_BULLSHIT_MESSAGE.format(e))
+            self.__logger.critical(MASTER_SOCKET_FAILURE_MESSAGE.format(e))
 
 
 CONSTRUCTOR_MESSAGE = "Created a new ServerConnectionProvider"
@@ -136,7 +135,8 @@ SHUTTING_DOWN_MASTER_SOCKET_MESSAGE = "Shutting down master socket..."
 
 SHUT_DOWN_MASTER_SOCKET_MESSAGE = "Successfully shut down master socket."
 
-MASTER_SOCKET_BULLSHIT_MESSAGE = "Some bullshit happened: {}"
+MASTER_SOCKET_FAILURE_MESSAGE = "Something happened when shutting_down/closing"\
+                                " master socket: {}"
 
 STOPPING_MESSAGE = "Stopping ServerConnectionProvider..."
 

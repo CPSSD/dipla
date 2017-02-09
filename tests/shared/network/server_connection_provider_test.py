@@ -2,8 +2,7 @@ import queue
 import unittest
 import time
 from dipla.shared.network.network_connection import ClientConnection
-from .network_connection_test import EventSavingEventListener, \
-    EchoEventListener
+from .network_connection_test import EventSavingEventListener, EchoEventListener  # nopep8
 from tests.utils import assert_with_timeout
 from dipla.shared.network.server_connection_provider import ServerConnectionProvider  # nopep8
 
