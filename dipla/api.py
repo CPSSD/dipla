@@ -1,5 +1,5 @@
 from dipla.api_support.function_serialise import get_encoded_script
-from dipla.server.server import BinaryManager, Server
+from dipla.server.server import BinaryManager, Server, ServerServices
 from dipla.server.task_queue import TaskQueue, Task, DataSource, MachineType
 from dipla.shared import uid_generator
 
@@ -141,7 +141,7 @@ class Dipla:
             Dipla.task_queue.get_task(promise.task_uid), source_uid))
         Dipla.task_queue.push_task(get_task)
 
-        server = Server(Dipla.task_queue, Dipla.binary_manager)
+        server = Server(Dipla.task_queue, ServerServices(Dipla.binary_manager))
         server.start()
 
         return get_task.task_output

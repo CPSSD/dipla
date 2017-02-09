@@ -135,8 +135,8 @@ SHUTTING_DOWN_MASTER_SOCKET_MESSAGE = "Shutting down master socket..."
 
 SHUT_DOWN_MASTER_SOCKET_MESSAGE = "Successfully shut down master socket."
 
-MASTER_SOCKET_FAILURE_MESSAGE = "Something happened when shutting_down/closing"\
-                                " master socket: {}"
+MASTER_SOCKET_FAILURE_MESSAGE = "Something happened when shutting_down/"\
+                                "closing master socket: {}"
 
 STOPPING_MESSAGE = "Stopping ServerConnectionProvider..."
 

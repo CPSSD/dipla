@@ -1,12 +1,11 @@
-import socket
 import unittest
-
+import socket
 import functools
-
 from dipla.shared.network.network_connection import ClientConnection
-from dipla.shared.network.network_connection import EventListener
-from dipla.shared.network.network_connection import ServerConnection
 from tests.utils import assert_with_timeout
+from dipla.shared.network.network_connection import ServerConnection
+from .useful_event_listeners import EventSavingEventListener
+from .useful_event_listeners import EchoEventListener
 
 ASSERTION_TIMEOUT = 10
 
@@ -655,47 +654,6 @@ class MultipleConnectionsTest(unittest.TestCase):
                 client_connection.stop()
             except:
                 pass
-
-
-class EchoEventListener(EventListener):
-
-    def __init__(self):
-        self._last_message = None
-
-    def on_open(self, connection, message):
-        pass
-
-    def on_error(self, connection, error):
-        pass
-
-    def on_close(self, connection, reason):
-        pass
-
-    def on_message(self, connection, message):
-        self._last_message = message
-        message = "Echo: " + message
-        connection.send(message)
-
-
-class EventSavingEventListener(EventListener):
-
-    def __init__(self):
-        self._last_message = None
-        self._last_error = None
-        self._closed = False
-        self._opened = False
-
-    def on_open(self, connection, message):
-        self._opened = True
-
-    def on_message(self, connection, message):
-        self._last_message = message
-
-    def on_error(self, connection, error):
-        self._last_error = error
-
-    def on_close(self, connection, reason):
-        self._closed = True
 
 
 def generate_bytes(num_of_bytes):
