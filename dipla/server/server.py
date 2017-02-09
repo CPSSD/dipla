@@ -135,6 +135,23 @@ class ServerServices:
         server = params.server
         for result in results:
             server.task_queue.add_result(task_id, result)
+
+        verify_dict_key = params.worker.uid + "-" + task_id
+        if verify_dict_key in server.verify_inputs:
+            verify_data = server.verify_inputs[verify_dict_key]
+            verify_data["results"] = results
+            # TODO test this doesnt crash when no workers are available
+            if server.worker_group.has_available_worker():
+                verify_worker = server.worker_group.lease_worker()
+                data = {}
+                data['task_instructions'] = verify_data["task_instructions"]
+                data['task_uid'] = task_id
+                data['arguments'] = verify_data["inputs"]
+                params.server.send(
+                    verify_worker.websocket, 'verify_inputs', data)
+            else:
+                del verify_data[verify_dict_key]
+
         server.worker_group.return_worker(params.worker.uid)
         server.distribute_tasks()
         return None
@@ -162,6 +179,15 @@ class Server:
         services is an instance of ServerServices that is used to lookup
         functions for handling client requests. If this is not provided a
         default instance is used.
+
+        This constructor creates variables used in verifying inputs,
+        where whether or not verification is performed is decided
+        probabilistically using the verify_probability ratio
+
+        verify_inputs is a dictionyary of inputs with an array as the
+        value, indexed by `{worker.uid}-{task_uid}` of the worker and
+        task that they are the inputs for, that store the inputs that
+        will be verified once the actual answers have been obtained
         """
         self.task_queue = task_queue
         self.services = services
@@ -171,6 +197,9 @@ class Server:
             self.worker_group = WorkerGroup()
 
         self.keep_running = True
+
+        self.verify_probability = 1.0
+        self.verify_inputs = {}
 
     async def websocket_handler(self, websocket, path):
         user_id = self.worker_group.generate_uid()
@@ -252,6 +281,10 @@ class Server:
                 # TODO(Update the documentation with this)
                 worker = self.worker_group.lease_worker()
                 self.send(worker.websocket, 'run_instructions', data)
+
+                verify_inputs[worker.uid + "-" + task_input.task_uid] = {
+                    "inputs": task_input.values
+                    }
             elif task_input.machine_type == MachineType.server:
                 # Server side tasks do not have any maching binaries, so
                 # we skip the send-to-client stage and move the read
