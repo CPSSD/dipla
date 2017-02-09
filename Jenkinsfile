@@ -20,9 +20,10 @@ node {
   
     try {
       stage ('Install Dependencies') {
-        sh 'sudo add-apt-repository ppa:fkrull/deadsnakes'
-        sh 'sudo apt-get update'
-        sh 'sudo apt-get install -y python3.5'
+        // Dependenceies already present on CI server and deadsnakes repo dead
+        //sh 'sudo add-apt-repository ppa:fkrull/deadsnakes'
+        //sh 'sudo apt-get update'
+        //sh 'sudo apt-get install -y python3.5'
         //sh 'sudo python3.5 -m "pip" install virtualenv'
       }
   

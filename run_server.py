@@ -1,4 +1,5 @@
 import sys
+import argparse
 
 from dipla.server.server import BinaryManager, Server, ServerServices
 from dipla.server.task_queue import TaskQueue, Task, DataSource, MachineType
@@ -84,14 +85,12 @@ def main(argv):
 
     s = Server(tq, ServerServices(bm))
     print('Starting server')
-    address, port = 'localhost', 8765
-    if len(argv) > 1:
-        if ':' in argv[1]:
-            address, port = argv[1].split(':')
-            port = int(port)
-        else:
-            address = argv[1]
-    s.start(address, port)
+    parser = argparse.ArgumentParser(description="Start a Dipla server.")
+    parser.add_argument('-u', default='localhost', dest='url')
+    parser.add_argument('-p', default=8765, dest='port', type=int)
+    parser.add_argument('--pass', default=None, dest='password')
+    args = parser.parse_args()
+    s.start(args.url, args.port, args.password)
 
 if __name__ == '__main__':
     main(sys.argv)

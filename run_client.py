@@ -21,8 +21,11 @@ def main(argv):
 
     init_logger(config.params['log_file'])
 
-    client = Client('ws://{}:{}'.format(
-        config.params['server_ip'], config.params['server_port']))
+    client = Client(
+        'ws://{}:{}'.format(
+            config.params['server_ip'], config.params['server_port']),
+        password=config.params['password']
+    )
     services = create_services(client)
     client.inject_services(services)
     client.start()
