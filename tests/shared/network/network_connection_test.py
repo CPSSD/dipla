@@ -325,11 +325,6 @@ class ServerConnectionTest(unittest.TestCase):
         self.when_client_connects()
         self.then_server_receives_no_errors()
 
-    # def test_that_server_event_listener_receives_error_when_binding_to_invalid_port(self):  # nopep8
-    #     self.given_a_server_connection_on_port(-1)
-    #     self.when_listening_for_client_connection()
-    #     self.then_server_receives_error()
-
     def test_that_server_connection_to_client_can_be_established_on_different_port(self):  # nopep8
         self.given_a_server_connection_on_port(13377)
         self.when_listening_for_client_connection()

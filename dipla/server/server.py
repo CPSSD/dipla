@@ -101,7 +101,15 @@ class ServerServices:
         raise KeyError("Label '{}' does not have a handler".format(label))
 
     def _handle_get_binaries(self, message, params):
+        # Check if the worker has provided the correct password
+        if params.server.password is not None:
+            if 'password' not in message:
+                raise ServiceError('Password required by server', 3)
+            elif message['password'] != params.server.password:
+                raise ServiceError('Incorrect password provided', 4)
+        # Set the workers quality
         params.worker.set_quality(message['quality'])
+        # Find the correct binary for the worker
         platform = message['platform']
         try:
             encoded_bins = self.binary_manager.get_binaries(platform)
@@ -276,11 +284,12 @@ class Server:
     def send(self, socket, label, data):
         asyncio.ensure_future(self._send_message(socket, label, data))
 
-    def start(self, address='localhost', port=8765):
+    def start(self, address='localhost', port=8765, password=None):
         server = websockets.serve(
             self.websocket_handler,
             address,
             port)
+        self.password = password
 
         asyncio.get_event_loop().run_until_complete(server)
         asyncio.get_event_loop().run_forever()

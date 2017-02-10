@@ -12,6 +12,7 @@ The format of the message is as follows:
     "data": {
         "platform":"win32",
         "quality": 0.31242089,
+        "password": "dipla4ever"
     }
 }
 ```
@@ -19,6 +20,8 @@ The format of the message is as follows:
 The `platform` field should have an identifier for the OS and architecture the client is running on, so the server knows what binary version to send - eg `win32`, `Linux x86-64`, etc.
 
 The `quality` field should have a floating point value that gives an estimate of the quality of the client. Lower is better.
+
+The `password` field is only required if the server has been set up to require a password. If the client does not send a password an appropriate ServiceError will be raised.
 
 ## server to client
 
