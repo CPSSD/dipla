@@ -128,8 +128,7 @@ class ServerServices:
         # assign it to this worker, as it should be the only ready one
         # If there are other workers it is okay to distribute tasks to
         # them too
-        if(len(params.server.worker_group.ready_workers) > 1):
-            params.server.distribute_tasks()
+        params.server.distribute_tasks()
         return None
 
     def _send_verify_inputs(self, server, results, worker_id, task_id):
@@ -137,13 +136,13 @@ class ServerServices:
             return
         # This will not verify results if the original data was not
         # previously stored on a probabilistic basis
-        verify_dict_key = worker_id + '-' + task_id
-        if verify_dict_key not in server.verify_inputs:
-            del server.verify_inputs[verify_dict_key]
+        formatted_verify_key = worker_id + "-" + task_id
+        if formatted_verify_key not in server.verify_inputs:
             return
 
-        formatted_verify_key = worker_id + "-" + task_id
-        verify_data = server.verify_inputs[formatted_verify_key]
+        verify_data = server.verify_inputs.pop(formatted_verify_key)
+        # Add the results to verification data creating an object
+        # with both the inputs and the results
         verify_data['results'] = results
 
         # Send the verify inputs request to a client
@@ -154,9 +153,10 @@ class ServerServices:
         data['arguments'] = verify_data['inputs']
         server.send(leased_worker.websocket, 'verify_inputs', data)
 
+        # Add the verification input / results data back to the map
+        # under the new worker id
         new_dict_key = leased_worker.uid + '-' + task_id
-        server.verify_inputs[new_dict_key] = server.verify_inputs.pop(
-            verify_dict_key)
+        server.verify_inputs[new_dict_key] = verify_data
 
     def _handle_client_result(self, message, params):
         task_id = message['task_uid']
@@ -165,7 +165,7 @@ class ServerServices:
         for result in results:
             server.task_queue.add_result(task_id, result)
 
-        # We need to send verify_inputs before returning the wroker so
+        # We need to send verify_inputs before returning the worker so
         # that we dont send it to the original worker
         self._send_verify_inputs(server, results, params.worker.uid, task_id)
         server.worker_group.return_worker(params.worker.uid)
@@ -219,7 +219,7 @@ class Server:
         where whether or not verification is performed is decided
         probabilistically using the verify_probability ratio
 
-        verify_inputs is a dictionyary of inputs with an array as the
+        verify_inputs is a dictionary of inputs with an array as the
         value, indexed by `{worker.uid}-{task_uid}` of the worker and
         task that they are the inputs for, that store the inputs that
         will be verified once the actual answers have been obtained
@@ -338,7 +338,6 @@ class Server:
                     self.task_queue.add_result(task_input.task_uid, result)
 
     def _decode_message(self, message):
-        print(message)
         message_dict = json.loads(message)
         if 'label' not in message_dict or 'data' not in message_dict:
             raise ValueError('Message missing "label" or "data": {}'.format(
