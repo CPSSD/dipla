@@ -3,6 +3,7 @@ import sys
 import json
 import asyncio
 import websockets
+import random
 
 from dipla.server.task_queue import MachineType
 from dipla.server.worker_group import WorkerGroup, Worker
@@ -92,6 +93,7 @@ class ServerServices:
             'binaries_received': self._handle_binary_received,
             'client_result': self._handle_client_result,
             'runtime_error': self._handle_runtime_error,
+            'verify_inputs_result': self._handle_verify_inputs
         }
         self.binary_manager = binary_manager
 
@@ -126,8 +128,35 @@ class ServerServices:
         # assign it to this worker, as it should be the only ready one
         # If there are other workers it is okay to distribute tasks to
         # them too
-        params.server.distribute_tasks()
+        if(len(params.server.worker_group.ready_workers) > 1):
+            params.server.distribute_tasks()
         return None
+
+    def _send_verify_inputs(self, server, results, worker_id, task_id):
+        if not server.worker_group.has_available_worker():
+            return
+        # This will not verify results if the original data was not
+        # previously stored on a probabilistic basis
+        verify_dict_key = worker_id + '-' + task_id
+        if verify_dict_key not in server.verify_inputs:
+            del server.verify_inputs[verify_dict_key]
+            return
+
+        formatted_verify_key = worker_id + "-" + task_id
+        verify_data = server.verify_inputs[formatted_verify_key]
+        verify_data['results'] = results
+
+        # Send the verify inputs request to a client
+        leased_worker = server.worker_group.lease_worker()
+        data = {}
+        data['task_instructions'] = verify_data['task_instructions']
+        data['task_uid'] = task_id
+        data['arguments'] = verify_data['inputs']
+        server.send(leased_worker.websocket, 'verify_inputs', data)
+
+        new_dict_key = leased_worker.uid + '-' + task_id
+        server.verify_inputs[new_dict_key] = server.verify_inputs.pop(
+            verify_dict_key)
 
     def _handle_client_result(self, message, params):
         task_id = message['task_uid']
@@ -136,22 +165,9 @@ class ServerServices:
         for result in results:
             server.task_queue.add_result(task_id, result)
 
-        verify_dict_key = params.worker.uid + "-" + task_id
-        if verify_dict_key in server.verify_inputs:
-            verify_data = server.verify_inputs[verify_dict_key]
-            verify_data["results"] = results
-            # TODO test this doesnt crash when no workers are available
-            if server.worker_group.has_available_worker():
-                verify_worker = server.worker_group.lease_worker()
-                data = {}
-                data['task_instructions'] = verify_data["task_instructions"]
-                data['task_uid'] = task_id
-                data['arguments'] = verify_data["inputs"]
-                params.server.send(
-                    verify_worker.websocket, 'verify_inputs', data)
-            else:
-                del verify_data[verify_dict_key]
-
+        # We need to send verify_inputs before returning the wroker so
+        # that we dont send it to the original worker
+        self._send_verify_inputs(server, results, params.worker.uid, task_id)
         server.worker_group.return_worker(params.worker.uid)
         server.distribute_tasks()
         return None
@@ -160,6 +176,25 @@ class ServerServices:
         print('Client had an error (code %d): %s' % (message['code'],
                                                      message['details']))
         return None
+
+    def _handle_verify_inputs(self, message, params):
+        verify_inputs_key = params.worker.uid + '-' + message['task_uid']
+        verify_data = params.server.verify_inputs[verify_inputs_key]
+        expected_results = verify_data['results']
+        actual_results = message['results']
+        if(expected_results != actual_results):
+            print("Removing worker",
+                  verify_data["original_worker_uid"],
+                  "because results do not match, expected",
+                  expected_results,
+                  "but got",
+                  actual_results)
+            # TODO LOG the message that is being printed here
+            params.server.worker_group.remove_worker(
+                verify_data["original_worker_uid"])
+        else:
+            params.server.worker_group.return_worker(params.worker.uid)
+        del params.server.verify_inputs[verify_inputs_key]
 
 
 class Server:
@@ -198,7 +233,7 @@ class Server:
 
         self.keep_running = True
 
-        self.verify_probability = 1.0
+        self.verify_probability = 0.5
         self.verify_inputs = {}
 
     async def websocket_handler(self, websocket, path):
@@ -257,6 +292,13 @@ class Server:
             return None
         return self.task_queue.pop_task_input()
 
+    def _add_verify_input_data(self, task_input, worker_id, task_id):
+        self.verify_inputs[worker_id + "-" + task_id] = {
+            "task_instructions": task_input.task_instructions,
+            "inputs": task_input.values,
+            "original_worker_uid": worker_id
+        }
+
     def distribute_tasks(self):
         # By leasing workers without specifying an id, we get the
         # highest quality worker for the task
@@ -282,9 +324,9 @@ class Server:
                 worker = self.worker_group.lease_worker()
                 self.send(worker.websocket, 'run_instructions', data)
 
-                verify_inputs[worker.uid + "-" + task_input.task_uid] = {
-                    "inputs": task_input.values
-                    }
+                if(random.random() < self.verify_probability):
+                    self._add_verify_input_data(
+                        task_input, worker.uid, task_input.task_uid)
             elif task_input.machine_type == MachineType.server:
                 # Server side tasks do not have any maching binaries, so
                 # we skip the send-to-client stage and move the read
@@ -296,6 +338,7 @@ class Server:
                     self.task_queue.add_result(task_input.task_uid, result)
 
     def _decode_message(self, message):
+        print(message)
         message_dict = json.loads(message)
         if 'label' not in message_dict or 'data' not in message_dict:
             raise ValueError('Message missing "label" or "data": {}'.format(

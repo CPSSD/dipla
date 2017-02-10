@@ -9,7 +9,7 @@ from base64 import b64decode
 # This is an interface that all client services must implement.
 class ClientService(ABC):
 
-    # Get the label that identifies messages for this service
+    # Get the labels that identify messages for this service
     @abstractstaticmethod
     def get_label():
         pass
@@ -36,13 +36,14 @@ class BinaryRunnerService(ClientService):
 
     @staticmethod
     def get_label():
-        return 'run_instructions'
+        pass
 
     def __init__(self, client, binary_runner):
         super().__init__(client)
         self._binary_runner = binary_runner
 
     def execute(self, data):
+        print(data)
         task = data["task_instructions"]
 
         if not hasattr(self._client, 'binary_paths'):
@@ -59,8 +60,32 @@ class BinaryRunnerService(ClientService):
         }
 
         message = message_generator.generate_message(
-            'client_result', result_data)
+            'binary_result', result_data)
         return message
+
+
+class RunInstructionsService(BinaryRunnerService):
+
+    @staticmethod
+    def get_label():
+        return 'run_instructions'
+
+    def execute(self, data):
+        result_message = super().execute(data)
+        result_message['label'] = 'client_result'
+        return result_message
+
+
+class VerifyInputsService(BinaryRunnerService):
+
+    @staticmethod
+    def get_label():
+        return 'verify_inputs'
+
+    def execute(self, data):
+        result_message = super().execute(data)
+        result_message['label'] = 'verify_inputs_result'
+        return result_message
 
 
 class BinaryReceiverService(ClientService):

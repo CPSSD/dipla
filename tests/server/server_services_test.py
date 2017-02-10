@@ -15,10 +15,9 @@ class WorkerGroupTest(unittest.TestCase):
         mock_server.worker_group = WorkerGroup()
         self.mock_server = mock_server
 
-        mock_worker = Mock()
-        mock_worker.uid = "foo"
-        mock_server.worker_group.add_worker(mock_worker)
-        self.mock_worker = mock_worker
+        foo_worker = Worker("foo_worker", None, quality=1)
+        mock_server.worker_group.add_worker(foo_worker)
+        self.foo_worker = foo_worker
 
         # Lease the mock worker, like it would be in the real situation
         mock_server.worker_group.lease_worker()
@@ -26,7 +25,7 @@ class WorkerGroupTest(unittest.TestCase):
     def test_handle_client_result_sends_verify_message(self):
         service = self.server_services.get_service('client_result')
         message = {
-            "task_uid": "bar",
+            "task_uid": "bar_task",
             "results": ["foo", "bar", "nod"],
         }
 
@@ -36,26 +35,71 @@ class WorkerGroupTest(unittest.TestCase):
             self.assertEquals(expected_socket, socket)
             self.assertEquals("verify_inputs", label)
             self.assertEquals({
-                    "task_uid": "bar",
+                    "task_uid": "bar_task",
                     "task_instructions": "foobar",
                     "arguments": [1, 2, 3, 4]
                 }, data)
         self.mock_server.send = mock_send
         self.mock_server.worker_group.add_worker(
-            Worker("bar", expected_socket))
+            Worker("bar_worker", expected_socket, quality=1))
         self.mock_server.verify_inputs = {
-            "foo-bar": {
+            "foo_worker-bar_task": {
                 "task_instructions": "foobar",
                 "inputs": [1, 2, 3, 4],
-            }}
+            }
+        }
 
-        service(message, ServiceParams(self.mock_server, self.mock_worker))
+        service(message, ServiceParams(self.mock_server, self.foo_worker))
 
     def test_handle_client_result_verify_wont_crash_if_no_other_workers(self):
         service = self.server_services.get_service('client_result')
         message = {
-            "task_uid": "bar",
+            "task_uid": "bar_task",
             "results": ["foo", "bar", "nod"],
         }
 
-        service(message, ServiceParams(self.mock_server, self.mock_worker))
+        service(message, ServiceParams(self.mock_server, self.foo_worker))
+
+    def test_handle_verify_inputs_detect_mismatch(self):
+        service = self.server_services.get_service('verify_inputs_result')
+
+        self.mock_server.verify_inputs = {
+            "foo_worker-foo_task": {
+                "original_worker_uid": "bar_worker",
+                "results": [3, 2, 1]
+            }
+        }
+
+        message = {
+            "task_uid": "foo_task",
+            "results": [1, 2, 3]
+        }
+        mock_barworker = Mock()
+        mock_barworker.uid = "bar_worker"
+        self.mock_server.worker_group.add_worker(mock_barworker)
+
+        service(message, ServiceParams(self.mock_server, self.foo_worker))
+        self.assertFalse(
+            "bar_worker" in self.mock_server.worker_group.worker_uids())
+
+    def test_handle_verify_inputs_returns_worker_on_verification(self):
+        service = self.server_services.get_service('verify_inputs_result')
+
+        self.mock_server.verify_inputs = {
+            "foo_worker-foo_task": {
+                "original_worker_uid": "bar_worker",
+                "results": [3, 2, 1]
+            }
+        }
+
+        message = {
+            "task_uid": "foo_task",
+            "results": [3, 2, 1]
+        }
+        bar_worker = Worker("bar_worker", None, quality=1)
+        self.mock_server.worker_group.add_worker(bar_worker)
+
+        service(message, ServiceParams(self.mock_server, self.foo_worker))
+        print(self.mock_server.worker_group.worker_uids())
+        self.assertTrue(
+            "bar_worker" in self.mock_server.worker_group.worker_uids())
