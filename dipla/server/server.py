@@ -180,20 +180,23 @@ class ServerServices:
     def _handle_verify_inputs(self, message, params):
         verify_inputs_key = params.worker.uid + '-' + message['task_uid']
         verify_data = params.server.verify_inputs[verify_inputs_key]
-        expected_results = verify_data['results']
-        actual_results = message['results']
-        if(expected_results != actual_results):
-            print("Removing worker",
-                  verify_data["original_worker_uid"],
-                  "because results do not match, expected",
-                  expected_results,
-                  "but got",
-                  actual_results)
-            # TODO LOG the message that is being printed here
-            params.server.worker_group.remove_worker(
-                verify_data["original_worker_uid"])
+
+        original_worker = params.server.worker_group.get_worker(
+            verify_data["original_worker_uid"])
+        if verify_data['results'] != message['results']:
+            original_worker.correctness_score -= 0.05
+            if original_worker.correctness_score <\
+                    params.server.min_worker_correctness:
+                params.server.worker_group.remove_worker(
+                    verify_data["original_worker_uid"])
+                print("Removing worker",
+                      original_worker.uid,
+                      "for invalid results")
+                # TODO LOG the message that is being printed here
         else:
+            original_worker.correctness_score += 0.05
             params.server.worker_group.return_worker(params.worker.uid)
+
         del params.server.verify_inputs[verify_inputs_key]
 
 
@@ -228,6 +231,7 @@ class Server:
         self.services = services
 
         self.worker_group = worker_group
+        self.min_worker_correctness = 0.99
         if not self.worker_group:
             self.worker_group = WorkerGroup()
 

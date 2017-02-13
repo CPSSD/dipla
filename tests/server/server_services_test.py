@@ -8,14 +8,15 @@ class WorkerGroupTest(unittest.TestCase):
 
     def setUp(self):
         self.server_services = ServerServices(None)
-        print("setUp called")
 
         mock_server = Mock()
         mock_server.verify_inputs = {}
         mock_server.worker_group = WorkerGroup()
+        mock_server.min_worker_correctness = 0.99
         self.mock_server = mock_server
 
         foo_worker = Worker("foo_worker", None, quality=1)
+        foo_worker.correctness_score = 1
         mock_server.worker_group.add_worker(foo_worker)
         self.foo_worker = foo_worker
 
@@ -30,16 +31,7 @@ class WorkerGroupTest(unittest.TestCase):
         }
 
         expected_socket = Mock()
-
-        def mock_send(socket, label, data):
-            self.assertEquals(expected_socket, socket)
-            self.assertEquals("verify_inputs", label)
-            self.assertEquals({
-                    "task_uid": "bar_task",
-                    "task_instructions": "foobar",
-                    "arguments": [1, 2, 3, 4]
-                }, data)
-        self.mock_server.send = mock_send
+        
         self.mock_server.worker_group.add_worker(
             Worker("bar_worker", expected_socket, quality=1))
         self.mock_server.verify_inputs = {
@@ -50,6 +42,14 @@ class WorkerGroupTest(unittest.TestCase):
         }
 
         service(message, ServiceParams(self.mock_server, self.foo_worker))
+        self.mock_server.send.assert_called_once_with(
+            expected_socket,
+            "verify_inputs",
+            {
+                "task_uid": "bar_task",
+                "task_instructions": "foobar",
+                "arguments": [1, 2, 3, 4]
+            })
 
     def test_handle_client_result_verify_wont_crash_if_no_other_workers(self):
         service = self.server_services.get_service('client_result')
@@ -74,12 +74,35 @@ class WorkerGroupTest(unittest.TestCase):
             "task_uid": "foo_task",
             "results": [1, 2, 3]
         }
-        mock_barworker = Mock()
-        mock_barworker.uid = "bar_worker"
-        self.mock_server.worker_group.add_worker(mock_barworker)
+        bar_worker = Worker("bar_worker", None, quality=1)
+        self.mock_server.worker_group.add_worker(bar_worker)
 
         service(message, ServiceParams(self.mock_server, self.foo_worker))
         self.assertFalse(
+            "bar_worker" in self.mock_server.worker_group.worker_uids())
+
+    def test_handle_verify_inputs_wont_remove_worker_above_min_score(self):
+        service = self.server_services.get_service('verify_inputs_result')
+
+        self.mock_server.verify_inputs = {
+            "foo_worker-foo_task": {
+                "original_worker_uid": "bar_worker",
+                "results": [3, 2, 1]
+            }
+        }
+
+        message = {
+            "task_uid": "foo_task",
+            "results": [1, 2, 3]
+        }
+
+        self.mock_server.min_worker_correctness = 0.90
+
+        bar_worker = Worker("bar_worker", None, quality=1)
+        self.mock_server.worker_group.add_worker(bar_worker)
+
+        service(message, ServiceParams(self.mock_server, self.foo_worker))
+        self.assertTrue(
             "bar_worker" in self.mock_server.worker_group.worker_uids())
 
     def test_handle_verify_inputs_returns_worker_on_verification(self):
@@ -100,6 +123,5 @@ class WorkerGroupTest(unittest.TestCase):
         self.mock_server.worker_group.add_worker(bar_worker)
 
         service(message, ServiceParams(self.mock_server, self.foo_worker))
-        print(self.mock_server.worker_group.worker_uids())
         self.assertTrue(
             "bar_worker" in self.mock_server.worker_group.worker_uids())
