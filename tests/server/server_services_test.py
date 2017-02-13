@@ -31,7 +31,7 @@ class WorkerGroupTest(unittest.TestCase):
         }
 
         expected_socket = Mock()
-        
+
         self.mock_server.worker_group.add_worker(
             Worker("bar_worker", expected_socket, quality=1))
         self.mock_server.verify_inputs = {
