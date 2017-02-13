@@ -13,12 +13,13 @@ from dipla.shared.logutils import LogUtils
 
 class Client(object):
 
-    def __init__(self, server_address, quality_scorer=None):
+    def __init__(self, server_address, quality_scorer=None, password=''):
         """Create the client.
 
         server_address, string: The address of the websocket server to
             connect to, eg. 'ws://localhost:8765'."""
         self.server_address = server_address
+        self.password = password
         # the number of times to try to connect before giving up
         self.connect_tries_limit = 8
         # A class to be used to assign a quality to this client
@@ -149,6 +150,8 @@ class Client(object):
             'platform': self._get_platform(),
             'quality': self._get_quality(),
         }
+        if self.password != '':
+            data['password'] = self.password
         self.send(generate_message('get_binaries', data))
 
         loop.run_until_complete(receive_task)
