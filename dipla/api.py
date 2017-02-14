@@ -104,7 +104,11 @@ class Dipla:
         task_uid = uid_generator.generate_uid(
             length=8,
             existing_uids=Dipla.task_queue.get_task_ids())
-        task = Task(task_uid, function.__name__, MachineType.client)
+        task = Task(
+            task_uid,
+            function.__name__,
+            MachineType.client,
+            complete_check=Dipla.complete_on_eof)
         for arg in args:
             if isinstance(arg, list):
                 source_uid = uid_generator.generate_uid(

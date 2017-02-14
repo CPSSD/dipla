@@ -178,8 +178,6 @@ class Server:
         if not self.worker_group:
             self.worker_group = WorkerGroup()
 
-        self.keep_running = True
-
     async def websocket_handler(self, websocket, path):
         user_id = self.worker_group.generate_uid()
         worker = Worker(user_id, websocket)
@@ -195,11 +193,6 @@ class Server:
                     service = self.services.get_service(message['label'])
                     response_data = service(
                         message['data'], params=ServiceParams(self, worker))
-                    if not self.keep_running:
-                        # TODO(StefanKennedy) Research if there is a
-                        # more elegant way to stop the server
-                        asyncio.get_event_loop().stop()
-                        return
                     if response_data is None:
                         continue
                     self.send(
@@ -247,10 +240,6 @@ class Server:
             if task_input is None:  # Happens when no input can be used
                 break
 
-            if self.task_queue.is_inactive():
-                # Flag the server to terminate, all tasks are inactive
-                self.keep_running = False
-
             if task_input.machine_type == MachineType.client:
                 # Create the message and send it
                 data = {}
@@ -269,6 +258,10 @@ class Server:
                 task_values = task_input.values[0]
                 for result in task_values:
                     self.task_queue.add_result(task_input.task_uid, result)
+
+            if self.task_queue.is_inactive():
+                # Flag the server to terminate, all tasks are inactive
+                asyncio.get_event_loop().stop()
 
     def _decode_message(self, message):
         message_dict = json.loads(message)
@@ -292,4 +285,5 @@ class Server:
         self.password = password
 
         asyncio.get_event_loop().run_until_complete(server)
+        asyncio.get_event_loop().call_soon(self.distribute_tasks)
         asyncio.get_event_loop().run_forever()

@@ -63,7 +63,6 @@ class TaskQueue:
             # If other task is not open, do not activate this task
             if not self.is_task_open(instruction.source_task_uid):
                 active = False
-
         if active:
             self._active_tasks.add(item.uid)
 
@@ -123,10 +122,7 @@ class TaskQueue:
             if self._nodes[task_uid].has_next_input():
                 # Read some data from this task, and if check if we've
                 # completed it
-                popped = self._nodes[task_uid].next_input()
-                if self.is_task_complete(task_uid):
-                    self._active_tasks.remove(task_uid)
-                return popped
+                return self._nodes[task_uid].next_input()
 
     def add_result(self, task_id, result):
         if task_id not in self._nodes:
@@ -136,6 +132,9 @@ class TaskQueue:
         self._nodes[task_id].task_item.add_result(result)
         if self.is_task_open(task_id):
             self.activate_new_tasks(self._nodes[task_id].dependees)
+        # Check if the task is now completed
+        if self.is_task_complete(task_id):
+            self._active_tasks.remove(task_id)
 
     def get_task(self, task_uid):
         return self._nodes[task_uid].task_item
@@ -214,18 +213,20 @@ class TaskQueueNode:
             raise DataStreamerEmpty(
                 "Attempted to read input from an empty source")
 
-        complete = False
+        input_exhausted = False
         arguments = []
         for dependency in self.dependencies:
             argument_id = dependency.source_uid
             arguments.append(dependency.data_streamer.read())
             # If any dependencies do not have data available the
             if self.task_item.complete_check(dependency.data_streamer):
-                complete = True
+                input_exhausted = True
 
-        if complete:
-            self.task_item.complete_task()
+        if input_exhausted:
+            self.task_item.mark_inputs_exhausted()
 
+        # Not very pretty, but expect a result for every element in the args
+        self.task_item.inc_expected_results_by(len(arguments[0]))
         return TaskInput(
             self.task_item.uid,
             self.task_item.instructions,
@@ -448,11 +449,20 @@ class Task:
         self.open = False
         self.complete_check = complete_check
         self.complete = False
+        self.inputs_exhausted = False
+        self.expected_results_count = 0
+        self.seen_results_count = 0
 
         self.task_output = []
 
     def add_result(self, result):
         self.task_output.append(result)
+        self.seen_results_count += 1
+        # If our inputs have nothing left in them and we've recieved the
+        # number of results we expect then this task is complete
+        if (self.seen_results_count == self.expected_results_count and
+            self.inputs_exhausted):
+            self.complete = True
         if self.open_check(result):
             self._open_task()
 
@@ -467,8 +477,13 @@ class Task:
     def _open_task(self):
         self.open = True
 
-    def complete_task(self):
-        self.complete = True
+    def mark_inputs_exhausted(self):
+        # Mark the task as having no new inputs to expect
+        self.inputs_exhausted = True
+
+    def inc_expected_results_by(self, count):
+        # Increase the number of results we should expect
+        self.expected_results_count += count
 
 
 class MachineType(Enum):
