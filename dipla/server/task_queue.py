@@ -217,7 +217,11 @@ class TaskQueueNode:
         arguments = []
         for dependency in self.dependencies:
             argument_id = dependency.source_uid
-            arguments.append(dependency.data_streamer.read())
+            arg = dependency.data_streamer.read()
+            # Client expects a list of arguments
+            if not isinstance(arg, list):
+                arg = [arg]
+            arguments.append(arg)
             # If any dependencies do not have data available the
             if self.task_item.complete_check(dependency.data_streamer):
                 input_exhausted = True
