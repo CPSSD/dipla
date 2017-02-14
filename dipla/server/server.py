@@ -219,7 +219,6 @@ class Server:
         await socket.send(json.dumps(message))
 
     def send(self, socket, label, data):
-        print(label, data)
         asyncio.ensure_future(self._send_message(socket, label, data))
 
     def start(self, address='localhost', port=8765, password=None):
