@@ -213,7 +213,7 @@ class Server:
     def __init__(self,
                  task_queue,
                  services,
-                 worker_group=None
+                 worker_group=None,
                  stats=None):
         """
         task_queue is a TaskQueue object that tasks to be run are taken from
