@@ -450,19 +450,18 @@ class Task:
         self.complete_check = complete_check
         self.complete = False
         self.inputs_exhausted = False
-        self.expected_results_count = 0
-        self.seen_results_count = 0
+        self.num_expected_results = 0
+        self.num_seen_results = 0
 
         self.task_output = []
 
     def add_result(self, result):
         self.task_output.append(result)
-        self.seen_results_count += 1
+        self.num_seen_results += 1
         # If our inputs have nothing left in them and we've recieved the
         # number of results we expect then this task is complete
-        if (self.seen_results_count == self.expected_results_count and
-            self.inputs_exhausted):
-            self.complete = True
+        self.complete = (self.inputs_exhausted and
+                         self.num_seen_results == self.num_expected_results)
         if self.open_check(result):
             self._open_task()
 
@@ -483,7 +482,7 @@ class Task:
 
     def inc_expected_results_by(self, count):
         # Increase the number of results we should expect
-        self.expected_results_count += count
+        self.num_expected_results += count
 
 
 class MachineType(Enum):
