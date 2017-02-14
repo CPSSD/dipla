@@ -1,5 +1,4 @@
 import unittest
-from unittest import mock
 from dipla.server.server import Server, BinaryManager
 from dipla.server.task_queue import TaskQueue, Task, DataSource, MachineType
 from dipla.server.worker_group import WorkerGroup, Worker
