@@ -248,7 +248,7 @@ class Server:
         if not self.worker_group:
             self.worker_group = WorkerGroup(stats)
 
-        self.stats = stats 
+        self.stats = stats
 
         self.keep_running = True
 
