@@ -9,6 +9,7 @@ from dipla.server.task_queue import MachineType
 from dipla.server.worker_group import WorkerGroup, Worker
 from dipla.shared.services import ServiceError
 from dipla.shared.message_generator import generate_message
+from dipla.shared.error_codes import ErrorCodes
 from base64 import b64encode
 
 
@@ -106,9 +107,11 @@ class ServerServices:
         # Check if the worker has provided the correct password
         if params.server.password is not None:
             if 'password' not in message:
-                raise ServiceError('Password required by server', 3)
+                raise ServiceError('Password required by server',
+                                   ErrorCodes.password_required)
             elif message['password'] != params.server.password:
-                raise ServiceError('Incorrect password provided', 4)
+                raise ServiceError('Incorrect password provided',
+                                   ErrorCodes.invalid_password)
         # Set the workers quality
         params.worker.set_quality(message['quality'])
         # Find the correct binary for the worker
@@ -116,7 +119,7 @@ class ServerServices:
         try:
             encoded_bins = self.binary_manager.get_binaries(platform)
         except KeyError as e:
-            raise ServiceError(e, 2)
+            raise ServiceError(e, ErrorCodes.invalid_binary_key)
 
         data = {
             'base64_binaries': dict(encoded_bins),
@@ -127,11 +130,8 @@ class ServerServices:
         # Worker has downloaded binary and is ready to do tasks
         try:
             params.server.worker_group.add_worker(params.worker)
-        except ValueError:
-            # TODO(cianlr): Log something here indicating the error
-            data = {'details': 'UserID already taken', 'code': 0}
-            params.server.send(websocket, 'runtime_error', data)
-            return None
+        except ValueError as e:
+            raise ServiceError(e, ErrorCodes.user_id_already_taken)
         # If there was extra tasks that no others could do, try and
         # assign it to this worker, as it should be the only ready one
         # If there are other workers it is okay to distribute tasks to
@@ -277,7 +277,7 @@ class Server:
                     # then send a message with the 'runtime_error' label.
                     data = {
                         'details': 'Error during websocket loop: %s' % str(e),
-                        'code': 1,
+                        'code': ErrorCodes.server_websocket_loop,
                     }
                     self.send(worker.websocket, 'runtime_error', data)
                 except ServiceError as e:
