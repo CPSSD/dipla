@@ -26,7 +26,7 @@ class LogUtils:
         LogUtils.logger.addHandler(handler)
 
     @staticmethod
-    def log_debug(message):
+    def debug(message):
         """
         Params:
          - message is a string containing the debug message to be logged
@@ -34,14 +34,14 @@ class LogUtils:
         LogUtils.logger.debug(message)
 
     @staticmethod
-    def log_warning(message):
+    def warning(message):
         """
         Params:
          - message is a string containing the warning to be logged
         """
         LogUtils.logger.warning(message)
 
-    def log_error(message, error):
+    def error(message, error):
         """
         Params:
          - message is a string containing the error to be logged

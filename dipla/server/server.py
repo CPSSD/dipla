@@ -129,7 +129,7 @@ class ServerServices:
         try:
             params.server.worker_group.add_worker(params.worker)
         except ValueError as e:
-            LogUtils.log_error('UserID already taken', e)
+            LogUtils.error('UserID already taken', e)
             data = {'details': 'UserID already taken', 'code': 0}
             params.server.send(websocket, 'runtime_error', data)
             return None
@@ -198,7 +198,7 @@ class ServerServices:
                     params.server.min_worker_correctness:
                 params.server.worker_group.remove_worker(
                     verify_data["original_worker_uid"])
-                LogUtils.log_debug(
+                LogUtils.debug(
                     "Removing " + original_worker.uid + " for invalid results")
         else:
             original_worker.correctness_score += 0.05
