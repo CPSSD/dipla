@@ -11,3 +11,4 @@ class ErrorCodes(Enum):
     invalid_binary_key = 2
     password_required = 3
     invalid_password = 4
+    no_binaries_present = 5

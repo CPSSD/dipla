@@ -1,6 +1,8 @@
 import logging
 import os
 from dipla.shared import message_generator
+from dipla.shared.services import ServiceError
+from dipla.shared.error_codes import ErrorCodes
 
 from abc import ABC, abstractmethod, abstractstaticmethod
 from base64 import b64decode
@@ -46,9 +48,11 @@ class BinaryRunnerService(ClientService):
         task = data["task_instructions"]
 
         if not hasattr(self._client, 'binary_paths'):
-            raise ValueError('Client does not have any binaries')
+            raise ServiceError(ValueError('Client does not have any binaries'),
+                               ErrorCodes.no_binaries_present)
         if task not in self._client.binary_paths:
-            raise ValueError('Task "' + task + '" does not exist')
+            raise ServiceError(KeyError('Task "' + task + '" does not exist'),
+                               ErrorCodes.invalid_binary_key)
 
         results = self._binary_runner.run(
             self._client.binary_paths[task],
