@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import Mock
 from dipla.server.server import ServerServices, ServiceParams
 from dipla.server.worker_group import Worker, WorkerGroup
+from dipla.shared import statistics
 
 
 class WorkerGroupTest(unittest.TestCase):
@@ -11,7 +12,13 @@ class WorkerGroupTest(unittest.TestCase):
 
         mock_server = Mock()
         mock_server.verify_inputs = {}
-        mock_server.worker_group = WorkerGroup()
+
+        stats = {
+            "num_total_workers": 0,
+            "num_idle_workers": 0
+        }
+        stat_updater = statistics.StatisticsUpdater(stats)
+        mock_server.worker_group = WorkerGroup(stat_updater)
         mock_server.min_worker_correctness = 0.99
         self.mock_server = mock_server
 
