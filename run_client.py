@@ -1,6 +1,7 @@
 from dipla.client.client import Client
 from dipla.client.config_handler import ConfigHandler
-from dipla.client.client_services import BinaryRunnerService
+from dipla.client.client_services import RunInstructionsService
+from dipla.client.client_services import VerifyInputsService
 from dipla.client.client_services import BinaryReceiverService
 from dipla.client.client_services import ServerErrorService
 from dipla.client.command_line_binary_runner import CommandLineBinaryRunner
@@ -37,16 +38,23 @@ def init_logger(loc):
 
 def create_services(client):
     services = {
-        BinaryRunnerService.get_label(): _create_binary_runner(client),
+        RunInstructionsService.get_label():
+            _create_run_instructions_service(client),
+        VerifyInputsService.get_label(): _create_verify_inputs_service(client),
         BinaryReceiverService.get_label(): _create_binary_receiver(client),
         ServerErrorService.get_label(): ServerErrorService(client)
     }
     return services
 
 
-def _create_binary_runner(client):
+def _create_run_instructions_service(client):
     binary_runner = CommandLineBinaryRunner()
-    return BinaryRunnerService(client, binary_runner)
+    return RunInstructionsService(client, binary_runner)
+
+
+def _create_verify_inputs_service(client):
+    binary_runner = CommandLineBinaryRunner()
+    return VerifyInputsService(client, binary_runner)
 
 
 def _create_binary_receiver(client):

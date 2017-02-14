@@ -1,9 +1,8 @@
-import time
 import unittest
-
+import socket
 import functools
-
 from dipla.shared.network.network_connection import ClientConnection
+from tests.utils import assert_with_timeout
 from dipla.shared.network.network_connection import ServerConnection
 from .useful_event_listeners import EventSavingEventListener
 from .useful_event_listeners import EchoEventListener
@@ -159,8 +158,10 @@ class ClientConnectionTest(unittest.TestCase):
 
     def given_a_running_server_connection_on_port(self, port):
         event_listener = EchoEventListener()
-        self.server_connection = ServerConnection(port,
-                                                  event_listener)
+
+        socket_ = get_bound_socket(port)
+
+        self.server_connection = ServerConnection(socket_, event_listener)
         self.server_connection.start()
         self.server_event_listener = event_listener
 
@@ -324,11 +325,6 @@ class ServerConnectionTest(unittest.TestCase):
         self.when_client_connects()
         self.then_server_receives_no_errors()
 
-    def test_that_server_event_listener_receives_error_when_binding_to_invalid_port(self):  # nopep8
-        self.given_a_server_connection_on_port(-1)
-        self.when_listening_for_client_connection()
-        self.then_server_receives_error()
-
     def test_that_server_connection_to_client_can_be_established_on_different_port(self):  # nopep8
         self.given_a_server_connection_on_port(13377)
         self.when_listening_for_client_connection()
@@ -390,7 +386,8 @@ class ServerConnectionTest(unittest.TestCase):
 
     def given_a_server_connection_on_port(self, port):
         event_listener = EventSavingEventListener()
-        self.server_connection = ServerConnection(port, event_listener)
+        socket_ = get_bound_socket(port)
+        self.server_connection = ServerConnection(socket_, event_listener)
         self.server_event_listener = event_listener
 
     def when_listening_for_client_connection(self):
@@ -566,7 +563,8 @@ class MultipleConnectionsTest(unittest.TestCase):
 
     def given_a_server_connection(self, identifier, port):
         event_listener = EventSavingEventListener()
-        server_connection = ServerConnection(port, event_listener)
+        socket_ = get_bound_socket(port)
+        server_connection = ServerConnection(socket_, event_listener)
         self.server_event_listeners[identifier] = event_listener
         self.server_connections[identifier] = server_connection
 
@@ -653,17 +651,16 @@ class MultipleConnectionsTest(unittest.TestCase):
                 pass
 
 
-def assert_with_timeout(test_case, condition_function, timeout):
-    start_time = time.time()
-    end_time = start_time + timeout
-    condition_met = False
-    while time.time() < end_time and not condition_met:
-        condition_met = condition_function()
-    test_case.assertTrue(condition_met)
-
-
 def generate_bytes(num_of_bytes):
     return "x" * num_of_bytes
+
+
+def get_bound_socket(port):
+    socket_ = socket.socket()
+    socket_.setblocking(True)
+    socket_.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    socket_.bind(('localhost', port))
+    return socket_
 
 
 if __name__ == "__main__":

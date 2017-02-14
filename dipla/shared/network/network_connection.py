@@ -33,14 +33,13 @@ class SocketConnection(threading.Thread, metaclass=abc.ABCMeta):
 
     DATA_ENCODING = "UTF-8"
 
-    def __init__(self, host_address, host_port, event_listener, label):
+    def __init__(self, host_address, event_listener, label):
         super(SocketConnection, self).__init__()
         self._logger = logging.getLogger(__name__)
         self._message_defixer = MessageDefixer()
         self._event_listener = event_listener
         self._stop_event = threading.Event()
         self._host_address = host_address
-        self._host_port = host_port
         self._connection = None
         self._connected = False
         self._label = label
@@ -211,18 +210,14 @@ class ClientConnection(SocketConnection):
     """
 
     def __init__(self, host_address, host_port, event_listener):
+        self._host_port = host_port
         super(ClientConnection, self).__init__(host_address,
-                                               host_port,
                                                event_listener,
                                                "ClientConnection")
 
     def _prepare_socket(self):
         self._connection = socket.socket()
         self._connection.setblocking(True)
-        self._enable_reusable_addresses()
-
-    def _enable_reusable_addresses(self):
-        self._connection.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
     def _perform_connection_step(self):
         self._logger.debug(START_CONNECTING_MESSAGE, self._label)
@@ -242,7 +237,8 @@ class ClientConnection(SocketConnection):
         self._connection.connect((self._host_address, self._host_port))
         self._connected = True
 
-    def _recover_from_connection_error(self, socket_error):
+    @staticmethod
+    def _recover_from_connection_error(socket_error):
         if socket_error.errno == errno.ECONNREFUSED:
             raise ConnectionFailedError("Connection Refused.")
         elif socket_error.errno == errno.ECONNRESET:
@@ -261,28 +257,17 @@ class ClientConnection(SocketConnection):
 class ServerConnection(SocketConnection):
     """
     The ServerConnection is a subclass of a SocketConnection. It is used to
-    bind a socket to a port during the connection process and accept an
-    incoming ClientConnection.
+    accept an incoming ClientConnection.
     """
 
-    def __init__(self, host_port, event_listener):
+    def __init__(self, master_socket, event_listener):
+        self.__master_socket = master_socket
         super(ServerConnection, self).__init__("localhost",
-                                               host_port,
                                                event_listener,
                                                "ServerConnection")
 
     def _prepare_socket(self):
-        self._socket = socket.socket()
-        self._socket.setblocking(True)
-        self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self._bind_socket()
-        self._socket.listen(5)
-
-    def _bind_socket(self):
-        try:
-            self._socket.bind(('localhost', self._host_port))
-        except OverflowError:
-            raise ConnectionPreparationFailedError(ILLEGAL_PORT_BIND_MESSAGE)
+        self.__master_socket.listen(5)
 
     def _perform_connection_step(self):
         self._logger.debug(START_CONNECTING_MESSAGE, self._label)
@@ -293,7 +278,8 @@ class ServerConnection(SocketConnection):
             self._recover_from_connection_error(os_error)
 
     def _accept_incoming_connection(self):
-        self._connection, self._connection_address = self._socket.accept()
+        self._connection, self._connection_address = self.__master_socket.\
+            accept()
         self._connected = True
         self._logger.debug(
             CONNECTION_ESTABLISHED_MESSAGE,
@@ -310,7 +296,7 @@ class ServerConnection(SocketConnection):
     def _cleanup(self):
         self._stop_event.set()
         self._stop_connection_element(self._connection)
-        self._stop_connection_element(self._socket)
+        self._stop_connection_element(self.__master_socket)
         self._connected = False
 
 
@@ -390,8 +376,6 @@ STOP_CONNECTION_ELEMENT_TWICE_MESSAGE = "%s e: Tried to clean up a " \
                                         "connection element for second time."
 
 START_CONNECTING_MESSAGE = "%s has begun the connection process."
-
-ILLEGAL_PORT_BIND_MESSAGE = "Attempted to bind to invalid port number."
 
 ATTEMPTING_CONNECT_MESSAGE = "%s attempting to establish connection to (%s:%s)"
 

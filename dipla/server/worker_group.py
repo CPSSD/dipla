@@ -111,6 +111,23 @@ class WorkerGroup:
         """
         return len(self.ready_workers) > 0
 
+    def get_worker(self, uid):
+        """
+        Params:
+         - uid: The unique ID of the worker to be returned.
+
+        Raises:
+         - KeyError if the uid does not match any workers in the group.
+        """
+        if uid in self.busy_workers:
+            return self.busy_workers[uid]
+
+        for i in range(len(self.ready_workers)):
+            if self.ready_workers[i].uid == uid:
+                return self.ready_workers[i]
+
+        raise KeyError("No worker was found with the ID: " + uid)
+
     def _all_workers(self):
         """
         Returns:
@@ -135,7 +152,10 @@ class Worker:
 
     def __init__(self, uid, websocket, quality=None):
         """
-        Initalises the worker.
+        Initalises the worker. Workers are given a correctness score to
+        indicate how correct the results have been that have been
+        received from this worker. This score can be used to determine
+        whether or not to continue using this worker
 
         Params:
          - uid: The worker's Unique Identifier string.
@@ -147,6 +167,8 @@ class Worker:
         self.uid = uid
         self._quality = quality
         self.websocket = websocket
+
+        self.correctness_score = 1.0
 
     def set_quality(self, quality):
         """

@@ -3,6 +3,7 @@ import sys
 import json
 import asyncio
 import websockets
+import random
 
 from dipla.server.task_queue import MachineType
 from dipla.server.worker_group import WorkerGroup, Worker
@@ -92,6 +93,7 @@ class ServerServices:
             'binaries_received': self._handle_binary_received,
             'client_result': self._handle_client_result,
             'runtime_error': self._handle_runtime_error,
+            'verify_inputs_result': self._handle_verify_inputs
         }
         self.binary_manager = binary_manager
 
@@ -137,12 +139,43 @@ class ServerServices:
         params.server.distribute_tasks()
         return None
 
+    def _send_verify_inputs(self, server, results, worker_id, task_id):
+        if not server.worker_group.has_available_worker():
+            return
+        # This will not verify results if the original data was not
+        # previously stored on a probabilistic basis
+        formatted_verify_key = worker_id + "-" + task_id
+        if formatted_verify_key not in server.verify_inputs:
+            return
+
+        verify_data = server.verify_inputs.pop(formatted_verify_key)
+        # Add the results to verification data creating an object
+        # with both the inputs and the results
+        verify_data['results'] = results
+
+        # Send the verify inputs request to a client
+        leased_worker = server.worker_group.lease_worker()
+        data = {}
+        data['task_instructions'] = verify_data['task_instructions']
+        data['task_uid'] = task_id
+        data['arguments'] = verify_data['inputs']
+        server.send(leased_worker.websocket, 'verify_inputs', data)
+
+        # Add the verification input / results data back to the map
+        # under the new worker id
+        new_dict_key = leased_worker.uid + '-' + task_id
+        server.verify_inputs[new_dict_key] = verify_data
+
     def _handle_client_result(self, message, params):
         task_id = message['task_uid']
         results = message['results']
         server = params.server
         for result in results:
             server.task_queue.add_result(task_id, result)
+
+        # We need to send verify_inputs before returning the worker so
+        # that we dont send it to the original worker
+        self._send_verify_inputs(server, results, params.worker.uid, task_id)
         server.worker_group.return_worker(params.worker.uid)
         server.distribute_tasks()
         return None
@@ -151,6 +184,28 @@ class ServerServices:
         print('Client had an error (code %d): %s' % (message['code'],
                                                      message['details']))
         return None
+
+    def _handle_verify_inputs(self, message, params):
+        verify_inputs_key = params.worker.uid + '-' + message['task_uid']
+        verify_data = params.server.verify_inputs[verify_inputs_key]
+
+        original_worker = params.server.worker_group.get_worker(
+            verify_data["original_worker_uid"])
+        if verify_data['results'] != message['results']:
+            original_worker.correctness_score -= 0.05
+            if original_worker.correctness_score <\
+                    params.server.min_worker_correctness:
+                params.server.worker_group.remove_worker(
+                    verify_data["original_worker_uid"])
+                print("Removing worker",
+                      original_worker.uid,
+                      "for invalid results")
+                # TODO LOG the message that is being printed here
+        else:
+            original_worker.correctness_score += 0.05
+            params.server.worker_group.return_worker(params.worker.uid)
+
+        del params.server.verify_inputs[verify_inputs_key]
 
 
 class Server:
@@ -170,13 +225,26 @@ class Server:
         services is an instance of ServerServices that is used to lookup
         functions for handling client requests. If this is not provided a
         default instance is used.
+
+        This constructor creates variables used in verifying inputs,
+        where whether or not verification is performed is decided
+        probabilistically using the verify_probability ratio
+
+        verify_inputs is a dictionary of inputs with an array as the
+        value, indexed by `{worker.uid}-{task_uid}` of the worker and
+        task that they are the inputs for, that store the inputs that
+        will be verified once the actual answers have been obtained
         """
         self.task_queue = task_queue
         self.services = services
 
         self.worker_group = worker_group
+        self.min_worker_correctness = 0.99
         if not self.worker_group:
             self.worker_group = WorkerGroup()
+
+        self.verify_probability = 0.5
+        self.verify_inputs = {}
 
     async def websocket_handler(self, websocket, path):
         user_id = self.worker_group.generate_uid()
@@ -229,6 +297,13 @@ class Server:
             return None
         return self.task_queue.pop_task_input()
 
+    def _add_verify_input_data(self, task_input, worker_id, task_id):
+        self.verify_inputs[worker_id + "-" + task_id] = {
+            "task_instructions": task_input.task_instructions,
+            "inputs": task_input.values,
+            "original_worker_uid": worker_id
+        }
+
     def distribute_tasks(self):
         # By leasing workers without specifying an id, we get the
         # highest quality worker for the task
@@ -249,6 +324,10 @@ class Server:
                 # TODO(Update the documentation with this)
                 worker = self.worker_group.lease_worker()
                 self.send(worker.websocket, 'run_instructions', data)
+
+                if(random.random() < self.verify_probability):
+                    self._add_verify_input_data(
+                        task_input, worker.uid, task_input.task_uid)
             elif task_input.machine_type == MachineType.server:
                 # Server side tasks do not have any maching binaries, so
                 # we skip the send-to-client stage and move the read
