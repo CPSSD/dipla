@@ -3,12 +3,12 @@ import websockets
 import json
 import threading
 import time
-import logging
 import os
 
 from dipla.client.quality_scorer import QualityScorer
 from dipla.shared.services import ServiceError
 from dipla.shared.message_generator import generate_message
+from dipla.shared.logutils import LogUtils
 
 
 class Client(object):
@@ -20,7 +20,6 @@ class Client(object):
             connect to, eg. 'ws://localhost:8765'."""
         self.server_address = server_address
         self.password = password
-        self.logger = logging.getLogger(__name__)
         # the number of times to try to connect before giving up
         self.connect_tries_limit = 8
         # A class to be used to assign a quality to this client
@@ -39,9 +38,6 @@ class Client(object):
         # need to be passed into all of the ClientServices.
         self.services = services
 
-    def get_logger(self):
-        return self.logger
-
     def send(self, message):
         """Send a message to the server.
 
@@ -51,7 +47,7 @@ class Client(object):
             raise ValueError(
                 'Missing label or data field in message %s.' % message)
 
-        self.logger.debug('Sending message: %s.' % message)
+        LogUtils.debug('Sending message: %s.' % message)
         json_message = json.dumps(message)
 
         # run the coroutine to send the message
@@ -85,13 +81,13 @@ class Client(object):
                 except ServiceError as e:
                     self.send_error(str(e), e.code)
         except websockets.exceptions.ConnectionClosed:
-            self.logger.warning("Connection closed.")
+            LogUtils.warning("Connection closed.")
 
     def _handle(self, raw_message):
         """Do something with a message received from the server.
 
         raw_message, string: the raw data received from the server."""
-        self.logger.debug("Received: %s." % raw_message)
+        LogUtils.debug("Received: %s." % raw_message)
         message = json.loads(raw_message)
         if not ('label' in message and 'data' in message):
             raise ServiceError('Missing field from message: %s' % message, 4)
@@ -104,9 +100,9 @@ class Client(object):
     def _run_service(self, label, data):
         try:
             service = self.services[label]
-        except KeyError:
+        except KeyError as e:
             error_message = "Failed to find service: {}".format(label)
-            self.logger.error(error_message)
+            LogUtils.error(error_message, e)
             raise ServiceError(error_message, 5)
         return service.execute(data)
 
@@ -118,7 +114,7 @@ class Client(object):
         num_tries = 0
         backoff = 1
         while num_tries < self.connect_tries_limit:
-            self.logger.warning(
+            LogUtils.warning(
                 'trying connection %d/%d' % (num_tries,
                                              self.connect_tries_limit))
             try:
@@ -145,7 +141,7 @@ class Client(object):
         loop = asyncio.get_event_loop()
         self.websocket = loop.run_until_complete(self._start_websocket())
         if not self.websocket:
-            self.logger.error(
+            LogUtils.error(
                 'Could not connect to server after %d tries' %
                 self.connect_tries_limit)
             return

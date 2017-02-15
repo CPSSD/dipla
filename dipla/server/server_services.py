@@ -1,3 +1,4 @@
+from dipla.shared.logutils import LogUtils
 from dipla.shared.services import ServiceError
 
 
@@ -56,8 +57,8 @@ class ServerServices:
         # Worker has downloaded binary and is ready to do tasks
         try:
             params.server.worker_group.add_worker(params.worker)
-        except ValueError:
-            # TODO(cianlr): Log something here indicating the error
+        except ValueError as e:
+            LogUtils.error('UserID already taken', e)
             data = {'details': 'UserID already taken', 'code': 0}
             params.server.send(websocket, 'runtime_error', data)
             return None
@@ -126,10 +127,8 @@ class ServerServices:
                     params.server.min_worker_correctness:
                 params.server.worker_group.remove_worker(
                     verify_data["original_worker_uid"])
-                print("Removing worker",
-                      original_worker.uid,
-                      "for invalid results")
-                # TODO LOG the message that is being printed here
+                LogUtils.debug(
+                    "Removing " + original_worker.uid + " for invalid results")
         else:
             original_worker.correctness_score += 0.05
             params.server.worker_group.return_worker(params.worker.uid)
