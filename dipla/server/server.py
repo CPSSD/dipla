@@ -339,7 +339,9 @@ class Server:
                     self.task_queue.add_result(task_input.task_uid, result)
 
             if self.task_queue.is_inactive():
-                # Flag the server to terminate, all tasks are inactive
+                # Kill the server
+                # TODO(cianlr): This kills things unceremoniously, there may be
+                # a better way.
                 asyncio.get_event_loop().stop()
 
     def _decode_message(self, message):
