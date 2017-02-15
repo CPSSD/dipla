@@ -3,6 +3,8 @@ from unittest import TestCase
 from dipla.client.command_line_binary_runner import CommandLineBinaryRunner
 from dipla.client.client_services import BinaryRunnerService
 from dipla.client.client_services import BinaryReceiverService
+from dipla.shared.services import ServiceError
+from dipla.shared.error_codes import ErrorCodes
 
 
 class BinaryRunnerServiceTest(TestCase):
@@ -41,6 +43,32 @@ class BinaryRunnerServiceTest(TestCase):
     def and_the_binary_runner_will_not_have_received_invalid_arguments(self):
         runner = self.mock_binary_runner
         self.assertFalse(runner.received("incorrect_param", "incorrect_param"))
+
+    def test_handle_binary_runner_throws_error_if_no_binaries(self):
+        self.given_a_binary_runner_service()
+
+        binary_runner = BinaryRunnerService(DummyClient(), MockBinaryRunner())
+        data = {
+            'task_instructions': None
+        }
+        with self.assertRaises(ServiceError) as context:
+            binary_runner.execute(data)
+        self.assertEquals(
+            ErrorCodes.no_binaries_present, context.exception.code)
+
+    def test_handle_binary_runner_throws_error_if_binary_missing(self):
+        self.given_a_binary_runner_service()
+
+        client = DummyClient()
+        client.binary_paths = {}
+        binary_runner = BinaryRunnerService(client, MockBinaryRunner())
+        data = {
+            'task_instructions': 'foo'
+        }
+        with self.assertRaises(ServiceError) as context:
+            binary_runner.execute(data)
+        self.assertEquals(
+            ErrorCodes.invalid_binary_key, context.exception.code)
 
 
 class BinaryReceiverServiceTest(TestCase):

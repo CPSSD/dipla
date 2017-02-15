@@ -1,5 +1,6 @@
 from dipla.shared.logutils import LogUtils
 from dipla.shared.services import ServiceError
+from dipla.shared.error_codes import ErrorCodes
 
 
 class ServerServices:
@@ -36,9 +37,11 @@ class ServerServices:
         # Check if the worker has provided the correct password
         if params.server.password is not None:
             if 'password' not in message:
-                raise ServiceError('Password required by server', 3)
+                raise ServiceError('Password required by server',
+                                   ErrorCodes.password_required)
             elif message['password'] != params.server.password:
-                raise ServiceError('Incorrect password provided', 4)
+                raise ServiceError('Incorrect password provided',
+                                   ErrorCodes.invalid_password)
         # Set the workers quality
         params.worker.set_quality(message['quality'])
         # Find the correct binary for the worker
@@ -46,7 +49,7 @@ class ServerServices:
         try:
             encoded_bins = self.binary_manager.get_binaries(platform)
         except KeyError as e:
-            raise ServiceError(e, 2)
+            raise ServiceError(e, ErrorCodes.invalid_binary_key)
 
         data = {
             'base64_binaries': dict(encoded_bins),
@@ -58,10 +61,7 @@ class ServerServices:
         try:
             params.server.worker_group.add_worker(params.worker)
         except ValueError as e:
-            LogUtils.error('UserID already taken', e)
-            data = {'details': 'UserID already taken', 'code': 0}
-            params.server.send(websocket, 'runtime_error', data)
-            return None
+            raise ServiceError(e, ErrorCodes.user_id_already_taken)
         # If there was extra tasks that no others could do, try and
         # assign it to this worker, as it should be the only ready one
         # If there are other workers it is okay to distribute tasks to

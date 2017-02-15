@@ -1,17 +1,20 @@
 import unittest
 from unittest.mock import Mock
-from dipla.server.server_services import ServerServices, ServiceParams
+from dipla.server.server import ServerServices, ServiceParams, ServiceError
+from dipla.server.server import BinaryManager
 from dipla.server.worker_group import Worker, WorkerGroup
+from dipla.shared.error_codes import ErrorCodes
 
 
 class WorkerGroupTest(unittest.TestCase):
 
     def setUp(self):
-        self.server_services = ServerServices(None)
+        self.server_services = ServerServices(BinaryManager())
 
         mock_server = Mock()
         mock_server.verify_inputs = {}
         mock_server.worker_group = WorkerGroup()
+        mock_server.password = None
         mock_server.min_worker_correctness = 0.99
         self.mock_server = mock_server
 
@@ -22,6 +25,56 @@ class WorkerGroupTest(unittest.TestCase):
 
         # Lease the mock worker, like it would be in the real situation
         mock_server.worker_group.lease_worker()
+
+    def test_handle_get_binaries_throws_error_if_no_binary(self):
+        service = self.server_services.get_service('get_binaries')
+        self.foo_worker._quality = None
+        message = {
+          'quality': 1,
+          'platform': 'non-existant'
+        }
+
+        with self.assertRaises(ServiceError) as context:
+            service(message, ServiceParams(self.mock_server, self.foo_worker))
+        self.assertEquals(
+            ErrorCodes.invalid_binary_key, context.exception.code)
+
+    def test_handle_get_binaries_throws_error_if_no_password(self):
+        service = self.server_services.get_service('get_binaries')
+        self.foo_worker._quality = None
+        self.mock_server.password = "FOOpassword"
+        message = {
+          'quality': 1,
+          'platform': 'non-existant'
+        }
+
+        with self.assertRaises(ServiceError) as context:
+            service(message, ServiceParams(self.mock_server, self.foo_worker))
+        self.assertEquals(ErrorCodes.password_required, context.exception.code)
+
+    def test_handle_get_binaries_throws_error_if_wrong_password(self):
+        service = self.server_services.get_service('get_binaries')
+        self.foo_worker._quality = None
+        self.mock_server.password = "FOOpassword"
+        message = {
+          'quality': 1,
+          'platform': 'non-existant',
+          'password': 'BARpassword'
+        }
+
+        with self.assertRaises(ServiceError) as context:
+            service(message, ServiceParams(self.mock_server, self.foo_worker))
+        self.assertEquals(ErrorCodes.invalid_password, context.exception.code)
+
+    def test_handle_binary_received_throws_error_if_user_id_taken(self):
+        service = self.server_services.get_service('binaries_received')
+
+        self.mock_server.worker_group.add_worker(
+            Worker("foo", None, quality=1))
+        with self.assertRaises(ServiceError) as context:
+            service(None, ServiceParams(self.mock_server, self.foo_worker))
+        self.assertEquals(
+            ErrorCodes.user_id_already_taken, context.exception.code)
 
     def test_handle_client_result_sends_verify_message(self):
         service = self.server_services.get_service('client_result')

@@ -10,6 +10,7 @@ from dipla.server.worker_group import WorkerGroup, Worker
 from dipla.server.server_services import ServerServices, ServiceParams
 from dipla.shared.services import ServiceError
 from dipla.shared.message_generator import generate_message
+from dipla.shared.error_codes import ErrorCodes
 from base64 import b64encode
 
 
@@ -135,7 +136,7 @@ class Server:
                     # then send a message with the 'runtime_error' label.
                     data = {
                         'details': 'Error during websocket loop: %s' % str(e),
-                        'code': 1,
+                        'code': ErrorCodes.server_websocket_loop,
                     }
                     self.send(worker.websocket, 'runtime_error', data)
                 except ServiceError as e:
