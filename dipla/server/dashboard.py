@@ -1,26 +1,38 @@
+import json
+
 from flask import Flask, Blueprint
 from flask.views import View
 from threading import Thread
 
 
-
 class DashboardView(View):
+    """A superclass for the Views needed for the dashboard,
+    to allow them to share a common constructor. This constructor
+    is called whenever SomethingView.as_view is called, and all
+    parameters should be passed then."""
 
     def __init__(self, stats):
         self.stats = stats
 
+
 class DashboardIndexView(DashboardView):
-    
+    """The view for the user-oriented index of the dashboard."""
+
     def dispatch_request(self, *url_args, **url_kwargs):
         return str(self.stats.read_all())
+
 
 class DashboardGetStatsView(DashboardView):
+    """A view returning all of the stat data, in json format."""
 
     def dispatch_request(self, *url_args, **url_kwargs):
-        return str(self.stats.read_all())
+        return str(json.dumps(self.stats.read_all(), indent=4))
+
 
 class DashboardServer(Thread):
-
+    """A thin wrapper on a Flask server, allowing it to run in its
+    own thread, and potentially allowing multiple instances to
+    run. Per-instance data should be passed in to the constructor."""
 
     def __init__(self, host, port, stats):
         super().__init__()
