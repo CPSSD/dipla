@@ -5,6 +5,8 @@ from dipla.server.server import BinaryManager, Server, ServerServices
 from dipla.server.task_queue import TaskQueue, Task, DataSource, MachineType
 from dipla.shared import uid_generator, statistics
 from dipla.api import Dipla
+from dipla.shared.logutils import LogUtils
+from logging import FileHandler
 
 
 def generate_default_statistics():
@@ -19,6 +21,8 @@ def generate_uid(existing):
 
 
 def main(argv):
+    LogUtils.init(handler=FileHandler("DIPLA_SERVER.log"))
+
     tq = TaskQueue()
 
     root_source = [1, 2, 3, 4, 5]
