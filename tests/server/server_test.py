@@ -2,6 +2,7 @@ import unittest
 from dipla.server.server import Server, BinaryManager
 from dipla.server.task_queue import TaskQueue, Task, DataSource, MachineType
 from dipla.server.worker_group import WorkerGroup, Worker
+from dipla.shared import statistics
 
 
 class ServerTest(unittest.TestCase):
@@ -9,9 +10,16 @@ class ServerTest(unittest.TestCase):
     def setUp(self):
         self.task_queue = TaskQueue()
         self.binary_manager = BinaryManager()
-        self.worker_group = WorkerGroup()
-        self.server = Server(
-          self.task_queue, self.binary_manager, self.worker_group)
+        stats = {
+            "num_total_workers": 0,
+            "num_idle_workers": 0
+        }
+        stat_updater = statistics.StatisticsUpdater(stats)
+        self.worker_group = WorkerGroup(stat_updater)
+        self.server = Server(self.task_queue,
+                             self.binary_manager,
+                             self.worker_group,
+                             stat_updater)
 
         self.sample_data_source = DataSource.create_source_from_iterable(
           [1, 2, 3, 4], "foosource")
