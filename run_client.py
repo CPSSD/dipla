@@ -28,6 +28,7 @@ def main(argv):
         ui = DiplaClientUI(
             config=config,
             service_creator=create_services)
+        ui.run()
     else:
         client = Client(
             'ws://{}:{}'.format(
