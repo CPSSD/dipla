@@ -84,7 +84,8 @@ class DiplaClientUI:
             services = self.service_creator(self.client)
             self.client.inject_services(services)
             # Use a seperate process in order not to tie up the UI
-            self.client_thread = multiprocessing.Process(target=self.client.start)
+            self.client_thread = multiprocessing.Process(
+                target=self.client.start)
             self.client_thread.start()
             self.is_running = True
 
