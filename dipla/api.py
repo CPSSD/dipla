@@ -162,7 +162,8 @@ class Dipla:
 
     def start_dashboard(host='localhost', port=8766):
         print('api called')
-        dashboard = DashboardServer(host, port)
+        stat_reader = statistics.StatisticsReader(Dipla._stats)
+        dashboard = DashboardServer(host, port, stat_reader)
         #dashboard.start_in_new_thread()
         dashboard.start()
         print('still in orig thread')
