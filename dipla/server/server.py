@@ -72,7 +72,8 @@ class Server:
     def __init__(self,
                  task_queue,
                  services,
-                 worker_group=None):
+                 worker_group=None,
+                 stats=None):
         """
         task_queue is a TaskQueue object that tasks to be run are taken from
 
@@ -84,6 +85,10 @@ class Server:
         services is an instance of ServerServices that is used to lookup
         functions for handling client requests. If this is not provided a
         default instance is used.
+
+        stats is an instance of shared.statistics.StatisticsUpdater,
+        used to update information on the current runtime status of the
+        project.
 
         This constructor creates variables used in verifying inputs,
         where whether or not verification is performed is decided
@@ -100,9 +105,9 @@ class Server:
         self.worker_group = worker_group
         self.min_worker_correctness = 0.99
         if not self.worker_group:
-            self.worker_group = WorkerGroup()
+            self.worker_group = WorkerGroup(stats)
 
-        self.keep_running = True
+        self.stats = stats
 
         self.verify_probability = 0.5
         self.verify_inputs = {}
@@ -122,11 +127,6 @@ class Server:
                     service = self.services.get_service(message['label'])
                     response_data = service(
                         message['data'], params=ServiceParams(self, worker))
-                    if not self.keep_running:
-                        # TODO(StefanKennedy) Research if there is a
-                        # more elegant way to stop the server
-                        asyncio.get_event_loop().stop()
-                        return
                     if response_data is None:
                         continue
                     self.send(
@@ -181,10 +181,6 @@ class Server:
             if task_input is None:  # Happens when no input can be used
                 break
 
-            if self.task_queue.is_inactive():
-                # Flag the server to terminate, all tasks are inactive
-                self.keep_running = False
-
             if task_input.machine_type == MachineType.client:
                 # Create the message and send it
                 data = {}
@@ -208,6 +204,12 @@ class Server:
                 for result in task_values:
                     self.task_queue.add_result(task_input.task_uid, result)
 
+            if self.task_queue.is_inactive():
+                # Kill the server
+                # TODO(cianlr): This kills things unceremoniously, there may be
+                # a better way.
+                asyncio.get_event_loop().stop()
+
     def _decode_message(self, message):
         message_dict = json.loads(message)
         if 'label' not in message_dict or 'data' not in message_dict:
@@ -230,4 +232,5 @@ class Server:
         self.password = password
 
         asyncio.get_event_loop().run_until_complete(server)
+        asyncio.get_event_loop().call_soon(self.distribute_tasks)
         asyncio.get_event_loop().run_forever()

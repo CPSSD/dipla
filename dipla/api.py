@@ -1,7 +1,7 @@
 from dipla.api_support.function_serialise import get_encoded_script
 from dipla.server.server import BinaryManager, Server, ServerServices
 from dipla.server.task_queue import TaskQueue, Task, DataSource, MachineType
-from dipla.shared import uid_generator
+from dipla.shared import uid_generator, statistics
 
 
 class Dipla:
@@ -9,6 +9,11 @@ class Dipla:
     # BinaryManager and TaskQueue to be injected into server.
     binary_manager = BinaryManager()
     task_queue = TaskQueue()
+    _stats = {
+        "num_total_workers": 0,
+        "num_idle_workers": 0,
+    }
+    stat_updater = statistics.StatisticsUpdater(_stats)
 
     # Stop reading the data source once we hit EOF
     # TODO(StefanKennedy) Set up data sources to run indefinitely.
@@ -104,7 +109,11 @@ class Dipla:
         task_uid = uid_generator.generate_uid(
             length=8,
             existing_uids=Dipla.task_queue.get_task_ids())
-        task = Task(task_uid, function.__name__, MachineType.client)
+        task = Task(
+            task_uid,
+            function.__name__,
+            MachineType.client,
+            complete_check=Dipla.complete_on_eof)
         for arg in args:
             if isinstance(arg, list):
                 source_uid = uid_generator.generate_uid(
@@ -141,7 +150,9 @@ class Dipla:
             Dipla.task_queue.get_task(promise.task_uid), source_uid))
         Dipla.task_queue.push_task(get_task)
 
-        server = Server(Dipla.task_queue, ServerServices(Dipla.binary_manager))
+        server = Server(Dipla.task_queue,
+                        ServerServices(Dipla.binary_manager),
+                        stats=Dipla.stat_updater)
         server.start()
 
         return get_task.task_output
