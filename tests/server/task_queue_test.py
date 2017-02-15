@@ -103,12 +103,12 @@ class TaskQueueTest(unittest.TestCase):
         popped = self.queue.pop_task_input()
         self.assertEqual("bar", popped.task_uid)
         self.assertEqual("sample task", popped.task_instructions)
-        self.assertEqual([1], popped.values)
+        self.assertEqual([[1]], popped.values)
 
         popped = self.queue.pop_task_input()
         self.assertEqual("bar", popped.task_uid)
         self.assertEqual("sample task", popped.task_instructions)
-        self.assertEqual([2], popped.values)
+        self.assertEqual([[2]], popped.values)
 
     def test_pop_task_depending_on_task(self):
         # Test reading data source from another task
@@ -256,7 +256,7 @@ class TaskQueueTest(unittest.TestCase):
             [1, 2], "bar", read_individual_values, location_changer=None))
 
         sample_node = TaskQueueNode(sample_task)
-        self.assertEqual([1], sample_node.next_input().values)
+        self.assertEqual([[1]], sample_node.next_input().values)
 
     def test_is_task_open_on_missing_task(self):
         with self.assertRaises(KeyError):
