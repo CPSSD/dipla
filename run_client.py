@@ -5,7 +5,7 @@ from dipla.client.client_services import VerifyInputsService
 from dipla.client.client_services import BinaryReceiverService
 from dipla.client.client_services import ServerErrorService
 from dipla.client.command_line_binary_runner import CommandLineBinaryRunner
-from dipla.shared import logutils
+from dipla.shared.logutils import LogUtils
 import sys
 import argparse
 from logging import FileHandler
@@ -33,7 +33,7 @@ def main(argv):
 
 
 def init_logger(loc):
-    logutils.init(handler=FileHandler(loc))
+    LogUtils.init(handler=FileHandler(loc))
 
 
 def create_services(client):
