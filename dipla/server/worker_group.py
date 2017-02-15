@@ -20,7 +20,16 @@ class WorkerGroup:
     # TODO(StefanKennedy): Add functionality to choose another
     # worker when a busy worker disconnects
 
-    def __init__(self):
+    def __init__(self, stats):
+        """
+        Initialise the worker group.
+
+        Params:
+         - stats: An instance of shared.statistics.StatisticsUpdater, needed
+           here in order to update how many clients are connected right now.
+        """
+
+        self.stats = stats
         # Ready Workers is a min heap, used to quickly find the most
         # preferrable worker during worker-leasing behaviour
         self.ready_workers = []
@@ -40,6 +49,8 @@ class WorkerGroup:
         if worker.uid in self.worker_uids():
             raise ValueError("Unique ID " + worker.uid + " is already in use")
         heapq.heappush(self.ready_workers, worker)
+        self.stats.increment('num_total_workers')
+        self.stats.increment('num_idle_workers')
 
     def remove_worker(self, uid):
         """
@@ -55,12 +66,15 @@ class WorkerGroup:
         """
         if uid in self.busy_workers:
             self.busy_workers.pop(uid)
+            self.stats.decrement('num_total_workers')
             return
 
         for i in range(len(self.ready_workers)):
             if self.ready_workers[i].uid == uid:
                 self.ready_workers.pop(i)
                 heapq.heapify(self.ready_workers)
+                self.stats.decrement('num_total_workers')
+                self.stats.decrement('num_idle_workers')
                 return
 
         raise KeyError("No worker was found with the ID: " + uid)
@@ -78,6 +92,7 @@ class WorkerGroup:
             raise IndexError("No workers available to lease")
         chosen = heapq.heappop(self.ready_workers)
         self.busy_workers[chosen.uid] = chosen
+        self.stats.decrement('num_idle_workers')
         return chosen
 
     def return_worker(self, uid):
@@ -96,6 +111,7 @@ class WorkerGroup:
             raise KeyError("No busy workers with the provided key")
         worker = self.busy_workers.pop(uid)
         heapq.heappush(self.ready_workers, worker)
+        self.stats.increment('num_idle_workers')
 
     def worker_uids(self):
         """

@@ -72,7 +72,8 @@ class Server:
     def __init__(self,
                  task_queue,
                  services,
-                 worker_group=None):
+                 worker_group=None,
+                 stats=None):
         """
         task_queue is a TaskQueue object that tasks to be run are taken from
 
@@ -84,6 +85,10 @@ class Server:
         services is an instance of ServerServices that is used to lookup
         functions for handling client requests. If this is not provided a
         default instance is used.
+
+        stats is an instance of shared.statistics.StatisticsUpdater,
+        used to update information on the current runtime status of the
+        project.
 
         This constructor creates variables used in verifying inputs,
         where whether or not verification is performed is decided
@@ -100,7 +105,9 @@ class Server:
         self.worker_group = worker_group
         self.min_worker_correctness = 0.99
         if not self.worker_group:
-            self.worker_group = WorkerGroup()
+            self.worker_group = WorkerGroup(stats)
+
+        self.stats = stats
 
         self.verify_probability = 0.5
         self.verify_inputs = {}

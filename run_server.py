@@ -3,11 +3,17 @@ import argparse
 
 from dipla.server.server import BinaryManager, Server, ServerServices
 from dipla.server.task_queue import TaskQueue, Task, DataSource, MachineType
-from dipla.shared import uid_generator
+from dipla.shared import uid_generator, statistics
 from dipla.api import Dipla
 from dipla.shared.logutils import LogUtils
 from logging import FileHandler
 
+
+def generate_default_statistics():
+    return {
+        'num_total_workers': 0,
+        'num_idle_workers': 0,
+    }
 
 def generate_uid(existing):
     return uid_generator.generate_uid(
@@ -87,7 +93,10 @@ def main(argv):
         ('reduce', 'reduce')
     ])
 
-    s = Server(tq, ServerServices(bm))
+    stats = generate_default_statistics()
+    stat_updater = statistics.StatisticsUpdater(stats)
+
+    s = Server(tq, ServerServices(bm), stats=stat_updater)
     print('Starting server')
     parser = argparse.ArgumentParser(description="Start a Dipla server.")
     parser.add_argument('-u', default='localhost', dest='url')
