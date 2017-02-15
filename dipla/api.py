@@ -1,4 +1,7 @@
+from threading import Thread
+
 from dipla.api_support.function_serialise import get_encoded_script
+from dipla.server.dashboard import DashboardServer
 from dipla.server.server import BinaryManager, Server, ServerServices
 from dipla.server.task_queue import TaskQueue, Task, DataSource, MachineType
 from dipla.shared import uid_generator, statistics
@@ -156,6 +159,13 @@ class Dipla:
         server.start()
 
         return get_task.task_output
+
+    def start_dashboard(host='localhost', port=8766):
+        print('api called')
+        dashboard = DashboardServer(host, port)
+        #dashboard.start_in_new_thread()
+        dashboard.start()
+        print('still in orig thread')
 
 
 class Promise:
