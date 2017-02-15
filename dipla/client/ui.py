@@ -27,6 +27,7 @@ class DiplaClientUI:
         # Allow users to exit on escape key
         self.root.bind('<Escape>', self._die)
 
+        # Draw in each of the options
         self.option_labels = {}
         self.option_vars = {}
         for i, option in enumerate(sorted(self.config.config_defaults)):
@@ -43,15 +44,13 @@ class DiplaClientUI:
             # Make the textbox for the option
             self.option_vars[option] = tkinter.Entry(
                 master=self.root,
-            #    height=1,
                 width=20)
-            #    pady=5,
-            #    padx=10)
             self.option_vars[option].insert(tkinter.END, default_val)
             self.option_vars[option].grid(
                 column=1, row=i,
                 padx=5, pady=5)
 
+        # Finally add the button for starting and stopping the client
         self.toggle_button = tkinter.Button(
             master=self.root,
             text='Run Client',
@@ -84,6 +83,7 @@ class DiplaClientUI:
             )
             services = self.service_creator(self.client)
             self.client.inject_services(services)
+            # Use a seperate process in order not to tie up the UI
             self.client_thread = multiprocessing.Process(target=self.client.start)
             self.client_thread.start()
             self.is_running = True
