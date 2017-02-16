@@ -107,7 +107,7 @@ class Server:
         if not self.worker_group:
             self.worker_group = WorkerGroup(stats)
 
-        self.stats = stats
+        self.__statistics_updater = stats
 
         self.verify_probability = 0.5
         self.verify_inputs = {}
