@@ -14,8 +14,10 @@ from logging import FileHandler
 
 def main(argv):
     parser = argparse.ArgumentParser(description="Start a Dipla client.")
-    parser.add_argument('-c', default='', dest='config_path')
-    parser.add_argument('--ui', action="store_true")
+    parser.add_argument('-c', default='', dest='config_path',
+                        help="Optional path to a JSON config file")
+    parser.add_argument('--ui', action="store_true",
+                        help="Use the Dipla Client UI")
     args = parser.parse_args()
 
     config = ConfigHandler()
