@@ -1,4 +1,5 @@
 from dipla.client.client import Client
+from dipla.client.ui import DiplaClientUI
 from dipla.client.config_handler import ConfigHandler
 from dipla.client.client_services import RunInstructionsService
 from dipla.client.client_services import VerifyInputsService
@@ -13,15 +14,27 @@ from logging import FileHandler
 
 def main(argv):
     parser = argparse.ArgumentParser(description="Start a Dipla client.")
-    parser.add_argument('-c', default='', dest='config_path')
+    parser.add_argument('-c', default='', dest='config_path',
+                        help="Optional path to a JSON config file")
+    parser.add_argument('--ui', action="store_true",
+                        help="Use the Dipla Client UI")
     args = parser.parse_args()
 
     config = ConfigHandler()
     if args.config_path:
         config.parse_from_file(args.config_path)
 
-    init_logger(config.params['log_file'])
+    if args.ui:
+        ui = DiplaClientUI(
+            config=config,
+            client_creator=create_and_run_client)
+        ui.run()
+    else:
+        create_and_run_client(config)
 
+
+def create_and_run_client(config):
+    init_logger(config.params['log_file'])
     client = Client(
         'ws://{}:{}'.format(
             config.params['server_ip'], config.params['server_port']),
