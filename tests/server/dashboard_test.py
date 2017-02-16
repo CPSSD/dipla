@@ -13,7 +13,7 @@ class DashboardTest(unittest.TestCase):
         self.dashboard = DashboardServer(host='localhost',
                                          port=1337,
                                          stats=stat_reader)
-        self.app = self.dashboard.app.test_client()
+        self.app = self.dashboard._app.test_client()
 
     def test_index_template_loads(self):
         response = self.app.get("/")

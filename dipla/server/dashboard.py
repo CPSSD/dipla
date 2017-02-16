@@ -12,24 +12,24 @@ class DashboardView(View):
     parameters should be passed then."""
 
     def __init__(self, stats):
-        self.stats = stats
+        self.__stats = stats
 
-    def get_stat_json(self):
-        return json.dumps(self.stats.read_all())
+    def _get_stat_json(self):
+        return json.dumps(self.__stats.read_all())
 
 
 class DashboardIndexView(DashboardView):
     """The view for the user-oriented index of the dashboard."""
 
     def dispatch_request(self, *url_args, **url_kwargs):
-        return render_template("index.html", stats=self.get_stat_json())
+        return render_template("index.html", stats=self._get_stat_json())
 
 
 class DashboardGetStatsView(DashboardView):
     """A view returning all of the stat data, in json format."""
 
     def dispatch_request(self, *url_args, **url_kwargs):
-        return self.get_stat_json()
+        return self._get_stat_json()
 
 
 class DashboardServer(Thread):
@@ -50,10 +50,11 @@ class DashboardServer(Thread):
          - stats: An instance of shared.statistics.StatisticsReader.
         """
         super().__init__()
-        self.host = host
-        self.port = port
-        self.stats = stats
-        self.app = self._create_flask_app()
+        self.__host = host
+        self.__port = port
+        self.__stats = stats
+        # cannot be self.__app, as app needs to be accessed from tests
+        self._app = self._create_flask_app()
 
     def _create_flask_app(self):
         """Create the base flask app, register all of the endpoints, but
@@ -65,9 +66,9 @@ class DashboardServer(Thread):
         app = Flask(__name__,
                     static_folder=static_folder,
                     template_folder=template_folder)
-        index = DashboardIndexView.as_view("index", stats=self.stats)
+        index = DashboardIndexView.as_view("index", stats=self.__stats)
         get_stats = DashboardGetStatsView.as_view("get_stats",
-                                                  stats=self.stats)
+                                                  stats=self.__stats)
         app.add_url_rule("/", "index", view_func=index)
         app.add_url_rule("/get_stats", "get_stats", view_func=get_stats)
         return app
@@ -75,4 +76,4 @@ class DashboardServer(Thread):
     def run(self):
         """Run the dashboard server. This should not be called directly,
         call the .start() method inherited from threading.Thread instead."""
-        self.app.run(host=self.host, port=self.port)
+        self._app.run(host=self.__host, port=self.__port)
