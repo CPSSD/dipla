@@ -1,5 +1,5 @@
 import functools
-from utils import assert_with_timeout
+from tests.utils import assert_with_timeout
 
 
 def assert_event_listener_receives_nothing(test_object,
