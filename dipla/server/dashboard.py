@@ -1,6 +1,6 @@
 import os
 from dipla.environment import PROJECT_DIRECTORY
-from flask import Flask, Blueprint, json, render_template
+from flask import Flask, json, render_template
 from flask.views import View
 from threading import Thread
 
