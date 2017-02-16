@@ -17,6 +17,7 @@ def generate_default_statistics():
         'start_time': ''
     }
 
+
 def generate_uid(existing):
     return uid_generator.generate_uid(
         length=8, existing_uids=existing)
