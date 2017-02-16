@@ -1,6 +1,6 @@
-import json
-
-from flask import Flask, Blueprint
+import os
+from dipla.environment import PROJECT_DIRECTORY
+from flask import Flask, Blueprint, json, render_template
 from flask.views import View
 from threading import Thread
 
@@ -19,6 +19,7 @@ class DashboardIndexView(DashboardView):
     """The view for the user-oriented index of the dashboard."""
 
     def dispatch_request(self, *url_args, **url_kwargs):
+        return render_template("index.html")
         return str(self.stats.read_all())
 
 
@@ -42,10 +43,15 @@ class DashboardServer(Thread):
 
     def run(self):
         print('Running dashboard on {}:{}'.format(self.host, self.port))
-        app = Flask(__name__)
+        static_folder = os.path.join(PROJECT_DIRECTORY, "dashboard", "static")
+        template_folder = os.path.join(PROJECT_DIRECTORY, "dashboard", "templates")
+        print(static_folder)
+        app = Flask(__name__, static_folder=static_folder, template_folder=template_folder)
         index = DashboardIndexView.as_view("index", stats=self.stats)
         get_stats = DashboardGetStatsView.as_view("get_stats",
                                                   stats=self.stats)
+        static_files = Blueprint("static files", __name__,
+                                 template_folder="templates")
         app.add_url_rule("/", "index", view_func=index)
         app.add_url_rule("/get_stats", "get_stats", view_func=get_stats)
         app.run(host=self.host, port=self.port)
