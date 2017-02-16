@@ -5,6 +5,11 @@ import hrt from 'human-readable-time';
 const updateIntervalInSeconds = 5;
 
 
+function ResultsStatus(props) {
+    return <p>The server has received {props.results + "\n"}
+        computation results from clients.</p>;
+}
+
 function WorkerStatus(props) {
     return <p>Idle workers: {props.idle} / {props.total}</p>;
 }
@@ -104,6 +109,8 @@ class App extends React.Component {
                 <WorkerStatus
                     idle={this.state.num_idle_workers}
                     total={this.state.num_total_workers} />
+                <ResultsStatus 
+                    results={this.state.num_results_from_clients} />
                 <RuntimeStatus start={this.state.start_time} />
                 { (!this.state.rest_success) && (<h1>Could not connect</h1>) }
             </div>
