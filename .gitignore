@@ -109,3 +109,7 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+# JS stuff
+node_modules/
+*.compiled.js
