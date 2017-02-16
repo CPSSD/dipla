@@ -1,4 +1,5 @@
 import os
+import subprocess
 from dipla.environment import PROJECT_DIRECTORY
 from flask import Flask, json, render_template
 from flask.views import View
@@ -74,6 +75,24 @@ class DashboardServer(Thread):
         return app
 
     def run(self):
-        """Run the dashboard server. This should not be called directly,
-        call the .start() method inherited from threading.Thread instead."""
+        """Install javascript dependencies, and run the dashboard server.
+        This should not be called directly, call the .start() method
+        inherited from threading.Thread instead."""
+
+        # install javascript dependencies. If they have already been
+        # installed, this will only take a second, but it will take a
+        # long time if they have not.
+        proc = subprocess.Popen(["npm", "install"],
+                                cwd=os.path.join(PROJECT_DIRECTORY,
+                                                 "dashboard"))
+        # Don't want to build project before we have the dependencies.
+        proc.wait()
+
+        # Transpile and pack the javascript. This will take 2-3 seconds.
+        proc = subprocess.Popen(["npm", "run", "build"],
+                                cwd=os.path.join(PROJECT_DIRECTORY,
+                                                 "dashboard"))
+        # Don't make the server live until all assets are ready.
+        proc.wait()
+
         self._app.run(host=self.__host, port=self.__port)
