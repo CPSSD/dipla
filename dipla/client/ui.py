@@ -5,17 +5,15 @@ import sys
 
 
 class DiplaClientUI:
-    def __init__(self, config, service_creator):
+    def __init__(self, config, client_creator):
         self._config = config
-        self._service_creator = service_creator
-        self._client = None
-        self._client_thread = None
-        self._is_running = False
+        self._client_creator = client_creator
+        self._client_process = None
         self._draw_ui()
 
     def _die(self, event=None):
-        if self._client_thread:
-            self._client_thread.terminate()
+        if self._client_process:
+            self._client_process.terminate()
         self._root.destroy()
 
     def _draw_ui(self):
@@ -31,8 +29,10 @@ class DiplaClientUI:
         # Draw in each of the options
         self._option_labels = {}
         self._option_vars = {}
-        for i, option in enumerate(sorted(self._config.config_defaults)):
-            default_val = self._config.config_defaults[option]
+        for i, option in enumerate(sorted(self._config.config_types)):
+            default_val = ''
+            if option in self._config.config_defaults:
+                default_val = self._config.config_defaults[option]
             # Make the label for the option
             self._option_labels[option] = tkinter.Label(
                 master=self._root,
@@ -57,38 +57,31 @@ class DiplaClientUI:
             text='Run Client',
             command=self._toggle_run_client)
         self._toggle_button.grid(
-            row=len(self._config.config_defaults), column=0, columnspan=2,
+            row=len(self._config.config_types), column=0, columnspan=2,
             padx=5, pady=5)
 
-    def _get_opt(self, option_name):
-        return self._option_vars[option_name].get()
+    def _add_param_to_config(self, entry, option_name):
+        corr_type = self._config.config_types[option_name]
+        value = corr_type(entry.get())
+        self._config.add_param(option_name, value)
 
     def _toggle_run_client(self):
-        if self._is_running:
-            self._client_thread.terminate()
+        if self._client_process:
+            self._client_process.terminate()
+            self._client_process = None
             for entry in self._option_vars.values():
                 entry.configure(state='normal')
             self._toggle_button.configure(text='Run Client')
-            self._client_thread = None
-            self._client = None
-            self._is_running = False
         else:
-            for entry in self._option_vars.values():
+            for option, entry in self._option_vars.items():
+                self._add_param_to_config(entry, option)
                 entry.configure(state='disabled')
             self._toggle_button.configure(text='Stop Client')
-            self._client = Client(
-                'ws://{}:{}'.format(
-                    self._get_opt('server_ip'),
-                    self._get_opt('server_port')),
-                password=self._get_opt('password')
-            )
-            services = self._service_creator(self._client)
-            self._client.inject_services(services)
             # Use a seperate process in order not to tie up the UI
-            self._client_thread = multiprocessing.Process(
-                target=self._client.start)
-            self._client_thread.start()
-            self._is_running = True
+            self._client_process = multiprocessing.Process(
+                target=self._client_creator,
+                args=(self._config,))
+            self._client_process.start()
 
     def run(self):
         self._root.mainloop()

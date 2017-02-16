@@ -24,22 +24,25 @@ def main(argv):
     if args.config_path:
         config.parse_from_file(args.config_path)
 
-    init_logger(config.params['log_file'])
-
     if args.ui:
         ui = DiplaClientUI(
             config=config,
-            service_creator=create_services)
+            client_creator=create_and_run_client)
         ui.run()
     else:
-        client = Client(
-            'ws://{}:{}'.format(
-                config.params['server_ip'], config.params['server_port']),
-            password=config.params['password']
-        )
-        services = create_services(client)
-        client.inject_services(services)
-        client.start()
+        create_and_run_client(config)
+
+
+def create_and_run_client(config):
+    init_logger(config.params['log_file'])
+    client = Client(
+        'ws://{}:{}'.format(
+            config.params['server_ip'], config.params['server_port']),
+        password=config.params['password']
+    )
+    services = create_services(client)
+    client.inject_services(services)
+    client.start()
 
 
 def init_logger(loc):
