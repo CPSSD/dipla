@@ -13,10 +13,10 @@ class DiplaClientUI:
         self.is_running = False
         self._draw_ui()
 
-    def _die(self):
+    def _die(self, event=None):
         if self.client_thread:
             self.client_thread.terminate()
-        sys.exit()
+        self.root.destroy()
 
     def _draw_ui(self):
         # Create root window
@@ -26,6 +26,7 @@ class DiplaClientUI:
         self.root.resizable(0, 0)
         # Allow users to exit on escape key
         self.root.bind('<Escape>', self._die)
+        self.root.protocol("WM_DELETE_WINDOW", self._die)
 
         # Draw in each of the options
         self.option_labels = {}
