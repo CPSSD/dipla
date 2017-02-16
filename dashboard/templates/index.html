@@ -4,12 +4,15 @@
         <meta charset="utf-8">
         <title>Dipla</title>
         <link rel="stylesheet" href="{{ url_for("static", filename="style.css") }}">
+        <script type="text/javascript" src="https://unpkg.com/react@15/dist/react.js"></script>
+        <script type="text/javascript" src="https://unpkg.com/react-dom@15/dist/react-dom.js"></script>
     </head>
     <body>
+    <div id="root"></div>
     <p>Rendered Template</p>
     <script type="text/javascript">
         const stats = {{ stats|safe }};
     </script>
-    <script type="text/javascript" src="{{ url_for("static", filename="app.js") }}"></script>
+    <script type="text/javascript" src="{{ url_for("static", filename="bundle.js") }}"></script>
     </body>
 </html>
