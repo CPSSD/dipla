@@ -1,8 +1,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import hrt from 'human-readable-time';
+const DoughnutChart = require("react-chartjs-2").Doughnut;
+const Chart = require("react-chartjs-2").Chart;
 
 const updateIntervalInSeconds = 5;
+Chart.defaults.global.defaultFontColor = '#fff';
 
 
 function ResultsStatus(props) {
@@ -12,6 +15,34 @@ function ResultsStatus(props) {
 
 function WorkerStatus(props) {
     return <p>Idle workers: {props.idle} / {props.total}</p>;
+}
+
+class WorkerChart extends React.Component {
+    constructor(props) {
+        super(props);
+    }
+
+    render() {
+        const chartData = {
+                labels: ["Idle", "Busy"],
+                datasets: [{
+                    data: [this.props.idle,
+                           this.props.total - this.props.idle],
+                    backgroundColor: ["#77DD68", "#E85422"],
+                    hoverBackgroundColor: ["#000", "#000"]
+                }]
+        };
+        return <DoughnutChart
+                    data={chartData}
+                    width={500}
+                    height={350}
+                    id="workerchart"
+                    options={{
+                        responsive: false,
+                        maintainAspectRatio: true,
+                        scaleFontColor: "#FFF"
+                    }} />;
+    }
 }
 
 class RuntimeStatus extends React.Component {
@@ -106,6 +137,9 @@ class App extends React.Component {
         console.log(this.state.start_time);
         return (
             <div>
+                <WorkerChart
+                    idle={this.state.num_idle_workers}
+                    total={this.state.num_idle_workers} />
                 <WorkerStatus
                     idle={this.state.num_idle_workers}
                     total={this.state.num_total_workers} />
