@@ -10,16 +10,18 @@ from dipla.shared.error_codes import ErrorCodes
 class WorkerGroupTest(unittest.TestCase):
 
     def setUp(self):
-        self.server_services = ServerServices(BinaryManager())
 
         mock_server = Mock()
         mock_server.verify_inputs = {}
 
         stats = {
             "num_total_workers": 0,
-            "num_idle_workers": 0
+            "num_idle_workers": 0,
+            "num_results_from_clients": 0
         }
         stat_updater = statistics.StatisticsUpdater(stats)
+        self.server_services = ServerServices(BinaryManager(),
+                                              stat_updater)
         mock_server.worker_group = WorkerGroup(stat_updater)
         mock_server.password = None
         mock_server.min_worker_correctness = 0.99

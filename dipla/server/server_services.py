@@ -5,7 +5,7 @@ from dipla.shared.error_codes import ErrorCodes
 
 class ServerServices:
 
-    def __init__(self, binary_manager):
+    def __init__(self, binary_manager, stats):
         """
         Raising an exception will transmit it back to the client. A
         ServiceError lets you include a specific error code to allow
@@ -18,6 +18,8 @@ class ServerServices:
 
         binary_manager is a BinaryManager instance containing the task
         binaries that can be requested by a client
+        stats is an instance of statistics.shared.StatisticsUpdater,
+        used here to track the number of responses from clients.
         """
         self.services = {
             'get_binaries': self._handle_get_binaries,
@@ -27,6 +29,7 @@ class ServerServices:
             'verify_inputs_result': self._handle_verify_inputs
         }
         self.binary_manager = binary_manager
+        self.__statistics_updater = stats
 
     def get_service(self, label):
         if label in self.services:
@@ -100,6 +103,8 @@ class ServerServices:
         task_id = message['task_uid']
         results = message['results']
         server = params.server
+        self.__statistics_updater.adjust("num_results_from_clients",
+                                         len(results))
         for result in results:
             server.task_queue.add_result(task_id, result)
 
