@@ -35,25 +35,44 @@ class DashboardGetStatsView(DashboardView):
 class DashboardServer(Thread):
     """A thin wrapper on a Flask server, allowing it to run in its
     own thread, and potentially allowing multiple instances to
-    run. Per-instance data should be passed in to the constructor."""
+    run. Per-instance data should be passed in to the constructor.
+
+    If you want to run this server, you should use the .start() method
+    that is inherited from threading.Thread. You should not use the
+    .run() method specified here."""
 
     def __init__(self, host, port, stats):
+        """Initialise the Dashboard Server.
+
+        Params:
+         - host: A string describing where the server will be run from.
+         - port: An int saying which port to open for the server.
+         - stats: An instance of shared.statistics.StatisticsReader.
+        """
         super().__init__()
         self.host = host
         self.port = port
         self.stats = stats
+        self.app = self._create_flask_app()
 
-    def run(self):
-        print('Running dashboard on {}:{}'.format(self.host, self.port))
+    def _create_flask_app(self):
+        """Create the base flask app, register all of the endpoints, but
+        don't start it running yet."""
         static_folder = os.path.join(PROJECT_DIRECTORY, "dashboard", "static")
-        template_folder = os.path.join(PROJECT_DIRECTORY, "dashboard", "templates")
-        print(static_folder)
-        app = Flask(__name__, static_folder=static_folder, template_folder=template_folder)
+        template_folder = os.path.join(PROJECT_DIRECTORY,
+                                       "dashboard",
+                                       "templates")
+        app = Flask(__name__,
+                    static_folder=static_folder,
+                    template_folder=template_folder)
         index = DashboardIndexView.as_view("index", stats=self.stats)
         get_stats = DashboardGetStatsView.as_view("get_stats",
                                                   stats=self.stats)
-        static_files = Blueprint("static files", __name__,
-                                 template_folder="templates")
         app.add_url_rule("/", "index", view_func=index)
         app.add_url_rule("/get_stats", "get_stats", view_func=get_stats)
-        app.run(host=self.host, port=self.port)
+        return app
+
+    def run(self):
+        """Run the dashboard server. This should not be called directly,
+        call the .start() method inherited from threading.Thread instead."""
+        self.app.run(host=self.host, port=self.port)
