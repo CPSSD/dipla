@@ -3,8 +3,9 @@ import json
 
 from dipla.shared.error_codes import ErrorCodes
 
+
 class ErrorCodesTest(unittest.TestCase):
-    
+
     def test_error_code_can_be_JSON_encoded(self):
         data = {
             "example": "test",
