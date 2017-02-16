@@ -160,13 +160,32 @@ class Dipla:
 
         return get_task.task_output
 
-    def start_dashboard(host='localhost', port=8766):
-        print('api called')
+    def start_dashboard(host='localhost', port=8080):
+        """
+        Start a webserver hosting a dashboard at the given host and port,
+        in a new thread. This dashboard will give you some information
+        on the current runtime status of the project, in human-readable
+        format. It will be visible in the browser at http://host:port,
+        depending on what host and port are given.
+
+        Params:
+         - host: A string specifiying the address the dashboard server
+           will be run from. If the host is set to '0.0.0.0', the server
+           will listen on all active IPs for the machine.
+         - port: An integer specifying which port the server should
+           listen on. If this number is below 1024, the OS will require
+           root access in order to successfully bind the port. The port
+           defaults to 8080.
+
+        Raises:
+         - PermissionError if the port specified is below 1024 and the
+           program was not run with root access.
+         - OSError if the port given is already being used by a different
+           process.
+        """
         stat_reader = statistics.StatisticsReader(Dipla._stats)
         dashboard = DashboardServer(host, port, stat_reader)
-        #dashboard.start_in_new_thread()
         dashboard.start()
-        print('still in orig thread')
 
 
 class Promise:
