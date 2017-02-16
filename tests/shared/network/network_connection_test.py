@@ -1,11 +1,11 @@
-import unittest
 import socket
-import functools
+import unittest
 from dipla.shared.network.network_connection import ClientConnection
-from tests.utils import assert_with_timeout
 from dipla.shared.network.network_connection import ServerConnection
-from .useful_event_listeners import EventSavingEventListener
+from .useful_assertions import *
 from .useful_event_listeners import EchoEventListener
+from .useful_event_listeners import EventSavingEventListener
+
 
 ASSERTION_TIMEOUT = 10
 
@@ -181,81 +181,101 @@ class ClientConnectionTest(unittest.TestCase):
         self.server_connection._attempt_send_with_timeout(message)
 
     def then_client_does_not_receive_open_notification(self):
-        def does_not_receive_open():
-            return not self.client_event_listener._opened
-        assert_with_timeout(self, does_not_receive_open, ASSERTION_TIMEOUT)
+        assert_event_listener_receives_no_open_notification(
+            self,
+            self.client_event_listener,
+            ASSERTION_TIMEOUT
+        )
 
     def then_client_receives_open_notification(self):
-        def receives_open():
-            return self.client_event_listener._opened
-        assert_with_timeout(self, receives_open, ASSERTION_TIMEOUT)
+        assert_event_listener_receives_open_notification(
+            self,
+            self.client_event_listener,
+            ASSERTION_TIMEOUT
+        )
 
     def then_client_is_connected(self):
-        def connected():
-            return self.client_connection.is_connected()
-        assert_with_timeout(self, connected, ASSERTION_TIMEOUT)
+        assert_is_connected(
+            self,
+            self.client_connection,
+            ASSERTION_TIMEOUT
+        )
 
     def then_client_not_connected(self):
-        def not_connected():
-            return not self.client_connection.is_connected()
-        assert_with_timeout(self, not_connected, ASSERTION_TIMEOUT)
+        assert_not_connected(
+            self,
+            self.client_connection,
+            ASSERTION_TIMEOUT
+        )
 
     def when_client_connection_sends(self, message):
         self.client_connection.send(message)
 
     def then_server_connection_receives_something(self):
-        def received_something():
-            return self.server_event_listener._last_message is not None
-        assert_with_timeout(self, received_something, ASSERTION_TIMEOUT)
+        assert_event_listener_receives_something(
+            self,
+            self.server_event_listener,
+            ASSERTION_TIMEOUT
+        )
 
     def then_server_connection_receives_nothing(self):
-        def received_nothing():
-            return self.server_event_listener._last_message is None
-        assert_with_timeout(self, received_nothing, ASSERTION_TIMEOUT)
+        assert_event_listener_receives_nothing(
+            self,
+            self.server_event_listener,
+            ASSERTION_TIMEOUT
+        )
 
     def then_server_connection_receives(self, message):
-        def received_message(expected):
-            return self.server_event_listener._last_message == expected
-        received_expected = functools.partial(received_message, message)
-        assert_with_timeout(self, received_expected, ASSERTION_TIMEOUT)
+        assert_event_listener_receives(
+            self,
+            self.server_event_listener,
+            message,
+            ASSERTION_TIMEOUT
+        )
 
     def then_client_receives(self, message):
-        def received_message(expected):
-            return self.client_event_listener._last_message == expected
-        received_expected = functools.partial(received_message, message)
-        assert_with_timeout(self, received_expected, ASSERTION_TIMEOUT)
+        assert_event_listener_receives(
+            self,
+            self.client_event_listener,
+            message,
+            ASSERTION_TIMEOUT
+        )
 
     def then_client_receives_no_errors(self):
-        def received_no_errors():
-            return self.client_event_listener._last_error is None
-        assert_with_timeout(self, received_no_errors, ASSERTION_TIMEOUT)
+        assert_event_listener_receives_no_errors(
+            self,
+            self.client_event_listener,
+            ASSERTION_TIMEOUT
+        )
 
     def then_client_receives_connection_refused_error(self):
-        def received_error():
-            return self.client_event_listener._last_error is not None
-        assert_with_timeout(self, received_error, ASSERTION_TIMEOUT)
+        assert_event_listener_receives_connection_refused(
+            self,
+            self.client_event_listener,
+            ASSERTION_TIMEOUT
+        )
 
     def then_client_receives_close_notification(self):
-        def received_close_notification():
-            return self.client_event_listener._closed is True
-        assert_with_timeout(self,
-                            received_close_notification,
-                            ASSERTION_TIMEOUT)
+        assert_event_listener_receives_close_notification(
+            self,
+            self.client_event_listener,
+            ASSERTION_TIMEOUT
+        )
 
     def then_client_does_not_receive_close_notification(self):
-        def not_received_close_notification():
-            return self.client_event_listener._closed is False
-        assert_with_timeout(self,
-                            not_received_close_notification,
-                            ASSERTION_TIMEOUT)
+        assert_event_listener_receives_no_close_notification(
+            self,
+            self.client_event_listener,
+            ASSERTION_TIMEOUT
+        )
 
     def tearDown(self):
         try:
-            self.client_connection.stop()
+            blindly_stop(self.server_connection)
         except AttributeError:
             pass
         try:
-            self.server_connection.stop()
+            blindly_stop(self.client_connection)
         except AttributeError:
             pass
 
@@ -427,99 +447,113 @@ class ServerConnectionTest(unittest.TestCase):
         self.client_connection.send(bytes_to_send)
 
     def then_server_connection_is_running(self):
-        def is_running():
-            return self.server_connection.isAlive()
-        assert_with_timeout(self, is_running, ASSERTION_TIMEOUT)
+        assert_connection_is_running(
+            self,
+            self.server_connection,
+            ASSERTION_TIMEOUT
+        )
 
     def then_server_is_not_running(self):
-        def is_not_running():
-            return not self.server_connection.isAlive()
-        assert_with_timeout(self, is_not_running, ASSERTION_TIMEOUT)
+        assert_connection_is_not_running(
+            self,
+            self.server_connection,
+            ASSERTION_TIMEOUT
+        )
 
     def then_server_is_connected(self):
-        def connected():
-            return self.server_connection.is_connected()
-        assert_with_timeout(self, connected, ASSERTION_TIMEOUT)
+        assert_is_connected(
+            self,
+            self.server_connection,
+            ASSERTION_TIMEOUT
+        )
 
     def then_server_not_connected(self):
-        def not_connected():
-            return not self.server_connection.is_connected()
-        assert_with_timeout(self, not_connected, ASSERTION_TIMEOUT)
+        assert_not_connected(
+            self,
+            self.server_connection,
+            ASSERTION_TIMEOUT
+        )
 
     def then_client_receives_something(self):
-        def received_something():
-            return self.client_event_listener._last_message is not None
-        assert_with_timeout(self, received_something, ASSERTION_TIMEOUT)
+        assert_event_listener_receives_something(
+            self,
+            self.client_event_listener,
+            ASSERTION_TIMEOUT
+        )
 
     def then_server_receives(self, message):
-        def received_message(expected):
-            return self.server_event_listener._last_message == expected
-        received_expected = functools.partial(received_message, message)
-        assert_with_timeout(self, received_expected, ASSERTION_TIMEOUT)
+        assert_event_listener_receives(
+            self,
+            self.server_event_listener,
+            message,
+            ASSERTION_TIMEOUT
+        )
 
-    def then_server_receives_number_of_bytes(self, num_of_bytes):
-        def received_expected_bytes(expected):
-            try:
-                length = len(self.server_event_listener._last_message)
-                return length == expected
-            except TypeError:
-                return False
-        received_large_message = functools.partial(received_expected_bytes,
-                                                   num_of_bytes)
-        assert_with_timeout(self, received_large_message, ASSERTION_TIMEOUT)
+    def then_server_receives_number_of_bytes(self, number_of_bytes):
+        assert_event_listener_last_message_size(
+            self,
+            self.server_event_listener,
+            number_of_bytes,
+            ASSERTION_TIMEOUT
+        )
 
     def then_client_connection_receives(self, message):
-        def received_message(expected):
-            return self.client_event_listener._last_message == expected
-
-        received_expected = functools.partial(received_message, message)
-        assert_with_timeout(self, received_expected, ASSERTION_TIMEOUT)
+        assert_event_listener_receives(
+            self,
+            self.client_event_listener,
+            message,
+            ASSERTION_TIMEOUT
+        )
 
     def then_server_does_not_receive_open_notification(self):
-        def not_received_open_notification():
-            return not self.server_event_listener._opened
-        assert_with_timeout(self,
-                            not_received_open_notification,
-                            ASSERTION_TIMEOUT)
+        assert_event_listener_receives_no_open_notification(
+            self,
+            self.server_event_listener,
+            ASSERTION_TIMEOUT
+        )
 
     def then_server_receives_open_notification(self):
-        def receives_open_notification():
-            return self.server_event_listener._opened
-        assert_with_timeout(self,
-                            receives_open_notification,
-                            ASSERTION_TIMEOUT)
+        assert_event_listener_receives_open_notification(
+            self,
+            self.server_event_listener,
+            ASSERTION_TIMEOUT
+        )
 
     def then_server_does_not_receive_close_notification(self):
-        def not_received_close_notification():
-            return not self.server_event_listener._closed
-        assert_with_timeout(self,
-                            not_received_close_notification,
-                            ASSERTION_TIMEOUT)
+        assert_event_listener_receives_no_close_notification(
+            self,
+            self.server_event_listener,
+            ASSERTION_TIMEOUT
+        )
 
     def then_server_receives_close_notification(self):
-        def received_close_notification():
-            return self.server_event_listener._closed
-        assert_with_timeout(self,
-                            received_close_notification,
-                            ASSERTION_TIMEOUT)
+        assert_event_listener_receives_close_notification(
+            self,
+            self.server_event_listener,
+            ASSERTION_TIMEOUT
+        )
 
     def then_server_receives_no_errors(self):
-        def received_no_errors():
-            return self.server_event_listener._last_error is None
-        assert_with_timeout(self, received_no_errors, ASSERTION_TIMEOUT)
+        assert_event_listener_receives_no_errors(
+            self,
+            self.server_event_listener,
+            ASSERTION_TIMEOUT
+        )
 
     def then_server_receives_error(self):
-        def received_error():
-            return self.server_event_listener._last_error is not None
-        assert_with_timeout(self, received_error, ASSERTION_TIMEOUT)
+        assert_event_listener_receives_an_error(
+            self,
+            self.server_event_listener,
+            ASSERTION_TIMEOUT
+        )
 
     def tearDown(self):
         try:
-            self.client_connection.stop()
+            blindly_stop(self.server_connection)
         except AttributeError:
             pass
         try:
-            self.server_connection.stop()
+            blindly_stop(self.client_connection)
         except AttributeError:
             pass
 
@@ -583,72 +617,64 @@ class MultipleConnectionsTest(unittest.TestCase):
         self.client_connections[identifier].start()
 
     def then_server_connection_is_running(self, identifier):
-        def running(server_identifier):
-            server_connection = self.server_connections[server_identifier]
-            return server_connection.isAlive()
-        is_running = functools.partial(running, identifier)
-        assert_with_timeout(self, is_running, ASSERTION_TIMEOUT)
+        assert_connection_is_running(
+            self,
+            self.server_connections[identifier],
+            ASSERTION_TIMEOUT
+        )
 
     def then_server_connection_is_not_running(self, identifier):
-        def not_running(server_identifier):
-            server_connection = self.server_connections[server_identifier]
-            return not server_connection.isAlive()
-        is_not_running = functools.partial(not_running, identifier)
-        assert_with_timeout(self, is_not_running, ASSERTION_TIMEOUT)
+        assert_connection_is_not_running(
+            self,
+            self.server_connections[identifier],
+            ASSERTION_TIMEOUT
+        )
 
     def then_client_connection_is_running(self, identifier):
-        def running(client_identifier):
-            client_connection = self.client_connections[client_identifier]
-            return client_connection.isAlive()
-        is_running = functools.partial(running, identifier)
-        assert_with_timeout(self, is_running, ASSERTION_TIMEOUT)
+        assert_connection_is_running(
+            self,
+            self.client_connections[identifier],
+            ASSERTION_TIMEOUT
+        )
 
     def then_client_connection_is_not_running(self, identifier):
-        def not_running(client_identifier):
-            client_connection = self.client_connections[client_identifier]
-            return not client_connection.isAlive()
-        is_not_running = functools.partial(not_running, identifier)
-        assert_with_timeout(self, is_not_running, ASSERTION_TIMEOUT)
+        assert_connection_is_not_running(
+            self,
+            self.client_connections[identifier],
+            ASSERTION_TIMEOUT
+        )
 
     def then_server_is_connected(self, identifier):
-        def connected(server_identifier):
-            server_connection = self.server_connections[server_identifier]
-            return server_connection.is_connected()
-        is_connected = functools.partial(connected, identifier)
-        assert_with_timeout(self, is_connected, ASSERTION_TIMEOUT)
+        assert_is_connected(
+            self,
+            self.server_connections[identifier],
+            ASSERTION_TIMEOUT
+        )
 
     def then_server_is_not_connected(self, identifier):
-        def not_connected(server_identifier):
-            server_connection = self.server_connections[server_identifier]
-            return not server_connection.is_connected()
-        server_not_connected = functools.partial(not_connected, identifier)
-        assert_with_timeout(self, server_not_connected, ASSERTION_TIMEOUT)
+        assert_not_connected(
+            self,
+            self.server_connections[identifier],
+            ASSERTION_TIMEOUT
+        )
 
     def then_client_is_connected(self, identifier):
-        def connected(client_identifier):
-            client_connection = self.client_connections[client_identifier]
-            return client_connection.is_connected()
-        is_connected = functools.partial(connected, identifier)
-        assert_with_timeout(self, is_connected, ASSERTION_TIMEOUT)
+        assert_is_connected(
+            self,
+            self.client_connections[identifier],
+            ASSERTION_TIMEOUT
+        )
 
     def then_client_is_not_connected(self, identifier):
-        def not_connected(client_identifier):
-            client_connection = self.client_connections[client_identifier]
-            return not client_connection.is_connected()
-        is_not_connected = functools.partial(not_connected, identifier)
-        assert_with_timeout(self, is_not_connected, ASSERTION_TIMEOUT)
+        assert_not_connected(
+            self,
+            self.client_connections[identifier],
+            ASSERTION_TIMEOUT
+        )
 
     def tearDown(self):
-        for server_connection in self.server_connections.values():
-            try:
-                server_connection.stop()
-            except:
-                pass
-        for client_connection in self.client_connections.values():
-            try:
-                client_connection.stop()
-            except:
-                pass
+        blindly_stop_all(self.server_connections)
+        blindly_stop_all(self.client_connections)
 
 
 def generate_bytes(num_of_bytes):
@@ -661,6 +687,18 @@ def get_bound_socket(port):
     socket_.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     socket_.bind(('localhost', port))
     return socket_
+
+
+def blindly_stop(client_connection):
+    try:
+        client_connection.stop()
+    except:
+        pass
+
+
+def blindly_stop_all(connections):
+    for connection in connections.values():
+        blindly_stop(connection)
 
 
 if __name__ == "__main__":
