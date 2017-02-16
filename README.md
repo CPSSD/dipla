@@ -13,6 +13,7 @@ You can view the user manual for using the Dipla API [here](docs/user_facing_api
 * To set up the project, you will need...
     * git
     * python 3.5
+    * python3-tk
     * pip
     * virtualenv
 
