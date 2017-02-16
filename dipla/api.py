@@ -12,6 +12,7 @@ class Dipla:
     # BinaryManager and TaskQueue to be injected into server.
     binary_manager = BinaryManager()
     task_queue = TaskQueue()
+    _password = None
     _stats = {
         "num_total_workers": 0,
         "num_idle_workers": 0,
@@ -156,9 +157,13 @@ class Dipla:
         server = Server(Dipla.task_queue,
                         ServerServices(Dipla.binary_manager),
                         stats=Dipla.stat_updater)
-        server.start()
+        server.start(password=Dipla._password)
 
         return get_task.task_output
+
+    @staticmethod
+    def set_password(password):
+        Dipla._password = password
 
     def start_dashboard(host='localhost', port=8080):
         """
