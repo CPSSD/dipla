@@ -14,20 +14,22 @@ class DashboardView(View):
     def __init__(self, stats):
         self.stats = stats
 
+    def get_stat_json(self):
+        return json.dumps(self.stats.read_all())
+
 
 class DashboardIndexView(DashboardView):
     """The view for the user-oriented index of the dashboard."""
 
     def dispatch_request(self, *url_args, **url_kwargs):
-        return render_template("index.html")
-        return str(self.stats.read_all())
+        return render_template("index.html", stats=self.get_stat_json())
 
 
 class DashboardGetStatsView(DashboardView):
     """A view returning all of the stat data, in json format."""
 
     def dispatch_request(self, *url_args, **url_kwargs):
-        return str(json.dumps(self.stats.read_all(), indent=4))
+        return self.get_stat_json()
 
 
 class DashboardServer(Thread):

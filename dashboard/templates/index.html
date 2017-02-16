@@ -3,10 +3,13 @@
     <head>
         <meta charset="utf-8">
         <title>Dipla</title>
-        <link rel="stylesheet" href="/static/style.css">
+        <link rel="stylesheet" href="{{ url_for("static", filename="style.css") }}">
     </head>
     <body>
     <p>Rendered Template</p>
-    <script type="text/javascript" src="/static/app.js"></script>
+    <script type="text/javascript">
+        const stats = {{ stats|safe }};
+    </script>
+    <script type="text/javascript" src="{{ url_for("static", filename="app.js") }}"></script>
     </body>
 </html>
