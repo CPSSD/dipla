@@ -1,3 +1,5 @@
+import json
+
 import abc
 import errno
 import socket
@@ -61,11 +63,12 @@ class SocketConnection(threading.Thread, metaclass=abc.ABCMeta):
             self._cleanup()
             self._emit_final_close()
 
-    def send(self, message):
-        self._logger.debug(SEND_MESSAGE_MESSAGE, self._label, message)
+    def send(self, message_object):
+        self._logger.debug(SEND_MESSAGE_MESSAGE, self._label, str(message_object))
+        message = json.dumps(message_object)
         message = prefix_message(message)
         self._attempt_send_with_timeout(message)
-        self._logger.debug(SENT_MESSAGE_MESSAGE, self._label)
+        self._logger.debug(SENT_MESSAGE_MESSAGE, self._label, message)
 
     def stop(self):
         self._logger.debug(STOP_MESSAGE, self._label)
@@ -112,14 +115,18 @@ class SocketConnection(threading.Thread, metaclass=abc.ABCMeta):
     def _check_defixer_for_full_message(self):
         try:
             full_message = self._message_defixer.get_defixed_message()
-            self._event_listener.on_message(self, full_message)
+
+            full_message_object = json.loads(full_message)
+            _check_fields_exist(['label', 'data'], full_message_object)
+
+            self._event_listener.on_message(self, full_message_object)
             self._logger.debug(
-                RECEIVED_MESSAGE_MESSAGE, self._label, full_message)
+                RECEIVED_MESSAGE_MESSAGE, self._label, str(full_message_object))
         except NoMessageException:
             pass
 
     def _emit_unexpected_error(self, error_type, error):
-        self._logger.debug(
+        self._logger.critical(
             UNEXPECTED_ERROR_MESSAGE, error_type, self._label, error)
         self._event_listener.on_error(self, error)
 
@@ -201,6 +208,18 @@ class SocketConnection(threading.Thread, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def _cleanup(self): pass
+
+
+def _check_fields_exist(fields, message_object):
+    for field in fields:
+        _check_field_exists(field, message_object)
+
+
+def _check_field_exists(field, message_object):
+    if field not in message_object:
+        raise ValueError(
+            'Missing %s field in message: %s.' % field % message_object
+            )
 
 
 class ClientConnection(SocketConnection):
@@ -303,10 +322,10 @@ class ServerConnection(SocketConnection):
 class EventListener(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
-    def on_open(self, connection, message): pass
+    def on_open(self, connection, message_object): pass
 
     @abc.abstractmethod
-    def on_message(self, connection, message): pass
+    def on_message(self, connection, message_object): pass
 
     @abc.abstractmethod
     def on_error(self, connection, error): pass
@@ -336,7 +355,7 @@ I have extracted them because it greatly improves the readability of the
 classes above, and makes it easier to stay within PEP8's character limit.
 """
 
-UNEXPECTED_ERROR_MESSAGE = "CRITICAL: Unexpected %s occurred in %s... %s"
+UNEXPECTED_ERROR_MESSAGE = "Unexpected %s occurred in %s... %s"
 
 EXPECTED_ERROR_MESSAGE = "%s caught an expected error: %s"
 
@@ -362,7 +381,7 @@ ATTRIBUTE_ERROR_SEND_MESSAGE = "%s e: Can't send message yet. No connection."
 BROKEN_PIPE_SEND_MESSAGE = "%s e: Broken pipe error when sending because " \
                            "connection not open. "
 
-SENT_MESSAGE_MESSAGE = "%s sent message successfully."
+SENT_MESSAGE_MESSAGE = "%s sent message '%s' successfully."
 
 CONNECTION_ELEMENT_CLOSED_MESSAGE = "A %s connection element has been shut " \
                                     "down & closed. "

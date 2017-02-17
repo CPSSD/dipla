@@ -7,7 +7,7 @@ from .useful_event_listeners import EchoEventListener
 from .useful_event_listeners import EventSavingEventListener
 
 
-ASSERTION_TIMEOUT = 10
+ASSERTION_TIMEOUT = 1
 
 
 class ClientConnectionTest(unittest.TestCase):

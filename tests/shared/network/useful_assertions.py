@@ -6,7 +6,7 @@ def assert_event_listener_receives_nothing(test_object,
                                            event_listener,
                                            assertion_timeout):
     def receives_nothing():
-        return event_listener.last_message is None
+        return event_listener.last_message_object is None
 
     assert_with_timeout(test_object, receives_nothing, assertion_timeout)
 
@@ -15,7 +15,7 @@ def assert_event_listener_receives_something(test_object,
                                              event_listener,
                                              assertion_timeout):
     def receives_something():
-        return event_listener.last_message is not None
+        return event_listener.last_message_object is not None
 
     assert_with_timeout(test_object, receives_something, assertion_timeout)
 
@@ -25,7 +25,7 @@ def assert_event_listener_receives(test_object,
                                    message,
                                    assertion_timeout):
     def receives_message(expected):
-        return event_listener.last_message == expected
+        return event_listener.last_message_object == expected
 
     received_expected = functools.partial(receives_message, message)
     assert_with_timeout(test_object, received_expected, assertion_timeout)
@@ -139,7 +139,7 @@ def assert_event_listener_last_message_size(test_object,
                                             assertion_timeout):
     def receives_expected_number_of_bytes():
         try:
-            length = len(event_listener.last_message)
+            length = len(event_listener.last_message_object['data'])
             return length == expected_size
         except TypeError:
             return False
