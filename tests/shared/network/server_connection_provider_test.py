@@ -6,7 +6,7 @@ from .network_connection_test import EventSavingEventListener, EchoEventListener
 from .useful_assertions import *
 
 
-ASSERTION_TIMEOUT = 5
+ASSERTION_TIMEOUT = 10
 
 
 PORT = 51515
@@ -51,12 +51,12 @@ class ServerConnectionProviderTest(unittest.TestCase):
         self.when_a_client_connects()
         self.when_a_client_connects()
         self.when_a_client_connects()
-        self.when_client_says(0, "Hello!")
-        self.when_client_says(1, "There")
-        self.when_client_says(2, "Friends")
-        self.then_client_receives(0, "Echo: Hello!")
-        self.then_client_receives(1, "Echo: There")
-        self.then_client_receives(2, "Echo: Friends")
+        self.when_client_says(0, {'label': '', 'data': "Hello!"})
+        self.when_client_says(1, {'label': '', 'data': "There"})
+        self.when_client_says(2, {'label': '', 'data': "Friends"})
+        self.then_client_receives(0, {'label': '', 'data': "Echo: Hello!"})
+        self.then_client_receives(1, {'label': '', 'data': "Echo: There"})
+        self.then_client_receives(2, {'label': '', 'data': "Echo: Friends"})
 
     def given_a_server_connection_provider(self):
         self.established_server_connections = queue.Queue()
@@ -80,14 +80,14 @@ class ServerConnectionProviderTest(unittest.TestCase):
         self.client_event_listeners.append(event_listener)
         self.client_connections.append(client_connection)
 
-    def when_client_says(self, index, message):
-        self.client_connections[index].send(message)
+    def when_client_says(self, index, message_object):
+        self.client_connections[index].send(message_object)
 
-    def then_client_receives(self, index, message):
+    def then_client_receives(self, index, message_object):
         assert_event_listener_receives(
             self,
             self.client_event_listeners[index],
-            message,
+            message_object,
             ASSERTION_TIMEOUT
         )
 
