@@ -226,7 +226,8 @@ class Server:
         asyncio.ensure_future(self._send_message(socket, label, data))
 
     def start(self, address='localhost', port=8765, password=None):
-        self.stats.overwrite("start_time", datetime.utcnow().isoformat())
+        self.__statistics_updater.overwrite("start_time",
+                                            datetime.utcnow().isoformat())
         server = websockets.serve(
             self.websocket_handler,
             address,
