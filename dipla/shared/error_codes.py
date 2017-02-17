@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import IntEnum
 
 
-class ErrorCodes(Enum):
+class ErrorCodes(IntEnum):
     """
     An enum shared between client and server used to represent errors
     that are transmitted between them

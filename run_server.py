@@ -13,7 +13,10 @@ def generate_default_statistics():
     return {
         'num_total_workers': 0,
         'num_idle_workers': 0,
+        'num_results_from_clients': 0,
+        'start_time': ''
     }
+
 
 def generate_uid(existing):
     return uid_generator.generate_uid(

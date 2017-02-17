@@ -5,6 +5,7 @@ import asyncio
 import websockets
 import random
 
+from datetime import datetime
 from dipla.server.task_queue import MachineType
 from dipla.server.worker_group import WorkerGroup, Worker
 from dipla.server.server_services import ServerServices, ServiceParams
@@ -107,7 +108,7 @@ class Server:
         if not self.worker_group:
             self.worker_group = WorkerGroup(stats)
 
-        self.stats = stats
+        self.__statistics_updater = stats
 
         self.verify_probability = 0.5
         self.verify_inputs = {}
@@ -225,6 +226,8 @@ class Server:
         asyncio.ensure_future(self._send_message(socket, label, data))
 
     def start(self, address='localhost', port=8765, password=None):
+        self.__statistics_updater.overwrite("start_time",
+                                            datetime.utcnow().isoformat())
         server = websockets.serve(
             self.websocket_handler,
             address,
