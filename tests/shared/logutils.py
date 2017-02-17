@@ -18,5 +18,5 @@ class LogUtilsTest(unittest.TestCase):
 
     @patch('dipla.shared.logutils.LogUtils.logger')
     def test_error_logs_error(self, mock_logger):
-        LogUtils.error('Test Message', ValueError('Test Error'))
+        LogUtils.error(ValueError('Test Error'))
         mock_logger.error.assert_called_with('Test Message: Test Error')
