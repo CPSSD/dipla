@@ -69,7 +69,7 @@ class RunInstructionsService(BinaryRunnerService):
 class VerifyInputsService(BinaryRunnerService):
 
     @staticmethod
-    def get_label():
+    def get_label(self):
         return 'verify_inputs'
 
     def execute(self, data):
@@ -81,41 +81,37 @@ class VerifyInputsService(BinaryRunnerService):
 class BinaryReceiverService(ClientService):
 
     @staticmethod
-    def get_label():
+    def get_label(self):
         return 'get_binaries'
 
-    def __init__(self, connection, base_filepath):
-        self.client = connection
-        self._base_filepath = base_filepath
-        self.client.binary_paths = {}
+    def __init__(self, base_file_path, binary_paths):
+        self.__base_file_path = base_file_path
+        self.__binary_paths = binary_paths
 
     def execute(self, data):
         binaries = data['base64_binaries']
         for task_name, encoded_bin in binaries.items():
             # Decode and save each binary in the response.
-            binary_path = self._base_filepath + task_name
-            self.client.binary_paths[task_name] = binary_path
+            binary_path = self.__base_file_path + task_name
+            self.__binary_paths[task_name] = binary_path
 
             raw_data = b64decode(encoded_bin)
             with open(binary_path, 'wb') as file_writer:
                 file_writer.write(raw_data)
             os.chmod(binary_path, 511)
 
-        return message_generator.generate_message(
-            "binaries_received", "")
+        return message_generator.generate_message("binaries_received", "")
 
 
 class ServerErrorService(ClientService):
 
     @staticmethod
-    def get_label():
+    def get_label(self):
         return 'runtime_error'
 
-    def __init__(self, connection):
-        super().__init__(connection)
+    def __init__(self):
         self.logger = logging.getLogger(__name__)
 
     def execute(self, data):
         self.logger.error('Error from server (code %d): %s' % (
             data['code'], data['details']))
-        return None

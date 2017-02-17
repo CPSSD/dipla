@@ -79,20 +79,21 @@ class BinaryRunnerServiceTest(TestCase):
 class BinaryReceiverServiceTest(TestCase):
     def setUp(self):
         self.message = b"banana"
-        self.base_filepath = "tmp_"
+        self.base_file_path = "tmp_"
         self.binary_name = "add"
         self.json_data = {"base64_binaries": {"add": "YmFuYW5h"}}
-        self.service = BinaryReceiverService(DummyClient(),
-                                             base_filepath=self.base_filepath)
+        self.binary_paths = {}
+        self.service = BinaryReceiverService(self.base_file_path,
+                                             self.binary_paths)
 
     def test_that_receiver_decodes_and_saves_to_file(self):
         self.service.execute(self.json_data)
-        with open(self.base_filepath + self.binary_name, 'rb') as file_reader:
+        with open(self.base_file_path + self.binary_name, 'rb') as file_reader:
             data = file_reader.read()
             self.assertEqual(self.message, data)
 
     def tearDown(self):
-        os.remove(self.base_filepath + self.binary_name)
+        os.remove(self.base_file_path + self.binary_name)
 
 
 class DummyClient:
