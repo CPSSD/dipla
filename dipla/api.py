@@ -16,6 +16,8 @@ class Dipla:
     _stats = {
         "num_total_workers": 0,
         "num_idle_workers": 0,
+        "start_time": "",
+        "num_results_from_clients": 0,
     }
     stat_updater = statistics.StatisticsUpdater(_stats)
 
@@ -155,7 +157,8 @@ class Dipla:
         Dipla.task_queue.push_task(get_task)
 
         server = Server(Dipla.task_queue,
-                        ServerServices(Dipla.binary_manager),
+                        ServerServices(Dipla.binary_manager,
+                                       Dipla.stat_updater),
                         stats=Dipla.stat_updater)
         server.start(password=Dipla._password)
 
