@@ -10,12 +10,12 @@ from dipla.shared.error_codes import ErrorCodes
 
 
 class BinaryRunnerServiceTest(TestCase):
-
     def setUp(self):
         self.binary_runner = namedtuple('MockObject', 'run')
         self.binary_runner.run = MagicMock()
 
-    def test_that_binary_runner_is_called(self):
+    def test_binary_runner_is_called(self):
+        self.given_the_binary_runner_will_return("ARBITRARY")
         self.given_the_binary_paths({"foo": "bar"})
         self.given_a_binary_runner_service()
         self.when_the_service_is_executed_with({
@@ -24,8 +24,15 @@ class BinaryRunnerServiceTest(TestCase):
             'arguments': [[1, 2, 3]]
         })
         self.then_the_binary_runner_will_execute_with(['bar', [[1, 2, 3]]])
+        self.then_the_result_is({
+            'label': 'binary_result',
+            'data': {
+                'task_uid': 'baz',
+                'results': 'ARBITRARY'
+            }
+        })
 
-    def test_handle_binary_runner_throws_error_if_no_binaries(self):
+    def test_binary_runner_throws_error_if_no_binaries(self):
         self.given_the_binary_paths({})
         self.given_a_binary_runner_service()
         self.when_attempting_to_execute_service_with({
@@ -33,13 +40,16 @@ class BinaryRunnerServiceTest(TestCase):
         })
         self.then_a_ServiceError_is_thrown_with(ErrorCodes.no_binaries_present)
 
-    def test_handle_binary_runner_throws_error_if_binary_missing(self):
-        self.given_the_binary_paths({"foo", "bar"})
+    def test_binary_runner_throws_error_if_binary_missing(self):
+        self.given_the_binary_paths({"foo": "", "bar": ""})
         self.given_a_binary_runner_service()
         self.when_attempting_to_execute_service_with({
             'task_instructions': 'baz'
         })
         self.then_a_ServiceError_is_thrown_with(ErrorCodes.invalid_binary_key)
+
+    def given_the_binary_runner_will_return(self, value):
+        self.binary_runner.run = MagicMock(return_value=value)
 
     def given_the_binary_paths(self, binary_paths):
         self.binary_paths = binary_paths
@@ -49,7 +59,7 @@ class BinaryRunnerServiceTest(TestCase):
                                            self.binary_runner)
 
     def when_the_service_is_executed_with(self, data):
-        self.service.execute(data)
+        self.result = self.service.execute(data)
 
     def then_the_binary_runner_will_execute_with(self, data):
         self.binary_runner.run.assert_called_with(data[0], data[1])
@@ -62,9 +72,11 @@ class BinaryRunnerServiceTest(TestCase):
     def when_attempting_to_execute_service_with(self, data):
         self.operation = functools.partial(self.service.execute, data)
 
+    def then_the_result_is(self, result):
+        self.assertEquals(result, self.result)
+
 
 class BinaryReceiverServiceTest(TestCase):
-
     def setUp(self):
         self.message = b"banana"
         self.base_filepath = "tmp_"
