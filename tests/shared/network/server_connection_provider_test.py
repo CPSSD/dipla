@@ -6,7 +6,7 @@ from .network_connection_test import EventSavingEventListener, EchoEventListener
 from .useful_assertions import *
 
 
-ASSERTION_TIMEOUT = 1000
+ASSERTION_TIMEOUT = 10
 
 
 PORT = 51515
