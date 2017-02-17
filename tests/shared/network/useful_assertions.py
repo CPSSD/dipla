@@ -1,4 +1,6 @@
 import functools
+import time
+
 from tests.utils import assert_with_timeout
 
 
@@ -24,11 +26,11 @@ def assert_event_listener_receives(test_object,
                                    event_listener,
                                    message,
                                    assertion_timeout):
-    def receives_message(expected):
-        return event_listener.last_message_object == expected
-
-    received_expected = functools.partial(receives_message, message)
-    assert_with_timeout(test_object, received_expected, assertion_timeout)
+    def receives_message():
+        print("CHECKING SHIT - actual:{} expected:{}".format(event_listener.last_message_object, message))
+        time.sleep(0.2)
+        return event_listener.last_message_object == message
+    assert_with_timeout(test_object, receives_message, assertion_timeout)
 
 
 def assert_is_connected(test_object, connection, assertion_timeout):

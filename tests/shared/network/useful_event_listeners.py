@@ -38,5 +38,6 @@ class EchoEventListener(EventListener):
 
     def on_message(self, connection, message_object):
         self.last_message_object = message_object
-        message_object['data'] = "Echo: " + message_object['data']
-        connection.send(message_object)
+        new_message_object = message_object.copy()
+        new_message_object['data'] = "Echo: " + message_object['data']
+        connection.send(new_message_object)

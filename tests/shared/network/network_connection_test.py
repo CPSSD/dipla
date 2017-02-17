@@ -40,7 +40,7 @@ class ClientConnectionTest(unittest.TestCase):
         self.given_client_connection()
         self.then_server_connection_receives_nothing()
         self.when_client_connection_starts()
-        self.when_client_connection_sends("Foo")
+        self.when_client_connection_sends({'label': '', 'data': "Foo"})
         self.then_server_connection_receives_something()
 
     def test_that_client_connection_can_send_legible_messages(self):
@@ -48,16 +48,16 @@ class ClientConnectionTest(unittest.TestCase):
         self.given_client_connection()
         self.then_server_connection_receives_nothing()
         self.when_client_connection_starts()
-        self.when_client_connection_sends("Foo")
-        self.then_server_connection_receives("Foo")
+        self.when_client_connection_sends({'label': '', 'data': 'Baz'})
+        self.then_server_connection_receives({'label': '', 'data': 'Baz'})
 
     def test_that_client_connection_can_receive_legible_message(self):
         self.given_running_server_connection()
         self.given_client_connection()
         self.then_server_connection_receives_nothing()
         self.when_client_connection_starts()
-        self.when_client_connection_sends("Foo")
-        self.then_client_receives("Echo: Foo")
+        self.when_client_connection_sends({'label': '', 'data': "Foo"})
+        self.then_client_receives({'label': '', 'data': "Echo: Foo"})
 
     def test_that_client_event_listener_receives_no_errors_upon_normal_connection(self):  # nopep8
         self.given_running_server_connection()
@@ -110,7 +110,7 @@ class ClientConnectionTest(unittest.TestCase):
         self.given_client_connection()
         self.when_client_connection_starts()
         self.then_client_is_connected()
-        self.when_client_connection_directly_sends("f:foo")
+        self.when_client_connection_directly_sends('f:{"label": "", "data": "foo"}')  # nopep8
         self.then_client_not_connected()
 
     def test_that_client_connection_stops_after_server_sends_corrupted_header(self):  # nopep8
@@ -118,17 +118,17 @@ class ClientConnectionTest(unittest.TestCase):
         self.given_client_connection()
         self.when_client_connection_starts()
         self.then_client_is_connected()
-        self.when_server_connection_directly_sends("f:foo")
+        self.when_server_connection_directly_sends('f:{"label": "", "data": "foo"}')  # nopep8
         self.then_client_not_connected()
 
     def test_that_client_connection_can_send_multiple_messages(self):
         self.given_running_server_connection()
         self.given_client_connection()
         self.when_client_connection_starts()
-        self.when_client_connection_sends("Hello")
-        self.then_server_connection_receives("Hello")
-        self.when_client_connection_sends("World!")
-        self.then_server_connection_receives("World!")
+        self.when_client_connection_sends({'label': '', 'data': "Hello"})
+        self.then_server_connection_receives({'label': '', 'data': "Hello"})
+        self.when_client_connection_sends({'label': '', 'data': "World!"})
+        self.then_server_connection_receives({'label': '', 'data': "World!"})
 
     def test_that_client_event_listener_receives_open_notification_upon_connecting(self):  # nopep8
         self.given_running_server_connection()
@@ -208,8 +208,8 @@ class ClientConnectionTest(unittest.TestCase):
             ASSERTION_TIMEOUT
         )
 
-    def when_client_connection_sends(self, message):
-        self.client_connection.send(message)
+    def when_client_connection_sends(self, message_object):
+        self.client_connection.send(message_object)
 
     def then_server_connection_receives_something(self):
         assert_event_listener_receives_something(
@@ -225,11 +225,11 @@ class ClientConnectionTest(unittest.TestCase):
             ASSERTION_TIMEOUT
         )
 
-    def then_server_connection_receives(self, message):
+    def then_server_connection_receives(self, expected_message_object):
         assert_event_listener_receives(
             self,
             self.server_event_listener,
-            message,
+            expected_message_object,
             ASSERTION_TIMEOUT
         )
 

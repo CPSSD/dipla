@@ -1,5 +1,5 @@
 import json
-
+import traceback
 import abc
 import errno
 import socket
@@ -64,7 +64,9 @@ class SocketConnection(threading.Thread, metaclass=abc.ABCMeta):
             self._emit_final_close()
 
     def send(self, message_object):
-        self._logger.debug(SEND_MESSAGE_MESSAGE, self._label, str(message_object))
+        self._logger.debug(SEND_MESSAGE_MESSAGE,
+                           self._label,
+                           str(message_object))
         message = json.dumps(message_object)
         message = prefix_message(message)
         self._attempt_send_with_timeout(message)
@@ -121,13 +123,17 @@ class SocketConnection(threading.Thread, metaclass=abc.ABCMeta):
 
             self._event_listener.on_message(self, full_message_object)
             self._logger.debug(
-                RECEIVED_MESSAGE_MESSAGE, self._label, str(full_message_object))
+                RECEIVED_MESSAGE_MESSAGE,
+                self._label,
+                str(full_message_object)
+            )
         except NoMessageException:
             pass
 
     def _emit_unexpected_error(self, error_type, error):
         self._logger.critical(
-            UNEXPECTED_ERROR_MESSAGE, error_type, self._label, error)
+            UNEXPECTED_ERROR_MESSAGE, error_type, self._label, error
+        )
         self._event_listener.on_error(self, error)
 
     def _emit_expected_close(self, reason):
@@ -218,8 +224,8 @@ def _check_fields_exist(fields, message_object):
 def _check_field_exists(field, message_object):
     if field not in message_object:
         raise ValueError(
-            'Missing %s field in message: %s.' % field % message_object
-            )
+            'Missing {} field in message: {}.'.format(field, message_object)
+        )
 
 
 class ClientConnection(SocketConnection):
