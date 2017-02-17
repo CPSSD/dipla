@@ -127,7 +127,6 @@ class App extends React.Component {
             console.log("json received: " + response);
             if (response !== null) {
                 const data = JSON.parse(response);
-                console.log("Setting data: " + JSON.stringify(data));
                 this.setState(data);
             }
         });
