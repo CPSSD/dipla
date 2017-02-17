@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import MagicMock
 from collections import namedtuple
-from dipla.client.client_things import ClientEventListener
+from dipla.client.client import ClientEventListener
 
 
 class ClientEventListenerTest(unittest.TestCase):
