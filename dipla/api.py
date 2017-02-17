@@ -176,6 +176,12 @@ class Dipla:
         format. It will be visible in the browser at http://host:port,
         depending on what host and port are given.
 
+        This function will also install all the dependencies necessary
+        for the dashboard, and transpile and pack the resources. The
+        first time you run it, it will be very slow, as it has to
+        download many files from NPM. However, on subsequent runs, it
+        will take less than 5 seconds.
+
         Params:
          - host: A string specifiying the address the dashboard server
            will be run from. If the host is set to '0.0.0.0', the server
