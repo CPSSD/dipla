@@ -166,10 +166,10 @@ class Server:
             return None
         return self.task_queue.pop_task_input()
 
-    def _add_verify_input_data(self, task_input, worker_id, task_id):
+    def _add_verify_input_data(self, task_inputs, task_instr, worker_id, task_id):
         self.verify_inputs[worker_id + "-" + task_id] = {
-            "task_instructions": task_input.task_instructions,
-            "inputs": task_input.values,
+            "task_instructions": task_instr,
+            "inputs": task_inputs,
             "original_worker_uid": worker_id
         }
 
@@ -185,18 +185,35 @@ class Server:
                 break
 
             if task_input.machine_type == MachineType.client:
+                t_instr = task_input.task_instructions
                 # Create the message and send it
                 data = {}
-                data['task_instructions'] = task_input.task_instructions
+                data['task_instructions'] = t_instr
                 data['task_uid'] = task_input.task_uid
                 data['arguments'] = task_input.values
                 # TODO(Update the documentation with this)
                 worker = self.worker_group.lease_worker()
+                worker.current_task_instr = t_instr
                 self.send(worker.websocket, 'run_instructions', data)
 
+                if self.result_verifier.has_verifier(t_instr):
+                    # Store the inputs to be verified with the results later
+                    worker.last_inputs = task_input.values
+
                 if(random.random() < self.verify_probability):
+                    # This stores the input values in the worker and also in
+                    # the server's verify_inputs dict. HOWEVER, only one copy
+                    # of the data is actually stored in memory because 
+                    # verify_inputs only has a reference to worker.last_inputs.
+                    #
+                    # This can be seen with:
+                    # assert(worker.last_inputs is inner_dict_thing['inputs'])
+                    worker.last_inputs = task_input.values
                     self._add_verify_input_data(
-                        task_input, worker.uid, task_input.task_uid)
+                        worker.last_inputs,
+                        worker.current_task_instr,
+                        worker.uid,
+                        task_input.task_uid)
             elif task_input.machine_type == MachineType.server:
                 # Server side tasks do not have any maching binaries, so
                 # we skip the send-to-client stage and move the read
