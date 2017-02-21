@@ -185,18 +185,18 @@ class Server:
                 break
 
             if task_input.machine_type == MachineType.client:
-                t_instr = task_input.task_instructions
+                task_instructions = task_input.task_instructions
                 # Create the message and send it
                 data = {}
-                data['task_instructions'] = t_instr
+                data['task_instructions'] = task_instructions
                 data['task_uid'] = task_input.task_uid
                 data['arguments'] = task_input.values
                 # TODO(Update the documentation with this)
                 worker = self.worker_group.lease_worker()
-                worker.current_task_instr = t_instr
+                worker.current_task_instr = task_instructions
                 self.send(worker.websocket, 'run_instructions', data)
 
-                if self.result_verifier.has_verifier(t_instr):
+                if self.result_verifier.has_verifier(task_instructions):
                     # Store the inputs to be verified with the results later
                     worker.last_inputs = task_input.values
 

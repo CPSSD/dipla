@@ -87,6 +87,46 @@ class ServerServicesTest(unittest.TestCase):
         self.assertEquals(
             ErrorCodes.user_id_already_taken, context.exception.code)
 
+    def test_handle_client_result_runs_verifier(self):
+        verify_inputs = []
+        verify_outputs = []
+
+        def verify_bar(i, o):
+            verify_inputs.append(i[0])
+            verify_outputs.append(o)
+            return True
+        self.mock_server.result_verifier.add_verifier('bar', verify_bar)
+
+        test_inputs = [1, 2, 3]
+        test_outputs = [-1, -2, -3]
+
+        self.foo_worker.current_task_instr = 'bar'
+        self.foo_worker.last_inputs = [test_inputs]
+
+        message = {
+            'task_uid': 'bar_task_uid',
+            'results': test_outputs,
+        }
+        service = self.server_services.get_service('client_result')
+        service(message, ServiceParams(self.mock_server, self.foo_worker))
+
+        self.assertEquals(test_inputs, verify_inputs)
+        self.assertEquals(test_outputs, verify_outputs)
+
+    def test_handle_client_result_verification_affects_worker_score(self):
+        self.mock_server.result_verifier.add_verifier('a', lambda a, b: False)
+        self.foo_worker.current_task_instr = 'a'
+        self.foo_worker.last_inputs = [[1, 2, 3]]
+        self.foo_worker.correctness_score = 1
+        message = {
+            'task_uid': 'a_task_uid',
+            'results': [-1, -2, -3],
+        }
+        service = self.server_services.get_service('client_result')
+        service(message, ServiceParams(self.mock_server, self.foo_worker))
+
+        self.assertLess(self.foo_worker.correctness_score, 1)
+
     def test_handle_client_result_sends_verify_message(self):
         service = self.server_services.get_service('client_result')
         message = {
