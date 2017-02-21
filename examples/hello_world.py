@@ -7,7 +7,7 @@ from dipla.api import Dipla
 
 input_data = ["1", "2", "3", "4", "5"]
 
-#Dipla.start_dashboard()
+Dipla.start_dashboard()
 
 
 @Dipla.data_source

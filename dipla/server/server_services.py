@@ -122,11 +122,13 @@ class ServerServices:
             for inp, result in zip(input_lists, results):
                 if server.result_verifier.check_output(t_instr, inp, result):
                     server.task_queue.add_result(task_id, result)
+                    worker.correctness_score += 0.05
                 else:
                     # TODO(Cian): Add input back into the list of things to do.
-                    # Currently the task will never be market as complete and
+                    # Currently the task will never be marked as complete and
                     # the server won't exit if the verification fails as it's
                     # still expecting another result.
+                    worker.correctness_score -= 0.05
                     e = ("{} verifier declared output '{}' incorrect "
                          "for input '{}'")
                     LogUtils.warning(e.format(t_instr, result, inp))
