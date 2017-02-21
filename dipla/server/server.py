@@ -73,6 +73,7 @@ class Server:
     def __init__(self,
                  task_queue,
                  services,
+                 result_verifier,
                  worker_group=None,
                  stats=None):
         """
@@ -102,6 +103,7 @@ class Server:
         """
         self.task_queue = task_queue
         self.services = services
+        self.result_verifier = result_verifier
 
         self.worker_group = worker_group
         self.min_worker_correctness = 0.99
