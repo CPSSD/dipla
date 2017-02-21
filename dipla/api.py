@@ -47,8 +47,8 @@ class Dipla:
         def distributable_decorator(function):
             # Turn the function into a base64'd Python script.
             base64_binary = get_encoded_script(function)
-            # Register the result as a new binary for any platform with the name
-            # of the function as the task name.
+            # Register the result as a new binary for any platform with the
+            # name of the function as the task name.
             Dipla.binary_manager.add_encoded_binaries('.*', [
                 (function.__name__, base64_binary),
             ])

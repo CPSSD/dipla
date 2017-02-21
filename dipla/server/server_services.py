@@ -106,7 +106,7 @@ class ServerServices:
         worker = params.worker
         self.__statistics_updater.adjust("num_results_from_clients",
                                          len(results))
-        
+
         t_instr = worker.current_task_instr
         if server.result_verifier.has_verifier(t_instr):
             # Iterate through inputs and outputs, verifying each

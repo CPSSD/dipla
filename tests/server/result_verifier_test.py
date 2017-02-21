@@ -1,6 +1,7 @@
 import unittest
 from dipla.server.result_verifier import ResultVerifier
 
+
 class ResultVerifierTest(unittest.TestCase):
 
     def test_verifiers_can_be_added(self):

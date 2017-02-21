@@ -166,10 +166,10 @@ class Server:
             return None
         return self.task_queue.pop_task_input()
 
-    def _add_verify_input_data(self, task_inputs, task_instr, worker_id, task_id):
+    def _add_verify_input_data(self, inputs, task_instr, worker_id, task_id):
         self.verify_inputs[worker_id + "-" + task_id] = {
             "task_instructions": task_instr,
-            "inputs": task_inputs,
+            "inputs": inputs,
             "original_worker_uid": worker_id
         }
 
@@ -203,7 +203,7 @@ class Server:
                 if(random.random() < self.verify_probability):
                     # This stores the input values in the worker and also in
                     # the server's verify_inputs dict. HOWEVER, only one copy
-                    # of the data is actually stored in memory because 
+                    # of the data is actually stored in memory because
                     # verify_inputs only has a reference to worker.last_inputs.
                     #
                     # This can be seen with:

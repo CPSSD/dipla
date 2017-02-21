@@ -88,8 +88,6 @@ class DistributableDecoratorTest(TestCase):
         return foo
 
 
-
-
 class TaskInputDecoratorTest(TestCase):
 
     def test_that_data_source_decorator_can_be_imported(self):
