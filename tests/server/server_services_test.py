@@ -7,7 +7,7 @@ from dipla.shared import statistics
 from dipla.shared.error_codes import ErrorCodes
 
 
-class WorkerGroupTest(unittest.TestCase):
+class ServerServicesTest(unittest.TestCase):
 
     def setUp(self):
 
