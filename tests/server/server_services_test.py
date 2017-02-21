@@ -1,5 +1,6 @@
 import unittest
 from unittest.mock import Mock
+from dipla.server.result_verifier import ResultVerifier
 from dipla.server.server import ServerServices, ServiceParams, ServiceError
 from dipla.server.server import BinaryManager
 from dipla.server.worker_group import Worker, WorkerGroup
@@ -13,6 +14,7 @@ class ServerServicesTest(unittest.TestCase):
 
         mock_server = Mock()
         mock_server.verify_inputs = {}
+        mock_server.result_verifier = ResultVerifier()
 
         stats = {
             "num_total_workers": 0,
