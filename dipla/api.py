@@ -2,6 +2,7 @@ from threading import Thread
 
 from dipla.api_support.function_serialise import get_encoded_script
 from dipla.server.dashboard import DashboardServer
+from dipla.server.result_verifier import ResultVerifier
 from dipla.server.server import BinaryManager, Server, ServerServices
 from dipla.server.task_queue import TaskQueue, Task, DataSource, MachineType
 from dipla.shared import uid_generator, statistics
@@ -9,9 +10,10 @@ from dipla.shared import uid_generator, statistics
 
 class Dipla:
 
-    # BinaryManager and TaskQueue to be injected into server.
+    # BinaryManager, TaskQueue and ResultVerifier to be injected into server.
     binary_manager = BinaryManager()
     task_queue = TaskQueue()
+    result_verifier = ResultVerifier()
     _password = None
     _stats = {
         "num_total_workers": 0,
@@ -34,20 +36,30 @@ class Dipla:
         return len(stream) > 0
 
     @staticmethod
-    def distributable(function):
+    def distributable(verifier=None):
         """
         Takes a function and converts it to a binary, the binary is then
         registered with the BinaryManager. The function is returned unchanged.
         """
-        # Turn the function into a base64'd Python script.
-        base64_binary = get_encoded_script(function)
-        # Register the result as a new binary for any platform with the name
-        # of the function as the task name.
-        Dipla.binary_manager.add_encoded_binaries('.*', [
-            (function.__name__, base64_binary),
-        ])
-        # Don't actually modify the final function.
-        return function
+        # In order to take parameters on a decorator you must make a kind of
+        # "decorator factory". It's weird looking code inside but it creates
+        # a nice API
+        def distributable_decorator(function):
+            # Turn the function into a base64'd Python script.
+            base64_binary = get_encoded_script(function)
+            # Register the result as a new binary for any platform with the
+            # name of the function as the task name.
+            Dipla.binary_manager.add_encoded_binaries('.*', [
+                (function.__name__, base64_binary),
+            ])
+            # Add the verification function, if available
+            if verifier:
+                Dipla.result_verifier.add_verifier(
+                    function.__name__,
+                    verifier)
+            # Don't actually modify the final function.
+            return function
+        return distributable_decorator
 
     @staticmethod
     def data_source(function):
@@ -156,10 +168,13 @@ class Dipla:
             Dipla.task_queue.get_task(promise.task_uid), source_uid))
         Dipla.task_queue.push_task(get_task)
 
-        server = Server(Dipla.task_queue,
-                        ServerServices(Dipla.binary_manager,
-                                       Dipla.stat_updater),
-                        stats=Dipla.stat_updater)
+        server = Server(
+            task_queue=Dipla.task_queue,
+            services=ServerServices(
+                Dipla.binary_manager,
+                Dipla.stat_updater),
+            result_verifier=Dipla.result_verifier,
+            stats=Dipla.stat_updater)
         server.start(password=Dipla._password)
 
         return get_task.task_output

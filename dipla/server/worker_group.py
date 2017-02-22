@@ -185,6 +185,8 @@ class Worker:
         self.websocket = websocket
 
         self.correctness_score = 1.0
+        self.current_task_instr = None
+        self.last_inputs = None
 
     def set_quality(self, quality):
         """

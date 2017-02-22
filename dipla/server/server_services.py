@@ -103,15 +103,44 @@ class ServerServices:
         task_id = message['task_uid']
         results = message['results']
         server = params.server
+        worker = params.worker
         self.__statistics_updater.adjust("num_results_from_clients",
                                          len(results))
-        for result in results:
-            server.task_queue.add_result(task_id, result)
+
+        t_instr = worker.current_task_instr
+        if server.result_verifier.has_verifier(t_instr):
+            # Iterate through inputs and outputs, verifying each
+
+            # The last_inputs is a list containing lists, each of which
+            # represents the next N inputs from a data source. So the 0th
+            # element in `results` is computed from the 0th elements of each
+            # of the lists in worker.last_inputs and so on.
+            # The following line "rotates" this 2d list structure so that the
+            # 0th element in `input_lists` is the list of inputs used to get
+            # the 0th result in `results`
+            input_lists = zip(*worker.last_inputs)
+            for inp, result in zip(input_lists, results):
+                if server.result_verifier.check_output(t_instr, inp, result):
+                    server.task_queue.add_result(task_id, result)
+                    worker.correctness_score += 0.05
+                else:
+                    # TODO(Cian): Add input back into the list of things to do.
+                    # Currently the task will never be marked as complete and
+                    # the server won't exit if the verification fails as it's
+                    # still expecting another result.
+                    worker.correctness_score -= 0.05
+                    e = ("{} verifier declared output '{}' incorrect "
+                         "for input '{}'")
+                    LogUtils.warning(e.format(t_instr, result, inp))
+        else:
+            # If no verification, add everything to task_queue
+            for result in results:
+                server.task_queue.add_result(task_id, result)
 
         # We need to send verify_inputs before returning the worker so
         # that we dont send it to the original worker
-        self._send_verify_inputs(server, results, params.worker.uid, task_id)
-        server.worker_group.return_worker(params.worker.uid)
+        self._send_verify_inputs(server, results, worker.uid, task_id)
+        server.worker_group.return_worker(worker.uid)
         server.distribute_tasks()
         return None
 

@@ -15,7 +15,20 @@ def read_function(input_value):
     return int(input_value) * 2
 
 
-@Dipla.distributable
+def factor_verifier(inp, out):
+    # Input is a tuple of the inputs, even if there's only one input.
+    # E.g. (2,)
+    input_int = inp[0]
+    # Output comes in as a string. I.e. turn "[1, 2]" into [1, 2]
+    out_ints = list(map(int, out.strip('[]').split(',')))
+    for fac in out_ints:
+        if input_int%fac:
+            # If there's a non-0 remainder
+            return False
+    print(out_ints, "are all factors of", input_int)
+    return True
+
+@Dipla.distributable(verifier=factor_verifier)
 def get_factors(n):
     n = int(n)
     facts = [1]
