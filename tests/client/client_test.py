@@ -26,7 +26,7 @@ class ClientEventListenerTest(unittest.TestCase):
         self.then_refused_to_connect()
 
     def test_relevant_service_runs_when_message_received(self):
-        self.given_the_services(["foo_service", "bar_service"])
+        self.given_the_services(['foo_service', 'bar_service'])
         self.given_a_client_event_listener()
         self.when_it_receives({'label': 'foo_service', 'data': 'xyz'})
         self.then_the_service_ran('foo_service', 'xyz')
@@ -34,17 +34,17 @@ class ClientEventListenerTest(unittest.TestCase):
         self.then_the_service_ran('bar_service', 'abcdefg')
 
     def test_service_result_is_sent_back(self):
-        self.given_the_services(["cool_service"])
-        self.given_the_service_will_return("cool_service", {'x': "ARBITRARY"})
+        self.given_the_services(['cool_service'])
+        self.given_the_service_will_return('cool_service', {'x': 'ARBITRARY'})
         self.given_a_client_event_listener()
         self.when_it_receives({'label': 'cool_service', 'data': 'xyz'})
-        self.then_the_result_was_sent_back({'x': "ARBITRARY"})
+        self.then_the_result_was_sent_back({'x': 'ARBITRARY'})
 
-        self.given_the_services(["cooler_service"])
-        self.given_the_service_will_return("cooler_service", {'FOO': "BAR"})
+        self.given_the_services(['cooler_service'])
+        self.given_the_service_will_return('cooler_service', {'FOO': 'BAR'})
         self.given_a_client_event_listener()
         self.when_it_receives({'label': 'cooler_service', 'data': ''})
-        self.then_the_result_was_sent_back({'FOO': "BAR"})
+        self.then_the_result_was_sent_back({'FOO': 'BAR'})
 
     def given_the_services(self, service_names):
         self.services = {}
@@ -66,7 +66,7 @@ class ClientEventListenerTest(unittest.TestCase):
         self.event_listener.on_message(self.connection, message_object)
 
     def when_connection_is_established(self):
-        self.event_listener.on_open(self.connection, "")
+        self.event_listener.on_open(self.connection, '')
 
     def when_connection_is_refused(self):
         self.event_listener.on_error(self.connection, ConnectionRefusedError())

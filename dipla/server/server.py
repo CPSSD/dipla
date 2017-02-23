@@ -1,10 +1,8 @@
 import re
-import sys
 import json
 import asyncio
 import websockets
 import random
-
 from dipla.server.task_queue import MachineType
 from dipla.server.worker_group import WorkerGroup, Worker
 from dipla.server.server_services import ServerServices, ServiceParams
@@ -12,6 +10,7 @@ from dipla.shared.services import ServiceError
 from dipla.shared.message_generator import generate_message
 from dipla.shared.error_codes import ErrorCodes
 from base64 import b64encode
+from dipla.shared.network.network_connection import EventListener
 
 
 class BinaryManager:
@@ -116,24 +115,10 @@ class Server:
         user_id = self.worker_group.generate_uid()
         worker = Worker(user_id, websocket)
         try:
-            # recv() raises a ConnectionClosed exception when the client
-            # disconnects, which breaks out of the while True loop.
             while True:
                 try:
-                    # Parse the message, get the corresponding service, send
-                    # back the response.
-                    message = self._decode_message(
-                        await worker.websocket.recv())
-                    service = self.services.get_service(message['label'])
-                    response_data = service(
-                        message['data'], params=ServiceParams(self, worker))
-                    if response_data is None:
-                        continue
-                    self.send(
-                        worker.websocket, message['label'], response_data)
+                    """HANDLED BY ON_MESSAGE"""
                 except (ValueError, KeyError) as e:
-                    # If there is a general error that isn't service specific
-                    # then send a message with the 'runtime_error' label.
                     data = {
                         'details': 'Error during websocket loop: %s' % str(e),
                         'code': ErrorCodes.server_websocket_loop,
@@ -151,12 +136,11 @@ class Server:
 
     def _get_distributable_task_input(self):
         """
-        Used to get the next task input for either distributing to
-        clients or running on the server. This will consider whether
-        there are any available workers, and if not will only get server
-        side tasks. This is an implementation detail of at least the
-        distribute_tasks method.
+        Gets the next task input. If there are no available workers, it will
+        only get server side tasks. This is an implementation detail of at
+        least the distribute_tasks method. (Which should be extracted later)
         """
+
         if not self.worker_group.has_available_worker():
             if self.task_queue.has_next_input(MachineType.server):
                 return self.task_queue.pop_task_input(MachineType.server)
@@ -171,9 +155,18 @@ class Server:
         }
 
     def distribute_tasks(self):
+
+
+
         # By leasing workers without specifying an id, we get the
         # highest quality worker for the task
+
+
+
         while self.task_queue.has_next_input():
+
+
+
             # If workers are connected pop any kind of task input. If no
             # workers are connected we must only get server task input
 
@@ -210,13 +203,6 @@ class Server:
                 # a better way.
                 asyncio.get_event_loop().stop()
 
-    def _decode_message(self, message):
-        message_dict = json.loads(message)
-        if 'label' not in message_dict or 'data' not in message_dict:
-            raise ValueError('Message missing "label" or "data": {}'.format(
-                str(message_dict)))
-        return message_dict
-
     async def _send_message(self, socket, label, data):
         message = generate_message(label, data)
         await socket.send(json.dumps(message))
@@ -225,12 +211,53 @@ class Server:
         asyncio.ensure_future(self._send_message(socket, label, data))
 
     def start(self, address='localhost', port=8765, password=None):
-        server = websockets.serve(
-            self.websocket_handler,
-            address,
-            port)
-        self.password = password
+        pass
 
-        asyncio.get_event_loop().run_until_complete(server)
+        """set the password"""
+        # self.password = password
+
+        """start serving connections"""
+        # server = websockets.serve(
+        #     self.websocket_handler,
+        #     address,
+        #     port)
+        # asyncio.get_event_loop().run_until_complete(server)
+
+        """start distributing the tasks"""
         asyncio.get_event_loop().call_soon(self.distribute_tasks)
+
+        """run forever"""
         asyncio.get_event_loop().run_forever()
+
+
+class ServerEventListener(EventListener):
+
+    def __init__(self, services):
+        self.__services = services
+
+    def on_close(self, connection, reason):
+        pass
+
+    def on_error(self, connection, error):
+        pass
+
+    def on_message(self, connection, message_object):
+        service_name = message_object['label']
+        service_data = message_object['data']
+        service = self.__services[service_name]
+
+        service_result = run_service(connection, service, service_data)
+        if service_result is not None:
+            connection.send(service_result)
+
+    def on_open(self, connection, message_object):
+        pass
+
+
+def run_service(connection, service, service_data):
+    try:
+        return service(service_data)
+    except ServiceError as service_error:
+        data = {'details': str(service_error), 'code': service_error.code}
+        error_message_object = generate_message('runtime_error', data)
+        connection.send(error_message_object)
