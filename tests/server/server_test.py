@@ -9,84 +9,90 @@ from dipla.shared import statistics
 from dipla.shared.services import ServiceError
 
 
-class ServerTest(unittest.TestCase):
-
-    def setUp(self):
-        self.task_queue = TaskQueue()
-        self.binary_manager = BinaryManager()
-        stats = {
-            'num_total_workers': 0,
-            'num_idle_workers': 0
-        }
-        stat_updater = statistics.StatisticsUpdater(stats)
-        self.worker_group = WorkerGroup(stat_updater)
-        self.server = Server(self.task_queue,
-                             self.binary_manager,
-                             self.worker_group,
-                             stat_updater)
-
-        self.sample_data_source = DataSource.create_source_from_iterable(
-          [1, 2, 3, 4], 'foosource')
-
-        self.server_task = Task('footask', 'bar', MachineType.server)
-        self.client_task = Task('footask', 'bar', MachineType.client)
-
-    def test_distribute_tasks_runs_server_task_without_connected_worker(self):
-        self.server_task.add_data_source(self.sample_data_source)
-
-        self.task_queue.push_task(self.server_task)
-        self.server.distribute_tasks()
-        self.assertEqual([1, 2, 3, 4], self.server_task.task_output)
-
-    def test_distribute_tasks_runs_server_task_with_connected_worker(self):
-        self.worker_group.add_worker(Worker('fooworker', None))
-        self.server_task.add_data_source(self.sample_data_source)
-
-        self.task_queue.push_task(self.server_task)
-        self.server.distribute_tasks()
-        self.assertEqual([1, 2, 3, 4], self.server_task.task_output)
-
-    def test_distribute_tasks_runs_client_task_on_connected_worker(self):
-        self.worker_group.add_worker(Worker('fooworker', None))
-        self.client_task.add_data_source(self.sample_data_source)
-
-        self.task_queue.push_task(self.client_task)
-
-        def mock_send(socket, label, data):
-            self.assertEquals([1, 2, 3, 4], data['arguments'][0])
-        self.server.send = mock_send
-
-        self.server.distribute_tasks()
-
-    def test_distribute_tasks_quits_when_no_connected_clients(self):
-        self.client_task.add_data_source(self.sample_data_source)
-        self.task_queue.push_task(self.client_task)
-
-        def mock_send(socket, label, data):
-            self.fail('Distribute Task attempted to send a message but' +
-                      ' should have quit')
-        self.server.send = mock_send
-
-        self.server.distribute_tasks()
-
-    def test_distribute_tasks_runs_client_and_server_tasks_together(self):
-        self.worker_group.add_worker(Worker('fooworker', None))
-        self.client_task.add_data_source(self.sample_data_source)
-        self.server_task.add_data_source(
-         DataSource.create_source_from_iterable([5, 4, 3, 2, 1], 'barsource'))
-
-        self.task_queue.push_task(self.client_task)
-        self.task_queue.push_task(self.server_task)
-
-        def mock_send(socket, label, data):
-            self.assertEquals([1, 2, 3, 4], data['arguments'][0])
-        self.server.send = mock_send
-
-        self.server.distribute_tasks()
-        self.assertEqual([5, 4, 3, 2, 1], self.server_task.task_output)
+# class ServerTest(unittest.TestCase):
+#
+#     def setUp(self):
+#         self.task_queue = TaskQueue()
+#         self.binary_manager = BinaryManager()
+#         stats = {
+#             'num_total_workers': 0,
+#             'num_idle_workers': 0
+#         }
+#         stat_updater = statistics.StatisticsUpdater(stats)
+#         self.worker_group = WorkerGroup(stat_updater)
+#         self.server = Server(self.task_queue,
+#                              self.binary_manager,
+#                              self.worker_group,
+#                              stat_updater)
+#
+#         self.sample_data_source = DataSource.create_source_from_iterable(
+#           [1, 2, 3, 4], 'foosource')
+#
+#         self.server_task = Task('footask', 'bar', MachineType.server)
+#         self.client_task = Task('footask', 'bar', MachineType.client)
+#
+#     def test_distribute_tasks_runs_server_task_without_connected_worker(self):
+#         self.server_task.add_data_source(self.sample_data_source)
+#
+#         self.task_queue.push_task(self.server_task)
+#         self.server.distribute_tasks()
+#         self.assertEqual([1, 2, 3, 4], self.server_task.task_output)
+#
+#     def test_distribute_tasks_runs_server_task_with_connected_worker(self):
+#         self.worker_group.add_worker(Worker('fooworker', None))
+#         self.server_task.add_data_source(self.sample_data_source)
+#
+#         self.task_queue.push_task(self.server_task)
+#         self.server.distribute_tasks()
+#         self.assertEqual([1, 2, 3, 4], self.server_task.task_output)
+#
+#     def test_distribute_tasks_runs_client_task_on_connected_worker(self):
+#         self.worker_group.add_worker(Worker('fooworker', None))
+#         self.client_task.add_data_source(self.sample_data_source)
+#
+#         self.task_queue.push_task(self.client_task)
+#
+#         def mock_send(socket, label, data):
+#             self.assertEquals([1, 2, 3, 4], data['arguments'][0])
+#         self.server.send = mock_send
+#
+#         self.server.distribute_tasks()
+#
+#     def test_distribute_tasks_quits_when_no_connected_clients(self):
+#         self.client_task.add_data_source(self.sample_data_source)
+#         self.task_queue.push_task(self.client_task)
+#
+#         def mock_send(socket, label, data):
+#             self.fail('Distribute Task attempted to send a message but' +
+#                       ' should have quit')
+#         self.server.send = mock_send
+#
+#         self.server.distribute_tasks()
+#
+#     def test_distribute_tasks_runs_client_and_server_tasks_together(self):
+#         self.worker_group.add_worker(Worker('fooworker', None))
+#         self.client_task.add_data_source(self.sample_data_source)
+#         self.server_task.add_data_source(
+#          DataSource.create_source_from_iterable([5, 4, 3, 2, 1], 'barsource'))
+#
+#         self.task_queue.push_task(self.client_task)
+#         self.task_queue.push_task(self.server_task)
+#
+#         def mock_send(socket, label, data):
+#             self.assertEquals([1, 2, 3, 4], data['arguments'][0])
+#         self.server.send = mock_send
+#
+#         self.server.distribute_tasks()
+#         self.assertEqual([5, 4, 3, 2, 1], self.server_task.task_output)
 
 
 class ServerEventListenerTest(unittest.TestCase):
+
+    def setUp(self):
+        self.__instantiate_empty_services()
+        self.__instantiate_mock_connection()
+        self.__instantiate_mock_worker_group()
+        self.__instantiate_mock_worker_factory()
 
     def test_relevant_service_runs_when_message_received(self):
         self.given_the_services(['foo_service', 'bar_service'])
@@ -121,10 +127,40 @@ class ServerEventListenerTest(unittest.TestCase):
             }
         })
 
+    def test_worker_uid_generated_when_connection_opened(self):
+        self.given_a_server_event_listener()
+        self.when_the_connection_is_opened()
+        self.then_a_uid_is_generated()
+
+    def test_worker_is_created_when_connection_opened(self):
+        self.given_the_uid_generator_returns('abcdef')
+        self.given_a_server_event_listener()
+        self.when_the_connection_is_opened()
+        self.then_a_worker_is_created_with({
+            'uid': 'abcdef',
+            'connection': self.connection
+        })
+
+    def test_worker_is_added_to_worker_group_when_connection_opened(self):
+        self.given_the_worker_factory_returns("Fake Worker")
+        self.given_a_server_event_listener()
+        self.when_the_connection_is_opened()
+        self.then_the_worker_is_added_to_worker_group("Fake Worker")
+
+    def test_worker_is_removed_when_connection_closes(self):
+        self.given_the_uid_generator_returns('xyz_uid')
+        self.given_a_server_event_listener()
+        self.when_the_connection_is_opened()
+        self.when_the_connection_is_closed()
+        self.then_the_worker_is_removed_from_worker_group('xyz_uid')
+
     def given_the_services(self, service_names):
         self.services = {}
         for service_name in service_names:
             self.services[service_name] = MagicMock()
+
+    def given_the_worker_factory_returns(self, return_value):
+        self.worker_factory.create_from = MagicMock(return_value=return_value)
 
     def given_the_service_will_raise_ServiceError(self, service_name):
         self.services[service_name].side_effect = ServiceError('foo', 0)
@@ -132,13 +168,29 @@ class ServerEventListenerTest(unittest.TestCase):
     def given_the_service_will_return(self, service_name, return_value):
         self.services[service_name] = MagicMock(return_value=return_value)
 
+    def given_the_uid_generator_returns(self, uid):
+        self.worker_group.generate_uid = MagicMock(return_value=uid)
+
     def given_a_server_event_listener(self):
-        self.connection = namedtuple('MockObject', 'send')
-        self.connection.send = MagicMock()
-        self.event_listener = ServerEventListener(self.services)
+        self.event_listener = ServerEventListener(
+            self.worker_factory,
+            self.worker_group,
+            self.services
+        )
 
     def when_it_receives(self, message_object):
         self.event_listener.on_message(self.connection, message_object)
+
+    def when_the_connection_is_opened(self):
+        message_object = {}
+        self.event_listener.on_open(self.connection, message_object)
+
+    def when_the_connection_is_closed(self):
+        reason = "I want to close it"
+        self.event_listener.on_close(self.connection, reason)
+
+    def then_a_uid_is_generated(self):
+        self.worker_group.generate_uid.assert_called_with()
 
     def then_the_result_was_sent_back(self, message_object):
         self.connection.send.assert_called_with(message_object)
@@ -148,3 +200,37 @@ class ServerEventListenerTest(unittest.TestCase):
 
     def then_the_service_ran(self, service_label, service_data):
         self.services[service_label].assert_called_with(service_data)
+
+    def then_a_worker_is_created_with(self, properties):
+        self.worker_factory.create_from.assert_called_with(
+            properties['uid'], properties['connection']
+        )
+
+    def then_the_worker_is_added_to_worker_group(self, expected_arguments):
+        self.worker_group.add_worker.assert_called_with(expected_arguments)
+
+    def then_the_worker_is_removed_from_worker_group(self, expected_arguments):
+        self.worker_group.remove_worker.assert_called_with(expected_arguments)
+
+    def __instantiate_mock_connection(self):
+        self.connection = create_mock_object(['send'])
+
+    def __instantiate_mock_worker_group(self):
+        self.worker_group = create_mock_object([
+            'add_worker', 'remove_worker', 'generate_uid'
+        ])
+
+    def __instantiate_empty_services(self):
+        self.services = []
+
+    def __instantiate_mock_worker_factory(self):
+        self.worker_factory = create_mock_object(['create_from'])
+
+
+
+
+def create_mock_object(methods):
+    mock_object = namedtuple('MockObject', methods)
+    for method in methods:
+        setattr(mock_object, method, MagicMock())
+    return mock_object

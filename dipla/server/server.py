@@ -68,71 +68,35 @@ class BinaryManager:
 
 class Server:
 
-    def __init__(self,
-                 task_queue,
-                 services,
-                 worker_group=None,
-                 stats=None):
-        """
-        task_queue is a TaskQueue object that tasks to be run are taken from
+    def __init__(self, task_queue, services, worker_group, stats, password):
 
-        binary_manager is an instance of BinaryManager to be used to source
-        task binaries
+        self.__task_queue = task_queue
+        self.__services = services
+        self.__worker_group = worker_group
+        self.__statistics_reader = stats
+        self.__password = password
 
-        worker_group is the WorkerGroup class used to manage and sort workers
-
-        services is an instance of ServerServices that is used to lookup
-        functions for handling client requests. If this is not provided a
-        default instance is used.
-
-        stats is an instance of shared.statistics.StatisticsUpdater,
-        used to update information on the current runtime status of the
-        project.
-
-        This constructor creates variables used in verifying inputs,
-        where whether or not verification is performed is decided
-        probabilistically using the verify_probability ratio
-
-        verify_inputs is a dictionary of inputs with an array as the
-        value, indexed by `{worker.uid}-{task_uid}` of the worker and
-        task that they are the inputs for, that store the inputs that
-        will be verified once the actual answers have been obtained
-        """
-        self.task_queue = task_queue
-        self.services = services
-
-        self.worker_group = worker_group
-        self.min_worker_correctness = 0.99
-        if not self.worker_group:
-            self.worker_group = WorkerGroup(stats)
-
-        self.stats = stats
-
-        self.verify_probability = 0.5
-        self.verify_inputs = {}
+        self.__min_worker_correctness = 0.99
+        self.__verification_probability = 0.5
+        self.__verification_inputs = {}
 
     async def websocket_handler(self, websocket, path):
-        user_id = self.worker_group.generate_uid()
+        pass
+
+        """generate worker uid"""
+        user_id = self.__worker_group.generate_uid()
+
+        """create worker"""
         worker = Worker(user_id, websocket)
+
         try:
-            while True:
-                try:
-                    """HANDLED BY ON_MESSAGE"""
-                except (ValueError, KeyError) as e:
-                    data = {
-                        'details': 'Error during websocket loop: %s' % str(e),
-                        'code': ErrorCodes.server_websocket_loop,
-                    }
-                    self.send(worker.websocket, 'runtime_error', data)
-                except ServiceError as e:
-                    # This error has a specific code to transmit attached to it
-                    data = {'details': str(e), 'code': e.code}
-                    self.send(worker.websocket, 'runtime_error', data)
+            """on_message"""
         except websockets.exceptions.ConnectionClosed as e:
             print(worker.uid + " has closed the connection")
         finally:
-            if worker.uid in self.worker_group.worker_uids():
-                self.worker_group.remove_worker(worker.uid)
+            """Remove worker from worker group when connection closes"""
+            if worker.uid in self.__worker_group.worker_uids():
+                self.__worker_group.remove_worker(worker.uid)
 
     def _get_distributable_task_input(self):
         """
@@ -141,14 +105,14 @@ class Server:
         least the distribute_tasks method. (Which should be extracted later)
         """
 
-        if not self.worker_group.has_available_worker():
-            if self.task_queue.has_next_input(MachineType.server):
-                return self.task_queue.pop_task_input(MachineType.server)
+        if not self.__worker_group.has_available_worker():
+            if self.__task_queue.has_next_input(MachineType.server):
+                return self.__task_queue.pop_task_input(MachineType.server)
             return None
-        return self.task_queue.pop_task_input()
+        return self.__task_queue.pop_task_input()
 
     def _add_verify_input_data(self, task_input, worker_id, task_id):
-        self.verify_inputs[worker_id + "-" + task_id] = {
+        self.__verification_inputs[worker_id + "-" + task_id] = {
             "task_instructions": task_input.task_instructions,
             "inputs": task_input.values,
             "original_worker_uid": worker_id
@@ -163,7 +127,7 @@ class Server:
 
 
 
-        while self.task_queue.has_next_input():
+        while self.__task_queue.has_next_input():
 
 
 
@@ -181,10 +145,10 @@ class Server:
                 data['task_uid'] = task_input.task_uid
                 data['arguments'] = task_input.values
                 # TODO(Update the documentation with this)
-                worker = self.worker_group.lease_worker()
+                worker = self.__worker_group.lease_worker()
                 self.send(worker.websocket, 'run_instructions', data)
 
-                if(random.random() < self.verify_probability):
+                if(random.random() < self.__verification_probability):
                     self._add_verify_input_data(
                         task_input, worker.uid, task_input.task_uid)
             elif task_input.machine_type == MachineType.server:
@@ -195,26 +159,16 @@ class Server:
                 # argument
                 task_values = task_input.values[0]
                 for result in task_values:
-                    self.task_queue.add_result(task_input.task_uid, result)
+                    self.__task_queue.add_result(task_input.task_uid, result)
 
-            if self.task_queue.is_inactive():
+            if self.__task_queue.is_inactive():
                 # Kill the server
                 # TODO(cianlr): This kills things unceremoniously, there may be
                 # a better way.
                 asyncio.get_event_loop().stop()
 
-    async def _send_message(self, socket, label, data):
-        message = generate_message(label, data)
-        await socket.send(json.dumps(message))
-
-    def send(self, socket, label, data):
-        asyncio.ensure_future(self._send_message(socket, label, data))
-
-    def start(self, address='localhost', port=8765, password=None):
+    def start(self):
         pass
-
-        """set the password"""
-        # self.password = password
 
         """start serving connections"""
         # server = websockets.serve(
@@ -222,6 +176,7 @@ class Server:
         #     address,
         #     port)
         # asyncio.get_event_loop().run_until_complete(server)
+        self.__server_connection_provider.start()
 
         """start distributing the tasks"""
         asyncio.get_event_loop().call_soon(self.distribute_tasks)
@@ -232,29 +187,54 @@ class Server:
 
 class ServerEventListener(EventListener):
 
-    def __init__(self, services):
+    def __init__(self, worker_factory, worker_group, services):
+        self.__worker_factory = worker_factory
+        self.__worker_group = worker_group
         self.__services = services
 
+        self.__service = None
+        self.__worker = None
+        self.__worker_uid = None
+
+    def on_open(self, connection, message_object):
+        self.__create_worker(connection)
+        self.__add_worker_to_worker_group()
+
     def on_close(self, connection, reason):
-        pass
+        self.__worker_group.remove_worker(self.__worker_uid)
 
     def on_error(self, connection, error):
         pass
 
     def on_message(self, connection, message_object):
+        self.__fetch_service(message_object)
+        self.__run_service(connection, message_object)
+        self.__send_result_back(connection)
+
+    def __create_worker(self, connection):
+        self.__worker_uid = self.__worker_group.generate_uid()
+        self.__worker = self.__worker_factory.create_from(self.__worker_uid,
+                                                          connection)
+
+    def __add_worker_to_worker_group(self):
+        self.__worker_group.add_worker(self.__worker)
+
+    def __fetch_service(self, message_object):
         service_name = message_object['label']
+        self.__service = self.__services[service_name]
+
+    def __run_service(self, connection, message_object):
         service_data = message_object['data']
-        service = self.__services[service_name]
+        self.__service_result = run_service(self.__service,
+                                            service_data,
+                                            connection)
 
-        service_result = run_service(connection, service, service_data)
-        if service_result is not None:
-            connection.send(service_result)
-
-    def on_open(self, connection, message_object):
-        pass
+    def __send_result_back(self, connection):
+        if self.__service_result is not None:
+            connection.send(self.__service_result)
 
 
-def run_service(connection, service, service_data):
+def run_service(service, service_data, connection):
     try:
         return service(service_data)
     except ServiceError as service_error:

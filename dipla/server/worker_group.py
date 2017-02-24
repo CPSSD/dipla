@@ -3,8 +3,6 @@ This module contains the WorkerGroup and other supporting classes. It is
 intended for this file to contain the code to manage the workers.
 """
 import heapq
-import operator
-
 from dipla.shared import uid_generator
 
 
