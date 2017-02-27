@@ -8,9 +8,14 @@ from dipla.shared.statistics import StatisticsReader
 
 
 class DiplaClientUI:
-    def __init__(self, stats, config, client_creator):
-        self._stats = stats
-        self._stats_reader = StatisticsReader(stats)
+    def __init__(self, config, client_creator, stats_creator):
+        # Time between stat updates in milliseconds
+        self._UPDATE_PERIOD = 1000
+
+        self._stats_creator = stats_creator
+        self._stats = stats_creator()
+        self._stats_reader = StatisticsReader(self._stats)
+
         self._config = config
         self._client_creator = client_creator
         self._client_process = None
@@ -20,6 +25,19 @@ class DiplaClientUI:
         if self._client_process:
             self._client_process.terminate()
         self._root.destroy()
+
+    def _reset_stats(self):
+        self._stats = self._stats_creator()
+        self._stats_reader = StatisticsReader(self._stats)
+
+    def _update_stats(self):
+        for stat in self._stat_vars:
+            new_value = self._stats_reader.read(stat)
+            self._stat_vars[stat].configure(
+                text=new_value)
+        self._root.after(
+            self._UPDATE_PERIOD,
+            self._update_stats)
 
     def _draw_ui(self):
         # Create root window
@@ -100,6 +118,11 @@ class DiplaClientUI:
                 column=4, row=i,
                 padx=5, pady=5)
 
+        # Set alarm to update the stats
+        self._root.after(
+            self._UPDATE_PERIOD,
+            self._update_stats)
+
     def _add_param_to_config(self, entry, option_name):
         corr_type = self._config.config_types[option_name]
         value = corr_type(entry.get())
@@ -111,6 +134,7 @@ class DiplaClientUI:
             self._client_process = None
             for entry in self._option_vars.values():
                 entry.configure(state='normal')
+            self._reset_stats()
             self._toggle_button.configure(text='Run Client')
         else:
             for option, entry in self._option_vars.items():

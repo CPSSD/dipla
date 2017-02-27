@@ -22,18 +22,18 @@ def main(argv):
     args = parser.parse_args()
 
     config = ConfigHandler()
-    stats = create_default_client_stats()
 
     if args.config_path:
         config.parse_from_file(args.config_path)
 
     if args.ui:
         ui = DiplaClientUI(
-            stats=stats,
             config=config,
-            client_creator=create_and_run_client)
+            client_creator=create_and_run_client,
+            stats_creator=create_default_client_stats)
         ui.run()
     else:
+        stats = create_default_client_stats()
         create_and_run_client(config, stats)
 
 def create_default_client_stats():
