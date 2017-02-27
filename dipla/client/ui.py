@@ -12,8 +12,9 @@ class DiplaClientUI:
         # Time between stat updates in milliseconds
         self._UPDATE_PERIOD = 1000
 
+        self._stats_manager = multiprocessing.Manager()
         self._stats_creator = stats_creator
-        self._stats = stats_creator()
+        self._stats = self._stats_manager.dict(stats_creator())
         self._stats_reader = StatisticsReader(self._stats)
 
         self._config = config
@@ -27,17 +28,14 @@ class DiplaClientUI:
         self._root.destroy()
 
     def _reset_stats(self):
-        self._stats = self._stats_creator()
+        self._stats = self._stats_manager.dict(self._stats_creator())
         self._stats_reader = StatisticsReader(self._stats)
 
     def _update_stats(self):
         for stat in self._stat_vars:
-            new_value = self._stats_reader.read(stat)
-            self._stat_vars[stat].configure(
-                text=new_value)
-        self._root.after(
-            self._UPDATE_PERIOD,
-            self._update_stats)
+            new_value = str(self._stats_reader.read(stat))
+            self._stat_vars[stat].configure(text=new_value)
+        self._root.after(self._UPDATE_PERIOD, self._update_stats)
 
     def _draw_ui(self):
         # Create root window
@@ -84,11 +82,7 @@ class DiplaClientUI:
             padx=5, pady=5,
             sticky='n')
 
-        # self._separator = ttk.Separator(
-        #     master=self._root,
-        #     orient=tkinter.HORIZONTAL)
-        # self._separator.grid(column=2)
-
+        # Add the statistics frame
         self._lf = ttk.Labelframe(self._root, text="Statistics")
         self._lf.grid(
             column=2, row=0,
@@ -106,22 +100,20 @@ class DiplaClientUI:
                 pady=5,
                 padx=10)
             self._stat_labels[stat].grid(
-                column=3, row=i,
+                column=0, row=i,
                 padx=5, pady=5)
             # Make label for stat value
             self._stat_vars[stat] = tkinter.Label(
                 master=self._lf,
-                text=self._stats_reader.read(stat),
+                text=str(self._stats_reader.read(stat)),
                 pady=5,
                 padx=10)
             self._stat_vars[stat].grid(
-                column=4, row=i,
+                column=1, row=i,
                 padx=5, pady=5)
 
         # Set alarm to update the stats
-        self._root.after(
-            self._UPDATE_PERIOD,
-            self._update_stats)
+        self._root.after(self._UPDATE_PERIOD, self._update_stats)
 
     def _add_param_to_config(self, entry, option_name):
         corr_type = self._config.config_types[option_name]

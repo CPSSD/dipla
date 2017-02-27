@@ -41,6 +41,7 @@ def create_default_client_stats():
         'number_of_things_thinged': 0,
         'number_of_jobs_jobbed': 0,
         'name_of_firstborn': 'Leshaniqua',
+        'running': False
     }
 
 def create_and_run_client(config, stats):
