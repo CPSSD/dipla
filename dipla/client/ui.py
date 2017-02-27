@@ -1,11 +1,16 @@
-from dipla.client.client import Client
 import tkinter
 import multiprocessing
 import sys
 
+from tkinter import ttk
+from dipla.client.client import Client
+from dipla.shared.statistics import StatisticsReader
+
 
 class DiplaClientUI:
-    def __init__(self, config, client_creator):
+    def __init__(self, stats, config, client_creator):
+        self._stats = stats
+        self._stats_reader = StatisticsReader(stats)
         self._config = config
         self._client_creator = client_creator
         self._client_process = None
@@ -58,7 +63,42 @@ class DiplaClientUI:
             command=self._toggle_run_client)
         self._toggle_button.grid(
             row=len(self._config.config_types), column=0, columnspan=2,
+            padx=5, pady=5,
+            sticky='n')
+
+        # self._separator = ttk.Separator(
+        #     master=self._root,
+        #     orient=tkinter.HORIZONTAL)
+        # self._separator.grid(column=2)
+
+        self._lf = ttk.Labelframe(self._root, text="Statistics")
+        self._lf.grid(
+            column=2, row=0,
+            columnspan=2, rowspan=len(self._config.config_types) + 1,
             padx=5, pady=5)
+
+        # Add the stats panel
+        self._stat_labels = {}
+        self._stat_vars = {}
+        for i, stat in enumerate(sorted(self._stats_reader.read_all())):
+            # Make label for stat name
+            self._stat_labels[stat] = tkinter.Label(
+                master=self._lf,
+                text=stat.capitalize().replace('_', ' '),
+                pady=5,
+                padx=10)
+            self._stat_labels[stat].grid(
+                column=3, row=i,
+                padx=5, pady=5)
+            # Make label for stat value
+            self._stat_vars[stat] = tkinter.Label(
+                master=self._lf,
+                text=self._stats_reader.read(stat),
+                pady=5,
+                padx=10)
+            self._stat_vars[stat].grid(
+                column=4, row=i,
+                padx=5, pady=5)
 
     def _add_param_to_config(self, entry, option_name):
         corr_type = self._config.config_types[option_name]
@@ -80,7 +120,7 @@ class DiplaClientUI:
             # Use a seperate process in order not to tie up the UI
             self._client_process = multiprocessing.Process(
                 target=self._client_creator,
-                args=(self._config,))
+                args=(self._config, self._stats))
             self._client_process.start()
 
     def run(self):

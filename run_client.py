@@ -7,6 +7,7 @@ from dipla.client.client_services import BinaryReceiverService
 from dipla.client.client_services import ServerErrorService
 from dipla.client.command_line_binary_runner import CommandLineBinaryRunner
 from dipla.shared.logutils import LogUtils
+from dipla.shared.statistics import StatisticsUpdater
 import sys
 import argparse
 from logging import FileHandler
@@ -21,28 +22,39 @@ def main(argv):
     args = parser.parse_args()
 
     config = ConfigHandler()
+    stats = create_default_client_stats()
+
     if args.config_path:
         config.parse_from_file(args.config_path)
 
     if args.ui:
         ui = DiplaClientUI(
+            stats=stats,
             config=config,
             client_creator=create_and_run_client)
         ui.run()
     else:
-        create_and_run_client(config)
+        create_and_run_client(config, stats)
 
+def create_default_client_stats():
+    return {
+        'number_of_things_thinged': 0,
+        'number_of_jobs_jobbed': 0,
+        'name_of_firstborn': 'Leshaniqua',
+    }
 
-def create_and_run_client(config):
+def create_and_run_client(config, stats):
     init_logger(config.params['log_file'])
     client = Client(
-        'ws://{}:{}'.format(
-            config.params['server_ip'], config.params['server_port']),
-        password=config.params['password']
+        stats=StatisticsUpdater(stats)
     )
     services = create_services(client)
     client.inject_services(services)
-    client.start()
+    client.start(
+        server_address='ws://{}:{}'.format(
+            config.params['server_ip'], config.params['server_port']),
+        password=config.params['password']
+    )
 
 
 def init_logger(loc):
