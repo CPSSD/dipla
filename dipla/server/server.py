@@ -231,7 +231,6 @@ class Server:
                 asyncio.get_event_loop().stop()
 
     def _decode_message(self, message):
-        print(message)
         message_dict = json.loads(message)
         if 'label' not in message_dict or 'data' not in message_dict:
             raise ValueError('Message missing "label" or "data": {}'.format(
