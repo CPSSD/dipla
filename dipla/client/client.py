@@ -1,158 +1,83 @@
-import asyncio
-import websockets
-import json
-import threading
 import time
 import os
-
-from dipla.client.quality_scorer import QualityScorer
-from dipla.shared.services import ServiceError
 from dipla.shared.message_generator import generate_message
-from dipla.shared.logutils import LogUtils
+from dipla.shared.network.network_connection import EventListener
 
 
 class Client(object):
 
-    def __init__(self, server_address, quality_scorer=None, password=''):
-        """Create the client.
-
-        server_address, string: The address of the websocket server to
-            connect to, eg. 'ws://localhost:8765'."""
-        self.server_address = server_address
-        self.password = password
-        # the number of times to try to connect before giving up
-        self.connect_tries_limit = 8
-        # A class to be used to assign a quality to this client
-        if quality_scorer:
-            self.quality_scorer = quality_scorer
-        else:
-            self.quality_scorer = QualityScorer()
-
-    def inject_services(self, services):
-        # TODO: Refactor Client
-        #
-        # This method is a very hacky workaround to a circular dependency.
-        #
-        # This can be avoided by splitting the Client class up into smaller
-        # areas of functionality. After doing that, the entire client will not
-        # need to be passed into all of the ClientServices.
-        self.services = services
-
-    def send(self, message):
-        """Send a message to the server.
-
-        message, dict: the message to be sent, a dict with a 'label' field
-            and a 'data' field"""
-        if not ('label' in message and 'data' in message):
-            raise ValueError(
-                'Missing label or data field in message %s.' % message)
-
-        LogUtils.debug('Sending message: %s.' % message)
-        json_message = json.dumps(message)
-
-        # run the coroutine to send the message
-        asyncio.ensure_future(self._send_async(json_message))
-
-    def send_error(self, details, code):
-        """Send an error to the server.
-
-        details, str: the error message.
-        code, int: the error code."""
-        data = {
-            'details': details,
-            'code': code
-        }
-        message = generate_message('runtime_error', data)
-        self.send(message)
-
-    async def _send_async(self, message):
-        """Asynchronous task for sending a message to the server.
-
-        message, string: the message to be sent"""
-        await self.websocket.send(message)
-
-    async def receive_loop(self):
-        """Task for handling messages received from server."""
-        try:
-            while True:
-                message = await self.websocket.recv()
-                try:
-                    self._handle(message)
-                except ServiceError as e:
-                    self.send_error(str(e), e.code)
-        except websockets.exceptions.ConnectionClosed:
-            LogUtils.warning("Connection closed.")
-
-    def _handle(self, raw_message):
-        """Do something with a message received from the server.
-
-        raw_message, string: the raw data received from the server."""
-        LogUtils.debug("Received: %s." % raw_message)
-        message = json.loads(raw_message)
-        if not ('label' in message and 'data' in message):
-            raise ServiceError('Missing field from message: %s' % message, 4)
-
-        result_message = self._run_service(message["label"], message["data"])
-        if result_message is not None:
-            # send the client_result back to the server
-            self.send(result_message)
-
-    def _run_service(self, label, data):
-        try:
-            service = self.services[label]
-        except KeyError as e:
-            error_message = "Failed to find service: {}".format(label)
-            LogUtils.error(error_message, e)
-            raise ServiceError(error_message, 5)
-        return service.execute(data)
-
-    async def _start_websocket(self):
-        """Run the loop receiving websocket messages. Makes use of
-        exponential backoff when trying to connect, waiting for longer
-        times each trial before giving up after self.connect_tries_limit
-        times."""
-        num_tries = 0
-        backoff = 1
-        while num_tries < self.connect_tries_limit:
-            LogUtils.warning(
-                'trying connection %d/%d' % (num_tries,
-                                             self.connect_tries_limit))
-            try:
-                return await websockets.connect(self.server_address)
-            except:
-                num_tries += 1
-                time.sleep(backoff)
-                backoff *= 2
-        return None
-
-    def _get_platform(self):
-        """Get some information about the platform the client is running on."""
-        if os.name == 'posix':
-            return ''.join(os.uname())
-        # TODO(ndonn): Add better info for Windows and Mac versions
-        return os.name
-
-    def _get_quality(self):
-        return self.quality_scorer.get_quality()
+    def __init__(self, event_listener, connection, quality_scorer, password):
+        self.__event_listener = event_listener
+        self.__connection = connection
+        self.__quality_scorer = quality_scorer
+        self.__password = password
 
     def start(self):
-        """Send the get_binary message, and start the communication loop
-        in a new thread."""
-        loop = asyncio.get_event_loop()
-        self.websocket = loop.run_until_complete(self._start_websocket())
-        if not self.websocket:
-            LogUtils.error(
-                'Could not connect to server after %d tries' %
-                self.connect_tries_limit)
-            return
-        receive_task = asyncio.ensure_future(self.receive_loop())
-        data = {
-            'platform': self._get_platform(),
-            'quality': self._get_quality(),
-        }
-        if self.password != '':
-            data['password'] = self.password
-        self.send(generate_message('get_binaries', data))
+        self.__connection.start()
+        self.__wait_until_connected(timeout_in_seconds=10)
+        self.__send_binary_request()
 
-        loop.run_until_complete(receive_task)
-        self.start()
+    def __wait_until_connected(self, timeout_in_seconds):
+        start_time = time.time()
+        end_time = start_time + timeout_in_seconds
+        while True:
+            if time.time() > end_time:
+                break
+            if self.__event_listener.has_connected():
+                return
+            if self.__event_listener.has_errored():
+                raise self.__event_listener.last_error()
+
+    def __send_binary_request(self):
+        data = {
+            'platform': _get_platform(),
+            'quality': self.__quality_scorer.get_quality(),
+        }
+        if self.__password != '':
+            data['password'] = self.__password
+        message_object = generate_message('get_binaries', data)
+        self.__connection.send(message_object)
+
+
+class ClientEventListener(EventListener):
+
+    def __init__(self, services):
+        self.__services = services
+        self.__has_connected = False
+        self.__last_error = None
+
+    def on_error(self, connection, error):
+        self.__last_error = error
+
+    def on_message(self, connection, message_object):
+        service_name = message_object['label']
+        service_arguments = message_object['data']
+        service = self.__services[service_name]
+        service_result = service.execute(service_arguments)
+        connection.send(service_result)
+
+    def on_close(self, connection, reason):
+        pass
+
+    def on_open(self, connection, message):
+        self.__has_connected = True
+
+    def has_connected(self):
+        return self.__has_connected
+
+    def has_errored(self):
+        return self.__last_error is not None
+
+    def last_error(self):
+        return self.__last_error
+
+    def refused_to_connect(self):
+        return isinstance(self.__last_error, ConnectionRefusedError)
+
+
+def _get_platform():
+    """Get some information about the platform the client is running on."""
+    if os.name == 'posix':
+        return ''.join(os.uname())
+    # TODO(ndonn): Add better info for Windows and Mac versions
+    return os.name
