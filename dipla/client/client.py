@@ -21,7 +21,7 @@ class Client(object):
         start_time = time.time()
         end_time = start_time + timeout_in_seconds
         while True:
-            if time.time() < end_time:
+            if time.time() > end_time:
                 break
             if self.__event_listener.has_connected():
                 return
