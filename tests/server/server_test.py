@@ -1,11 +1,8 @@
-import unittest
-from collections import namedtuple
+from unittest import TestCase
 from unittest.mock import MagicMock
-
-from dipla.server.server import Server, BinaryManager, ServerEventListener
-from dipla.server.task_queue import TaskQueue, Task, DataSource, MachineType
-from dipla.server.worker_group import WorkerGroup, Worker
-from dipla.shared import statistics
+from pocketmock import create_mock_object
+from dipla.server.server import ServerEventListener
+from dipla.server.worker_group import WorkerFactory
 from dipla.shared.services import ServiceError
 
 
@@ -85,8 +82,12 @@ from dipla.shared.services import ServiceError
 #         self.server.distribute_tasks()
 #         self.assertEqual([5, 4, 3, 2, 1], self.server_task.task_output)
 
+class ServerTest(TestCase):
 
-class ServerEventListenerTest(unittest.TestCase):
+    pass
+
+
+class ServerEventListenerTest(TestCase):
 
     def setUp(self):
         self.__instantiate_empty_services()
@@ -160,7 +161,7 @@ class ServerEventListenerTest(unittest.TestCase):
             self.services[service_name] = MagicMock()
 
     def given_the_worker_factory_returns(self, return_value):
-        self.worker_factory.create_from = MagicMock(return_value=return_value)
+        self.worker_factory.create_from.return_value = return_value
 
     def given_the_service_will_raise_ServiceError(self, service_name):
         self.services[service_name].side_effect = ServiceError('foo', 0)
@@ -224,13 +225,4 @@ class ServerEventListenerTest(unittest.TestCase):
         self.services = []
 
     def __instantiate_mock_worker_factory(self):
-        self.worker_factory = create_mock_object(['create_from'])
-
-
-
-
-def create_mock_object(methods):
-    mock_object = namedtuple('MockObject', methods)
-    for method in methods:
-        setattr(mock_object, method, MagicMock())
-    return mock_object
+        self.worker_factory = create_mock_object(WorkerFactory)

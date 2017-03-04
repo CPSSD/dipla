@@ -4,11 +4,9 @@ import asyncio
 import websockets
 import random
 from dipla.server.task_queue import MachineType
-from dipla.server.worker_group import WorkerGroup, Worker
-from dipla.server.server_services import ServerServices, ServiceParams
+from dipla.server.worker_group import Worker
 from dipla.shared.services import ServiceError
 from dipla.shared.message_generator import generate_message
-from dipla.shared.error_codes import ErrorCodes
 from base64 import b64encode
 from dipla.shared.network.network_connection import EventListener
 
@@ -73,30 +71,9 @@ class Server:
         self.__task_queue = task_queue
         self.__services = services
         self.__worker_group = worker_group
-        self.__statistics_reader = stats
         self.__password = password
 
         self.__min_worker_correctness = 0.99
-        self.__verification_probability = 0.5
-        self.__verification_inputs = {}
-
-    async def websocket_handler(self, websocket, path):
-        pass
-
-        """generate worker uid"""
-        user_id = self.__worker_group.generate_uid()
-
-        """create worker"""
-        worker = Worker(user_id, websocket)
-
-        try:
-            """on_message"""
-        except websockets.exceptions.ConnectionClosed as e:
-            print(worker.uid + " has closed the connection")
-        finally:
-            """Remove worker from worker group when connection closes"""
-            if worker.uid in self.__worker_group.worker_uids():
-                self.__worker_group.remove_worker(worker.uid)
 
     def _get_distributable_task_input(self):
         """
@@ -111,55 +88,11 @@ class Server:
             return None
         return self.__task_queue.pop_task_input()
 
-    def _add_verify_input_data(self, task_input, worker_id, task_id):
-        self.__verification_inputs[worker_id + "-" + task_id] = {
-            "task_instructions": task_input.task_instructions,
-            "inputs": task_input.values,
-            "original_worker_uid": worker_id
-        }
-
     def distribute_tasks(self):
-
-
-
-        # By leasing workers without specifying an id, we get the
-        # highest quality worker for the task
-
-
 
         while self.__task_queue.has_next_input():
 
-
-
-            # If workers are connected pop any kind of task input. If no
-            # workers are connected we must only get server task input
-
-            task_input = self._get_distributable_task_input()
-            if task_input is None:  # Happens when no input can be used
-                break
-
-            if task_input.machine_type == MachineType.client:
-                # Create the message and send it
-                data = {}
-                data['task_instructions'] = task_input.task_instructions
-                data['task_uid'] = task_input.task_uid
-                data['arguments'] = task_input.values
-                # TODO(Update the documentation with this)
-                worker = self.__worker_group.lease_worker()
-                self.send(worker.websocket, 'run_instructions', data)
-
-                if(random.random() < self.__verification_probability):
-                    self._add_verify_input_data(
-                        task_input, worker.uid, task_input.task_uid)
-            elif task_input.machine_type == MachineType.server:
-                # Server side tasks do not have any maching binaries, so
-                # we skip the send-to-client stage and move the read
-                # data straight to the results. All server side tasks
-                # have one argument, so extract the values for that lone
-                # argument
-                task_values = task_input.values[0]
-                for result in task_values:
-                    self.__task_queue.add_result(task_input.task_uid, result)
+            # TaskDistributor stuff extracted...
 
             if self.__task_queue.is_inactive():
                 # Kill the server
@@ -171,11 +104,6 @@ class Server:
         pass
 
         """start serving connections"""
-        # server = websockets.serve(
-        #     self.websocket_handler,
-        #     address,
-        #     port)
-        # asyncio.get_event_loop().run_until_complete(server)
         self.__server_connection_provider.start()
 
         """start distributing the tasks"""

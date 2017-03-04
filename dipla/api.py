@@ -1,7 +1,8 @@
 from dipla.api_support.function_serialise import get_encoded_script
-from dipla.server.server import BinaryManager, Server, ServerServices
+from dipla.server.server import BinaryManager, Server
 from dipla.server.task_queue import TaskQueue, Task, DataSource, MachineType
 from dipla.shared import uid_generator, statistics
+from server.server_services import ServerServices
 
 
 class Dipla:
@@ -152,7 +153,8 @@ class Dipla:
 
         server = Server(Dipla.task_queue,
                         ServerServices(Dipla.binary_manager),
-                        stats=Dipla.stat_updater)
+                        stats=Dipla.stat_updater,
+                        password=None)
         server.start()
 
         return get_task.task_output
