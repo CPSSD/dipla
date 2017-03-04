@@ -1,11 +1,15 @@
 from unittest import TestCase
 from unittest.mock import MagicMock
-from dipla.server.server import ServerEventListener
+from dipla.server.server import ServerEventListener, Server
 from dipla.shared.services import ServiceError
 from dipla.server.worker_group import WorkerGroup, WorkerFactory
 from dipla.shared.network.network_connection import ServerConnection
 from pocketmock import create_mock_object
 
+from server.server_services import ServerServices
+from server.task_distributor import TaskInputDistributor
+from dipla.shared.network.server_connection_provider import \
+     ServerConnectionProvider
 
 # class ServerTest(TestCase):
 #
@@ -82,10 +86,17 @@ from pocketmock import create_mock_object
 #
 #         self.server.distribute_tasks()
 #         self.assertEqual([5, 4, 3, 2, 1], self.server_task.task_output)
+from server.task_queue import TaskQueue
+
 
 class ServerTickTest(TestCase):
 
     def setUp(self):
+        self.__instantiate_mock_server_connection_provider()
+        self.__instantiate_mock_task_queue()
+        self.__instantiate_mock_server_services()
+        self.__instantiate_mock_worker_group()
+        self.__instantiate_mock_password()
         self.__instantiate_mock_task_input_distributor()
 
     def test_task_input_is_distributed(self):
@@ -93,10 +104,44 @@ class ServerTickTest(TestCase):
         self.when_it_ticks()
         self.then_task_input_was_distributed()
 
+    def given_a_server(self):
+        self.server = Server(
+            self.mock_server_connection_provider,
+            self.mock_task_queue,
+            self.mock_server_services,
+            self.mock_worker_group,
+            self.mock_password,
+            self.mock_task_input_distributor
+        )
+
+    def when_it_ticks(self):
+        self.server.tick()
+
+    def then_task_input_was_distributed(self):
+        method = self.mock_task_input_distributor.distribute_task
+        self.assertEqual(1, method.call_count)
+
     def __instantiate_mock_task_input_distributor(self):
         self.mock_task_input_distributor = create_mock_object(
             TaskInputDistributor
         )
+
+    def __instantiate_mock_server_connection_provider(self):
+        self.mock_server_connection_provider = create_mock_object(
+            ServerConnectionProvider
+        )
+
+    def __instantiate_mock_task_queue(self):
+        self.mock_task_queue = create_mock_object(TaskQueue)
+
+    def __instantiate_mock_server_services(self):
+        self.mock_server_services = create_mock_object(ServerServices)
+
+    def __instantiate_mock_worker_group(self):
+        self.mock_worker_group = create_mock_object(WorkerGroup)
+
+    def __instantiate_mock_password(self):
+        self.mock_password = ''
 
 
 class ServerEventListenerTest(TestCase):

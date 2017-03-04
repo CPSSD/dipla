@@ -67,12 +67,13 @@ class BinaryManager:
 class Server:
 
     def __init__(self, server_connection_provider, task_queue, services,
-                 worker_group, password):
+                 worker_group, password, task_input_distributor):
         self.__server_connection_provider = server_connection_provider
         self.__task_queue = task_queue
         self.__services = services
         self.__worker_group = worker_group
         self.__password = password
+        self.__task_input_distributor = task_input_distributor
 
         self.__min_worker_correctness = 0.99
 
@@ -100,6 +101,9 @@ class Server:
 
         """run forever"""
         # asyncio.get_event_loop().run_forever()
+
+    def tick(self):
+        self.__task_input_distributor.distribute_task()
 
 
 class ServerEventListener(EventListener):
