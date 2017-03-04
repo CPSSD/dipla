@@ -107,7 +107,7 @@ class ServerEventListenerTest(TestCase):
         self.given_a_server_event_listener()
         self.when_it_receives({'label': 'foo_service', 'data': 'xyz'})
         self.then_the_service_ran('foo_service', 'xyz')
-    
+
     def test_service_result_is_sent_back(self):
         self.given_the_services(['foo_service'])
         self.given_the_service_will_return('foo_service', {'x': 'ARBITRARY'})
