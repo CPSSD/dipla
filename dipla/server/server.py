@@ -1,10 +1,4 @@
 import re
-import json
-import asyncio
-import websockets
-import random
-from dipla.server.task_queue import MachineType
-from dipla.server.worker_group import Worker
 from dipla.shared.services import ServiceError
 from dipla.shared.message_generator import generate_message
 from base64 import b64encode
