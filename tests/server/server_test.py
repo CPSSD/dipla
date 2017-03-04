@@ -83,9 +83,20 @@ from pocketmock import create_mock_object
 #         self.server.distribute_tasks()
 #         self.assertEqual([5, 4, 3, 2, 1], self.server_task.task_output)
 
-class ServerTest(TestCase):
+class ServerTickTest(TestCase):
 
-    pass
+    def setUp(self):
+        self.__instantiate_mock_task_input_distributor()
+
+    def test_task_input_is_distributed(self):
+        self.given_a_server()
+        self.when_it_ticks()
+        self.then_task_input_was_distributed()
+
+    def __instantiate_mock_task_input_distributor(self):
+        self.mock_task_input_distributor = create_mock_object(
+            TaskInputDistributor
+        )
 
 
 class ServerEventListenerTest(TestCase):

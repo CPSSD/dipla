@@ -67,7 +67,7 @@ class BinaryManager:
 class Server:
 
     def __init__(self, server_connection_provider, task_queue, services,
-                 worker_group, stats, password):
+                 worker_group, password):
         self.__server_connection_provider = server_connection_provider
         self.__task_queue = task_queue
         self.__services = services
@@ -96,7 +96,7 @@ class Server:
 
         """start distributing the tasks"""
         # asyncio.get_event_loop().call_soon(self.distribute_tasks)
-        self.__task_distributor.start()
+        self.__task_input_distributor.start()
 
         """run forever"""
         # asyncio.get_event_loop().run_forever()
