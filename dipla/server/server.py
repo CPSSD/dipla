@@ -66,44 +66,22 @@ class BinaryManager:
 
 class Server:
 
-    def __init__(self, server_connection_provider, task_queue, services,
-                 worker_group, password, task_input_distributor):
+    def __init__(self,
+                 server_connection_provider,
+                 task_queue,
+                 task_input_distributor):
         self.__server_connection_provider = server_connection_provider
         self.__task_queue = task_queue
-        self.__services = services
-        self.__worker_group = worker_group
-        self.__password = password
         self.__task_input_distributor = task_input_distributor
 
-        self.__min_worker_correctness = 0.99
-
-    def distribute_tasks(self):
-
-        while self.__task_queue.has_next_input():
-
-            # TaskDistributor stuff extracted...
-
-            if self.__task_queue.is_inactive():
-                # Kill the server
-                # TODO(cianlr): This kills things unceremoniously, there may be
-                # a better way.
-                asyncio.get_event_loop().stop()
-
     def start(self):
-        pass
-
-        """start serving connections"""
         self.__server_connection_provider.start()
-
-        """start distributing the tasks"""
-        # asyncio.get_event_loop().call_soon(self.distribute_tasks)
-        self.__task_input_distributor.start()
-
-        """run forever"""
-        # asyncio.get_event_loop().run_forever()
+        while not self.__task_queue.is_inactive():
+            self.tick()
+        self.__server_connection_provider.stop()
 
     def tick(self):
-        self.__task_input_distributor.distribute_task()
+        self.__task_input_distributor.distribute_task_input()
 
 
 class ServerEventListener(EventListener):

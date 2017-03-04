@@ -5,120 +5,79 @@ from dipla.shared.services import ServiceError
 from dipla.server.worker_group import WorkerGroup, WorkerFactory
 from dipla.shared.network.network_connection import ServerConnection
 from pocketmock import create_mock_object
-
-from server.server_services import ServerServices
-from server.task_distributor import TaskInputDistributor
+from dipla.server.task_queue import TaskQueue
+from server.task_distribution import TaskInputDistributor
 from dipla.shared.network.server_connection_provider import \
      ServerConnectionProvider
 
-# class ServerTest(TestCase):
-#
-#     def setUp(self):
-#         self.task_queue = TaskQueue()
-#         self.binary_manager = BinaryManager()
-#         stats = {
-#             'num_total_workers': 0,
-#             'num_idle_workers': 0
-#         }
-#         stat_updater = statistics.StatisticsUpdater(stats)
-#         self.worker_group = WorkerGroup(stat_updater)
-#         self.server = Server(self.task_queue,
-#                              self.binary_manager,
-#                              self.worker_group,
-#                              stat_updater)
-#
-#         self.sample_data_source = DataSource.create_source_from_iterable(
-#           [1, 2, 3, 4], 'foosource')
-#
-#         self.server_task = Task('footask', 'bar', MachineType.server)
-#         self.client_task = Task('footask', 'bar', MachineType.client)
-#
-#     def test_distribute_tasks_runs_server_task_without_connected_worker(self):
-#         self.server_task.add_data_source(self.sample_data_source)
-#
-#         self.task_queue.push_task(self.server_task)
-#         self.server.distribute_tasks()
-#         self.assertEqual([1, 2, 3, 4], self.server_task.task_output)
-#
-#     def test_distribute_tasks_runs_server_task_with_connected_worker(self):
-#         self.worker_group.add_worker(Worker('fooworker', None))
-#         self.server_task.add_data_source(self.sample_data_source)
-#
-#         self.task_queue.push_task(self.server_task)
-#         self.server.distribute_tasks()
-#         self.assertEqual([1, 2, 3, 4], self.server_task.task_output)
-#
-#     def test_distribute_tasks_runs_client_task_on_connected_worker(self):
-#         self.worker_group.add_worker(Worker('fooworker', None))
-#         self.client_task.add_data_source(self.sample_data_source)
-#
-#         self.task_queue.push_task(self.client_task)
-#
-#         def mock_send(socket, label, data):
-#             self.assertEquals([1, 2, 3, 4], data['arguments'][0])
-#         self.server.send = mock_send
-#
-#         self.server.distribute_tasks()
-#
-#     def test_distribute_tasks_quits_when_no_connected_clients(self):
-#         self.client_task.add_data_source(self.sample_data_source)
-#         self.task_queue.push_task(self.client_task)
-#
-#         def mock_send(socket, label, data):
-#             self.fail('Distribute Task attempted to send a message but' +
-#                       ' should have quit')
-#         self.server.send = mock_send
-#
-#         self.server.distribute_tasks()
-#
-#     def test_distribute_tasks_runs_client_and_server_tasks_together(self):
-#         self.worker_group.add_worker(Worker('fooworker', None))
-#         self.client_task.add_data_source(self.sample_data_source)
-#         self.server_task.add_data_source(
-#         DataSource.create_source_from_iterable([5, 4, 3, 2, 1], 'barsource'))
-#
-#         self.task_queue.push_task(self.client_task)
-#         self.task_queue.push_task(self.server_task)
-#
-#         def mock_send(socket, label, data):
-#             self.assertEquals([1, 2, 3, 4], data['arguments'][0])
-#         self.server.send = mock_send
-#
-#         self.server.distribute_tasks()
-#         self.assertEqual([5, 4, 3, 2, 1], self.server_task.task_output)
-from server.task_queue import TaskQueue
 
-
-class ServerTickTest(TestCase):
+class ServerTest(TestCase):
 
     def setUp(self):
         self.__instantiate_mock_server_connection_provider()
         self.__instantiate_mock_task_queue()
-        self.__instantiate_mock_server_services()
-        self.__instantiate_mock_worker_group()
-        self.__instantiate_mock_password()
         self.__instantiate_mock_task_input_distributor()
 
-    def test_task_input_is_distributed(self):
+    def test_repeatedly_ticks_once_started(self):
+        self.given_task_queue_is_active_for_three_ticks()
+        self.given_a_server()
+        self.given_the_tick_is_mocked()
+        self.when_started()
+        self.then_it_ticked_three_times()
+
+    def test_task_input_is_distributed_each_tick(self):
         self.given_a_server()
         self.when_it_ticks()
         self.then_task_input_was_distributed()
+
+    def test_everything_stops_when_task_queue_is_inactive(self):
+        self.given_a_server()
+        self.given_the_task_queue_is_inactive()
+        self.when_started()
+        self.then_everything_was_stopped()
+
+    def test_server_connection_provider_starts_when_started(self):
+        self.given_a_server()
+        self.when_started()
+        self.then_server_connection_provider_started()
 
     def given_a_server(self):
         self.server = Server(
             self.mock_server_connection_provider,
             self.mock_task_queue,
-            self.mock_server_services,
-            self.mock_worker_group,
-            self.mock_password,
             self.mock_task_input_distributor
         )
+
+    def given_the_tick_is_mocked(self):
+        self.server.tick = MagicMock()
+
+    def given_the_task_queue_is_inactive(self):
+        self.mock_task_queue.is_inactive.return_value = True
+
+    def given_task_queue_is_active_for_three_ticks(self):
+        f = False
+        self.mock_task_queue.is_inactive.side_effect = [f, f, f, True]
 
     def when_it_ticks(self):
         self.server.tick()
 
+    def when_started(self):
+        self.server.start()
+
     def then_task_input_was_distributed(self):
-        method = self.mock_task_input_distributor.distribute_task
+        method = self.mock_task_input_distributor.distribute_task_input
+        self.assertEqual(1, method.call_count)
+
+    def then_everything_was_stopped(self):
+        method = self.mock_server_connection_provider.stop
+        self.assertEqual(1, method.call_count)
+
+    def then_it_ticked_three_times(self):
+        # noinspection PyUnresolvedReferences
+        self.assertEqual(3, self.server.tick.call_count)
+
+    def then_server_connection_provider_started(self):
+        method = self.mock_server_connection_provider.start
         self.assertEqual(1, method.call_count)
 
     def __instantiate_mock_task_input_distributor(self):
@@ -133,15 +92,6 @@ class ServerTickTest(TestCase):
 
     def __instantiate_mock_task_queue(self):
         self.mock_task_queue = create_mock_object(TaskQueue)
-
-    def __instantiate_mock_server_services(self):
-        self.mock_server_services = create_mock_object(ServerServices)
-
-    def __instantiate_mock_worker_group(self):
-        self.mock_worker_group = create_mock_object(WorkerGroup)
-
-    def __instantiate_mock_password(self):
-        self.mock_password = ''
 
 
 class ServerEventListenerTest(TestCase):
