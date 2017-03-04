@@ -1,12 +1,13 @@
 from unittest import TestCase
 from unittest.mock import MagicMock
-from pocketmock import create_mock_object
 from dipla.server.server import ServerEventListener
-from dipla.server.worker_group import WorkerFactory
 from dipla.shared.services import ServiceError
+from dipla.server.worker_group import WorkerGroup, WorkerFactory
+from dipla.shared.network.network_connection import ServerConnection
+from pocketmock import create_mock_object
 
 
-# class ServerTest(unittest.TestCase):
+# class ServerTest(TestCase):
 #
 #     def setUp(self):
 #         self.task_queue = TaskQueue()
@@ -70,7 +71,7 @@ from dipla.shared.services import ServiceError
 #         self.worker_group.add_worker(Worker('fooworker', None))
 #         self.client_task.add_data_source(self.sample_data_source)
 #         self.server_task.add_data_source(
-#          DataSource.create_source_from_iterable([5, 4, 3, 2, 1], 'barsource'))
+#         DataSource.create_source_from_iterable([5, 4, 3, 2, 1], 'barsource'))
 #
 #         self.task_queue.push_task(self.client_task)
 #         self.task_queue.push_task(self.server_task)
@@ -128,12 +129,12 @@ class ServerEventListenerTest(TestCase):
             }
         })
 
-    def test_worker_uid_generated_when_connection_opened(self):
+    def test_worker_uid_generated_when_connection_opens(self):
         self.given_a_server_event_listener()
         self.when_the_connection_is_opened()
         self.then_a_uid_is_generated()
 
-    def test_worker_is_created_when_connection_opened(self):
+    def test_worker_is_created_when_connection_opens(self):
         self.given_the_uid_generator_returns('abcdef')
         self.given_a_server_event_listener()
         self.when_the_connection_is_opened()
@@ -142,7 +143,7 @@ class ServerEventListenerTest(TestCase):
             'connection': self.connection
         })
 
-    def test_worker_is_added_to_worker_group_when_connection_opened(self):
+    def test_worker_is_added_to_worker_group_when_connection_opens(self):
         self.given_the_worker_factory_returns("Fake Worker")
         self.given_a_server_event_listener()
         self.when_the_connection_is_opened()
@@ -154,6 +155,13 @@ class ServerEventListenerTest(TestCase):
         self.when_the_connection_is_opened()
         self.when_the_connection_is_closed()
         self.then_the_worker_is_removed_from_worker_group('xyz_uid')
+
+    def test_worker_is_removed_when_connection_error_occurs(self):
+        self.given_the_uid_generator_returns('123_uid')
+        self.given_a_server_event_listener()
+        self.when_the_connection_is_opened()
+        self.when_a_connection_error_occurs()
+        self.then_the_worker_is_removed_from_worker_group('123_uid')
 
     def given_the_services(self, service_names):
         self.services = {}
@@ -190,6 +198,10 @@ class ServerEventListenerTest(TestCase):
         reason = "I want to close it"
         self.event_listener.on_close(self.connection, reason)
 
+    def when_a_connection_error_occurs(self):
+        reason = 'I want to force an error'
+        self.event_listener.on_error(self.connection, reason)
+
     def then_a_uid_is_generated(self):
         self.worker_group.generate_uid.assert_called_with()
 
@@ -214,12 +226,10 @@ class ServerEventListenerTest(TestCase):
         self.worker_group.remove_worker.assert_called_with(expected_arguments)
 
     def __instantiate_mock_connection(self):
-        self.connection = create_mock_object(['send'])
+        self.connection = create_mock_object(ServerConnection)
 
     def __instantiate_mock_worker_group(self):
-        self.worker_group = create_mock_object([
-            'add_worker', 'remove_worker', 'generate_uid'
-        ])
+        self.worker_group = create_mock_object(WorkerGroup)
 
     def __instantiate_empty_services(self):
         self.services = []

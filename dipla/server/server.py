@@ -66,27 +66,15 @@ class BinaryManager:
 
 class Server:
 
-    def __init__(self, task_queue, services, worker_group, stats, password):
-
+    def __init__(self, server_connection_provider, task_queue, services,
+                 worker_group, stats, password):
+        self.__server_connection_provider = server_connection_provider
         self.__task_queue = task_queue
         self.__services = services
         self.__worker_group = worker_group
         self.__password = password
 
         self.__min_worker_correctness = 0.99
-
-    def _get_distributable_task_input(self):
-        """
-        Gets the next task input. If there are no available workers, it will
-        only get server side tasks. This is an implementation detail of at
-        least the distribute_tasks method. (Which should be extracted later)
-        """
-
-        if not self.__worker_group.has_available_worker():
-            if self.__task_queue.has_next_input(MachineType.server):
-                return self.__task_queue.pop_task_input(MachineType.server)
-            return None
-        return self.__task_queue.pop_task_input()
 
     def distribute_tasks(self):
 
@@ -107,10 +95,11 @@ class Server:
         self.__server_connection_provider.start()
 
         """start distributing the tasks"""
-        asyncio.get_event_loop().call_soon(self.distribute_tasks)
+        # asyncio.get_event_loop().call_soon(self.distribute_tasks)
+        self.__task_distributor.start()
 
         """run forever"""
-        asyncio.get_event_loop().run_forever()
+        # asyncio.get_event_loop().run_forever()
 
 
 class ServerEventListener(EventListener):
@@ -129,15 +118,15 @@ class ServerEventListener(EventListener):
         self.__add_worker_to_worker_group()
 
     def on_close(self, connection, reason):
-        self.__worker_group.remove_worker(self.__worker_uid)
+        self.__remove_worker_from_worker_group()
 
     def on_error(self, connection, error):
-        pass
+        self.__remove_worker_from_worker_group()
 
     def on_message(self, connection, message_object):
         self.__fetch_service(message_object)
-        self.__run_service(connection, message_object)
-        self.__send_result_back(connection)
+        self.__run_service_using(connection, message_object)
+        self.__send_result_back_to(connection)
 
     def __create_worker(self, connection):
         self.__worker_uid = self.__worker_group.generate_uid()
@@ -147,25 +136,28 @@ class ServerEventListener(EventListener):
     def __add_worker_to_worker_group(self):
         self.__worker_group.add_worker(self.__worker)
 
+    def __remove_worker_from_worker_group(self):
+        self.__worker_group.remove_worker(self.__worker_uid)
+
     def __fetch_service(self, message_object):
         service_name = message_object['label']
         self.__service = self.__services[service_name]
 
-    def __run_service(self, connection, message_object):
+    def __run_service_using(self, connection, message_object):
         service_data = message_object['data']
-        self.__service_result = run_service(self.__service,
-                                            service_data,
-                                            connection)
+        self.__service_result = self.__run_service(self.__service,
+                                                   service_data,
+                                                   connection)
 
-    def __send_result_back(self, connection):
+    def __send_result_back_to(self, connection):
         if self.__service_result is not None:
             connection.send(self.__service_result)
 
-
-def run_service(service, service_data, connection):
-    try:
-        return service(service_data)
-    except ServiceError as service_error:
-        data = {'details': str(service_error), 'code': service_error.code}
-        error_message_object = generate_message('runtime_error', data)
-        connection.send(error_message_object)
+    @staticmethod
+    def __run_service(service, service_data, connection):
+        try:
+            return service(service_data)
+        except ServiceError as service_error:
+            data = {'details': str(service_error), 'code': service_error.code}
+            error_message_object = generate_message('runtime_error', data)
+            connection.send(error_message_object)

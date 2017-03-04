@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import Mock
-from dipla.server.server import ServerServices, ServiceParams, ServiceError
+from dipla.server.server_services import ServerServices, ServiceParams, ServiceError
 from dipla.server.server import BinaryManager
 from dipla.server.worker_group import Worker, WorkerGroup
 from dipla.shared import statistics
