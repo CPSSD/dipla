@@ -2,8 +2,8 @@ from unittest import TestCase
 from unittest.mock import call
 from pocketmock import create_mock_object
 from dipla.server.task_queue import TaskQueue, TaskInput, MachineType
-from dipla.server.task_distributor import TaskInputDistributor
-from dipla.server.task_distributor import VerificationInputStorer
+from dipla.server.task_distribution import TaskInputDistributor
+from dipla.server.task_distribution import VerificationInputStorer
 from dipla.server.worker_group import Worker, WorkerGroup
 from dipla.shared.network.network_connection import ServerConnection
 
@@ -154,7 +154,7 @@ class TaskInputDistributorTest(TestCase):
         )
 
     def when_distributing(self):
-        self.task_distributor.distribute_task()
+        self.task_distributor.distribute_task_input()
 
     def then_nothing_is_sent_to_worker(self):
         self.assertEqual(0, self.mock_worker_connection.send.call_count)

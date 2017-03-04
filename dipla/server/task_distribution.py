@@ -9,7 +9,7 @@ class TaskInputDistributor:
         self.__task_queue = task_queue
         self.__verification_input_storer = verification_input_storer
 
-    def distribute_task(self):
+    def distribute_task_input(self):
         task_input = self.__get_next_task_input()
         if task_input is not None:
             self.__process_task_input(task_input)
