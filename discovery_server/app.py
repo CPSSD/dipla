@@ -12,7 +12,7 @@ def is_valid_address(address):
 def get_servers():
     server_list = []
     for key in servers:
-        server = servers[key
+        server = servers[key]
         server_list.append({
             'address': server.address,
             'title': server.title,
