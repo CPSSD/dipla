@@ -13,13 +13,9 @@ from dipla.shared.logutils import LogUtils
 
 class Client(object):
 
-    def __init__(self, server_address, quality_scorer=None, password=''):
-        """Create the client.
-
-        server_address, string: The address of the websocket server to
-            connect to, eg. 'ws://localhost:8765'."""
-        self.server_address = server_address
-        self.password = password
+    def __init__(self, quality_scorer=None, stats=None):
+        """Create the client."""
+        self._stats_updater = stats
         # the number of times to try to connect before giving up
         self.connect_tries_limit = 8
         # A class to be used to assign a quality to this client
@@ -106,7 +102,7 @@ class Client(object):
             raise ServiceError(error_message, 5)
         return service.execute(data)
 
-    async def _start_websocket(self):
+    async def _start_websocket(self, server_address):
         """Run the loop receiving websocket messages. Makes use of
         exponential backoff when trying to connect, waiting for longer
         times each trial before giving up after self.connect_tries_limit
@@ -118,7 +114,7 @@ class Client(object):
                 'trying connection %d/%d' % (num_tries,
                                              self.connect_tries_limit))
             try:
-                return await websockets.connect(self.server_address)
+                return await websockets.connect(server_address)
             except:
                 num_tries += 1
                 time.sleep(backoff)
@@ -135,11 +131,12 @@ class Client(object):
     def _get_quality(self):
         return self.quality_scorer.get_quality()
 
-    def start(self):
+    def start(self, server_address, password=''):
         """Send the get_binary message, and start the communication loop
         in a new thread."""
         loop = asyncio.get_event_loop()
-        self.websocket = loop.run_until_complete(self._start_websocket())
+        self.websocket = loop.run_until_complete(
+            self._start_websocket(server_address))
         if not self.websocket:
             LogUtils.error(
                 'Could not connect to server after %d tries' %
@@ -150,8 +147,8 @@ class Client(object):
             'platform': self._get_platform(),
             'quality': self._get_quality(),
         }
-        if self.password != '':
-            data['password'] = self.password
+        if password != '':
+            data['password'] = password
         self.send(generate_message('get_binaries', data))
 
         loop.run_until_complete(receive_task)
