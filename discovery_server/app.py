@@ -1,26 +1,38 @@
 import werkzeug
-from flask import abort, Flask, json
+from flask import abort, Flask, json, request
+from project import Project
 app = Flask(__name__)
 
-servers = set()
+servers = {}
 
 def is_valid_address(address):
     return ':' in address
 
 @app.route("/get_servers")
 def get_servers():
+    server_list = []
+    for key in servers:
+        server = servers[key
+        server_list.append({
+            'address': server.address,
+            'title': server.title,
+            'description': server.description,
+        })
     return json.jsonify({
         'success': True,
-        'servers': list(servers),
+        'servers': server_list,
     })
 
-@app.route("/add_server/<string:address>")
-def add_server(address):
-    if not is_valid_address(address):
+@app.route("/add_server", methods=['POST'])
+def add_server():
+    if not is_valid_address(request.form['address']):
         abort(400)
-    if address in servers:
+    project = Project(request.form['address'],
+                      request.form['title'],
+                      request.form['description'])
+    if project.address in servers.keys():
         abort(409)
-    servers.add(address)
+    servers[project.address] = project
     return json.jsonify({
         'success': True,
     })
