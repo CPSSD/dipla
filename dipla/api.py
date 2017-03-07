@@ -71,14 +71,14 @@ class Dipla:
         """
         for source in sources:
             data_source_creator = DataSource.create_source_from_iterable
-            if isinstance(source, Promise):
+            if isinstance(source, Task):
                 data_source_creator = DataSource.create_source_from_task
             task.add_data_source(
                 create_data_source_function(source, data_source_creator))
 
     def _create_normal_task(sources, task_instructions):
         """
-        source is an object that can be used to create a data source,
+        sources are objects that can be used to create a data source,
         e.g. an iterable or another task
         """
         task = Dipla._create_clientside_task(task_instructions)
@@ -112,10 +112,8 @@ class Dipla:
         """
         def distributable_decorator(function):
             Dipla._process_decorated_function(function, verifier)
+            Dipla._task_creators[id(function)] = Dipla._create_normal_task
             return function
-
-        Dipla._task_creators[id(distributable_decorator)] =\
-            Dipla._create_normal_task
 
         return distributable_decorator
 
@@ -138,8 +136,8 @@ class Dipla:
 
         def _create_scoped_task(sources, task_instructions):
             """
-            source is an object that can be used to create a data source,
-            e.g. an iterable or another task
+            sources are objects that can be used to create a data
+            source, e.g. an iterable or another task
             """
 
             def read_without_consuming(collection, current_location):
@@ -252,6 +250,9 @@ class Dipla:
          - A Promise, which can be used later as the input to another task,
         or the user can await its results.
         """
+        if id(function) not in Dipla._task_creators:
+            raise KeyError("Provided function was not decorated using Dipla")
+
         args = []
         for arg in raw_args:
             if isinstance(arg, Promise):
@@ -260,9 +261,7 @@ class Dipla:
                 args.append(arg)
             else:
                 raise UnsupportedInput()
-        task = Dipla._task_creators[id(function)](
-            args,
-            function.__name__)
+        task = Dipla._task_creators[id(function)](args, function.__name__)
         Dipla.task_queue.push_task(task)
         return Promise(task.uid)
 

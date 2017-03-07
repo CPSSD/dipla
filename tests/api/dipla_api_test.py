@@ -33,7 +33,7 @@ class DiplaAPITest(unittest.TestCase):
         self.assertIsNotNone(promised.task_uid)
 
     def test_apply_distributable_with_immediate_values(self):
-        @Dipla.distributable
+        @Dipla.distributable()
         def func(input_value):
             return input_value
 
@@ -42,7 +42,7 @@ class DiplaAPITest(unittest.TestCase):
         self.assertIsNotNone(promised.task_uid)
 
     def test_apply_distributable_with_multiple_immediate_arguments(self):
-        @Dipla.distributable
+        @Dipla.distributable()
         def func(input_value):
             return input_value
 
@@ -64,7 +64,7 @@ class DiplaAPITest(unittest.TestCase):
         promised_a = Dipla.read_data_source(input_data, data_source_function)
         promised_b = Dipla.read_data_source(other_data, data_source_function)
 
-        @Dipla.distributable
+        @Dipla.distributable()
         def func(input_value):
             return input_value
 
@@ -74,7 +74,7 @@ class DiplaAPITest(unittest.TestCase):
             DiplaAPITest.TaskWithNSources(2))
 
     def test_apply_distributable_twice_on_same_task(self):
-        @Dipla.distributable
+        @Dipla.distributable()
         def func(input_value):
             return input_value
 
@@ -86,7 +86,7 @@ class DiplaAPITest(unittest.TestCase):
         self.assertIsNotNone(promised.task_uid)
 
     def test_apply_distributable_handles_bad_value(self):
-        @Dipla.distributable
+        @Dipla.distributable()
         def func(input_value):
             return input_value
 
@@ -97,15 +97,15 @@ class DiplaAPITest(unittest.TestCase):
                           input_data)
 
     def test_apply_distributable_with_dependent_tasks(self):
-        @Dipla.distributable
+        @Dipla.distributable()
         def func1(input_value):
             return input_value*2
 
-        @Dipla.distributable
+        @Dipla.distributable()
         def func2(input_value):
             return input_value//2
 
-        @Dipla.distributable
+        @Dipla.distributable()
         def add(a, b):
             return a+b
 
@@ -154,6 +154,15 @@ class DiplaAPITest(unittest.TestCase):
         self.assertIsNotNone(promised.task_uid)
         self.mock_task_queue.push_task.assert_called_with(
             DiplaAPITest.TaskWithNSources(4))
+
+    def test_apply_distributable_raises_error_if_non_decorated_funcion_supplied(self):  # nopep8
+        def func():
+            return True
+
+        self.assertRaises(KeyError,
+                          Dipla.apply_distributable,
+                          func,
+                          [1, 2, 3])
 
     def tearDown(self):
         Dipla._task_creators = dict()
