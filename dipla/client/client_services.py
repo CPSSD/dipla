@@ -10,19 +10,30 @@ from base64 import b64decode
 class ClientService(ABC):
     """an interface that all client services must implement."""
 
-    @abstractstaticmethod
-    def get_label(self):
+    @staticmethod
+    @abstractmethod
+    def get_label():
         """Get the label that identifies messages for this service"""
         pass
 
     @abstractmethod
-    def execute(self, data): pass
+    def execute(self, data):
+        """
+        This method should contain whatever 'executing' your service entails.
+
+        :param data: a json object containing any data relevant to the service.
+
+        :returns: Any results of the service execution.
+
+        For example, an `AdditionService` implementation might take
+        {'values': [2, 2, 3]} as the data field and return a 7.
+        """
 
 
 class BinaryRunnerService(ClientService):
 
     @staticmethod
-    def get_label(self): pass
+    def get_label(): pass
 
     def __init__(self, binary_paths, binary_runner):
         self.__binary_paths = binary_paths
@@ -115,3 +126,4 @@ class ServerErrorService(ClientService):
     def execute(self, data):
         self.logger.error('Error from server (code %d): %s' % (
             data['code'], data['details']))
+
