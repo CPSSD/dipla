@@ -3,62 +3,60 @@ import os
 from dipla.shared import message_generator
 from dipla.shared.services import ServiceError
 from dipla.shared.error_codes import ErrorCodes
-
 from abc import ABC, abstractmethod, abstractstaticmethod
 from base64 import b64decode
 
 
-# This is an interface that all client services must implement.
 class ClientService(ABC):
+    """an interface that all client services must implement."""
 
-    # Get the label that identifies messages for this service
-    @abstractstaticmethod
+    @staticmethod
+    @abstractmethod
     def get_label():
+        """Get the label that identifies messages for this service"""
         pass
 
-    # Pass any dependencies of the service in through the constructor
-    #
-    # The first parameter should be the client, so that bi-directional
-    # communication is possible. This parameter must change in the future,
-    # as it introduces a circular dependency.
-    #
-    # Don't forget to call the superconstructor.
-    def __init__(self, client):
-        self._client = client
-
-    # Decide what happens when the service is executed.
-    #
-    # The data field from the decoded JSON will be passed into this.
     @abstractmethod
     def execute(self, data):
-        pass
+        """
+        This method should contain whatever 'executing' your service entails.
+
+        :param data: a json object containing any data relevant to the service.
+
+        :returns: Any results of the service execution.
+
+        For example, an `AdditionService` implementation might take
+        {'values': [2, 2, 3]} as the data field and return a 7.
+        """
 
 
 class BinaryRunnerService(ClientService):
 
     @staticmethod
-    def get_label():
-        pass
+    def get_label(): pass
 
-    def __init__(self, client, binary_runner):
-        super().__init__(client)
-        self._binary_runner = binary_runner
+    def __init__(self, binary_paths, binary_runner):
+        self.__binary_paths = binary_paths
+        self.__binary_runner = binary_runner
 
     def execute(self, data):
         task = data["task_instructions"]
 
-        if not hasattr(self._client, 'binary_paths'):
+        if len(self.__binary_paths) <= 0:
             raise ServiceError(ValueError('Client does not have any binaries'),
                                ErrorCodes.no_binaries_present)
-        if task not in self._client.binary_paths:
+
+        if task not in self.__binary_paths:
             raise ServiceError(KeyError('Task "' + task + '" does not exist'),
                                ErrorCodes.invalid_binary_key)
 
-        results = self._binary_runner.run(
-            self._client.binary_paths[task],
-            data["arguments"])
+        results = self.__binary_runner.run(
+            self.__binary_paths[task],
+            data['arguments']
+        )
+
         result_data = {
-            'task_uid': data["task_uid"],
+            'task_uid': data['task_uid'],
             'results': results
         }
 
@@ -97,25 +95,23 @@ class BinaryReceiverService(ClientService):
     def get_label():
         return 'get_binaries'
 
-    def __init__(self, client, base_filepath):
-        self.client = client
-        self._base_filepath = base_filepath
-        self.client.binary_paths = {}
+    def __init__(self, base_file_path, binary_paths):
+        self.__base_file_path = base_file_path
+        self.__binary_paths = binary_paths
 
     def execute(self, data):
         binaries = data['base64_binaries']
         for task_name, encoded_bin in binaries.items():
             # Decode and save each binary in the response.
-            binary_path = self._base_filepath + task_name
-            self.client.binary_paths[task_name] = binary_path
+            binary_path = self.__base_file_path + task_name
+            self.__binary_paths[task_name] = binary_path
 
             raw_data = b64decode(encoded_bin)
             with open(binary_path, 'wb') as file_writer:
                 file_writer.write(raw_data)
             os.chmod(binary_path, 511)
 
-        return message_generator.generate_message(
-            "binaries_received", "")
+        return message_generator.generate_message("binaries_received", "")
 
 
 class ServerErrorService(ClientService):
@@ -124,11 +120,9 @@ class ServerErrorService(ClientService):
     def get_label():
         return 'runtime_error'
 
-    def __init__(self, client):
-        super().__init__(client)
+    def __init__(self):
         self.logger = logging.getLogger(__name__)
 
     def execute(self, data):
         self.logger.error('Error from server (code %d): %s' % (
             data['code'], data['details']))
-        return None

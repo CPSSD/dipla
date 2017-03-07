@@ -1,12 +1,12 @@
-from unittest import TestCase
+import unittest
 from dipla.environment import PROJECT_DIRECTORY
 from dipla.client.command_line_binary_runner import CommandLineBinaryRunner
 
 
-class CommandLineBinaryRunnerTest(TestCase):
+class CommandLineBinaryRunnerTest(unittest.TestCase):
 
     def setUp(self):
-        self.filepath = ""
+        self.file_path = ""
         self.arguments = []
 
     def test_that_exception_is_thrown_when_binary_doesnt_exist(self):
@@ -32,13 +32,13 @@ class CommandLineBinaryRunnerTest(TestCase):
         self.then_the_result_will_be(["3"])
 
     def given_a_non_existent_binary(self):
-        self.filepath = "/dont_exist/binary"
+        self.file_path = "/dont_exist/binary"
 
     def given_an_existing_binary(self):
         self.given_a_sums_binary()
 
     def given_a_sums_binary(self):
-        self.filepath = PROJECT_DIRECTORY + \
+        self.file_path = PROJECT_DIRECTORY + \
             "tests/example_binaries/sums/sums.exe"
 
     def given_summing(self, num_a, num_b):
@@ -49,8 +49,7 @@ class CommandLineBinaryRunnerTest(TestCase):
 
     def when_the_binary_is_run(self):
         self.runner = CommandLineBinaryRunner()
-        self.result = self.runner.run(
-            self.filepath, self.arguments)
+        self.result = self.runner.run(self.file_path, self.arguments)
 
     def then_a_FileNotFoundError_will_be_thrown(self):
         with self.assertRaises(FileNotFoundError):
