@@ -53,7 +53,6 @@ class DiplaClientUI:
         self._draw_config_options()
         self._draw_stats_frame()
 
-
     def _draw_client_selection(self):
         self._selected_client = tkinter.StringVar(self._root, '')
         self._selected_client.trace('w', lambda *_: None)
