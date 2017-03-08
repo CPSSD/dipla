@@ -54,7 +54,7 @@ class DiplaClientUI:
         self._draw_stats_frame()
 
     def _draw_client_selection(self):
-        self._selected_client = tkinter.StringVar(self._root, '')
+        self._selected_client = tkinter.StringVar(self._root, ' '*20)
         self._selected_client.trace('w', lambda *_: None)
         self._client_selector = tkinter.OptionMenu(
             master=self._root,
@@ -63,6 +63,7 @@ class DiplaClientUI:
         self._client_selector.configure(state='disabled')
         self._client_selector.grid(
             columnspan=1,
+            sticky='ew',
             column=0, row=0,
             padx=5, pady=5)
 
@@ -70,6 +71,7 @@ class DiplaClientUI:
         self._add_client_button = tkinter.Button(
             master=self._root,
             text="Add Client",
+            width=12,
             command=lambda: None)
         self._add_client_button.grid(
             column=3, row=0,
@@ -78,6 +80,7 @@ class DiplaClientUI:
             master=self._root,
             state='disabled',
             text="Remove Client",
+            width=12,
             command=lambda: None)
         self._rem_client_button.grid(
             column=1, row=0,
