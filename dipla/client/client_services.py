@@ -20,11 +20,8 @@ class ClientService(ABC):
     def execute(self, data):
         """
         This method should contain whatever 'executing' your service entails.
-
         :param data: a json object containing any data relevant to the service.
-
         :returns: Any results of the service execution.
-
         For example, an `AdditionService` implementation might take
         {'values': [2, 2, 3]} as the data field and return a 7.
         """
@@ -68,7 +65,7 @@ class BinaryRunnerService(ClientService):
 class RunInstructionsService(BinaryRunnerService):
 
     @staticmethod
-    def get_label(self):
+    def get_label():
         return 'run_instructions'
 
     def execute(self, data):
@@ -80,7 +77,7 @@ class RunInstructionsService(BinaryRunnerService):
 class VerifyInputsService(BinaryRunnerService):
 
     @staticmethod
-    def get_label(self):
+    def get_label():
         return 'verify_inputs'
 
     def execute(self, data):
@@ -92,7 +89,7 @@ class VerifyInputsService(BinaryRunnerService):
 class BinaryReceiverService(ClientService):
 
     @staticmethod
-    def get_label(self):
+    def get_label():
         return 'get_binaries'
 
     def __init__(self, base_file_path, binary_paths):
@@ -117,7 +114,7 @@ class BinaryReceiverService(ClientService):
 class ServerErrorService(ClientService):
 
     @staticmethod
-    def get_label(self):
+    def get_label():
         return 'runtime_error'
 
     def __init__(self):
@@ -126,4 +123,3 @@ class ServerErrorService(ClientService):
     def execute(self, data):
         self.logger.error('Error from server (code %d): %s' % (
             data['code'], data['details']))
-
