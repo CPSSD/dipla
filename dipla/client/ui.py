@@ -47,10 +47,38 @@ class DiplaClientUI:
         self._root.bind('<Escape>', self._die)
         self._root.protocol("WM_DELETE_WINDOW", self._die)
 
+        # Draw client selector
+        self._selected_client = tkinter.StringVar(self._root, "Client 1")
+        self._client_selector = tkinter.OptionMenu(
+            self._root, self._selected_client, "Client 1")
+        self._client_selector.grid(
+            columnspan=2,
+            column=0, row=0,
+            padx=5, pady=5)
+
+        # Add and remove clients buttons
+        self._add_client_button = tkinter.Button(
+            master=self._root,
+            text="Add Client",
+            command=lambda: None)
+        self._add_client_button.grid(
+            column=2, row=0,
+            padx=5, pady=5)
+        self._rem_client_button = tkinter.Button(
+            master=self._root,
+            text="Remove Client",
+            command=lambda: None)
+        self._rem_client_button.grid(
+            column=3, row=0,
+            padx=5, pady=5)
+
+        # Seperator between muliple clients / one client
+
         # Draw in each of the options
         self._option_labels = {}
         self._option_vars = {}
         for i, option in enumerate(sorted(self._config.config_types)):
+            row = i + 1
             default_val = ''
             if option in self._config.config_defaults:
                 default_val = self._config.config_defaults[option]
@@ -61,7 +89,7 @@ class DiplaClientUI:
                 pady=5,
                 padx=10)
             self._option_labels[option].grid(
-                column=0, row=i,
+                column=0, row=row,
                 padx=5, pady=5)
             # Make the textbox for the option
             self._option_vars[option] = tkinter.Entry(
@@ -69,7 +97,7 @@ class DiplaClientUI:
                 width=20)
             self._option_vars[option].insert(tkinter.END, default_val)
             self._option_vars[option].grid(
-                column=1, row=i,
+                column=1, row=row,
                 padx=5, pady=5)
 
         # Finally add the button for starting and stopping the client
@@ -78,14 +106,14 @@ class DiplaClientUI:
             text='Run Client',
             command=self._toggle_run_client)
         self._toggle_button.grid(
-            row=len(self._config.config_types), column=0, columnspan=2,
+            row=len(self._config.config_types) + 1, column=0, columnspan=2,
             padx=5, pady=5,
             sticky='n')
 
         # Add the statistics frame
         self._lf = ttk.Labelframe(self._root, text="Statistics")
         self._lf.grid(
-            column=2, row=0,
+            column=2, row=1,
             columnspan=2, rowspan=len(self._config.config_types) + 1,
             padx=5, pady=5)
 
