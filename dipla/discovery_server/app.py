@@ -30,7 +30,9 @@ class DiscoveryAddServerView(MethodView):
         self.__servers = servers
 
     def _is_valid_address(self, address):
-        return ':' in address
+        """Make sure that the given address includes both a protocol
+        (eg. http or https) and a port."""
+        return address.count(':') == 2
 
     def post(self):
         if not self._is_valid_address(request.form['address']):
