@@ -22,6 +22,12 @@ class Dipla:
         "num_results_from_clients": 0,
     }
     stat_updater = statistics.StatisticsUpdater(_stats)
+    # This is a dictionary of function id to a function that creates a
+    # task. The id is obtained using id(x) where x is an object that
+    # should have a task creator associated with it. The function should
+    # take two parameters, the task/iterable being sourced from and the
+    # name of the task being performed on that source
+    _task_creators = dict()
 
     # Stop reading the data source once we hit EOF
     # TODO(StefanKennedy) Set up data sources to run indefinitely.
@@ -35,31 +41,151 @@ class Dipla:
     def stream_not_empty(stream, location):
         return len(stream) > 0
 
+    def _create_clientside_task(task_instructions):
+        task_uid = uid_generator.generate_uid(
+            length=8,
+            existing_uids=Dipla.task_queue.get_task_ids())
+        return Task(
+            task_uid,
+            task_instructions,
+            MachineType.client,
+            complete_check=Dipla.complete_on_eof)
+
+    def _generate_uid_in_list(uids_list):
+        new_uid = uid_generator.generate_uid(length=8, existing_uids=uids_list)
+        uids_list.append(new_uid)
+        return new_uid
+
+    def _add_sources_to_task(sources, task, create_data_source_function):
+        """
+        sources are the DataSource objects for the task. These can be
+        iterables or other tasks
+
+        task is the task that should have the sources added to it
+
+        create_data_source_function is a function that returns a data
+        source, it should take two parameters, a source from the sources
+        list, and a DataSource.create_source_from_task or a
+        DataSource.create_source_from_iterable function, used to create
+        the data source
+        """
+        for source in sources:
+            data_source_creator = DataSource.create_source_from_iterable
+            if isinstance(source, Task):
+                data_source_creator = DataSource.create_source_from_task
+            task.add_data_source(
+                create_data_source_function(source, data_source_creator))
+
+    def _create_normal_task(sources, task_instructions):
+        """
+        sources are objects that can be used to create a data source,
+        e.g. an iterable or another task
+        """
+        task = Dipla._create_clientside_task(task_instructions)
+
+        source_uids = []
+
+        def create_default_data_source(source, data_source_creator):
+            return data_source_creator(source, source_uids)
+
+        Dipla._add_sources_to_task(sources, task, create_default_data_source)
+        return task
+
+    def _process_decorated_function(function, verifier=None):
+        # Turn the function into a base64'd Python script.
+        base64_binary = get_encoded_script(function)
+        # Register the result as a new binary for any platform with the
+        # name of the function as the task name.
+        Dipla.binary_manager.add_encoded_binaries('.*', [
+            (function.__name__, base64_binary),
+        ])
+        if verifier:
+            Dipla.result_verifier.add_verifier(
+                function.__name__,
+                verifier)
+
     @staticmethod
     def distributable(verifier=None):
         """
         Takes a function and converts it to a binary, the binary is then
         registered with the BinaryManager. The function is returned unchanged.
         """
-        # In order to take parameters on a decorator you must make a kind of
-        # "decorator factory". It's weird looking code inside but it creates
-        # a nice API
         def distributable_decorator(function):
-            # Turn the function into a base64'd Python script.
-            base64_binary = get_encoded_script(function)
-            # Register the result as a new binary for any platform with the
-            # name of the function as the task name.
-            Dipla.binary_manager.add_encoded_binaries('.*', [
-                (function.__name__, base64_binary),
-            ])
-            # Add the verification function, if available
-            if verifier:
-                Dipla.result_verifier.add_verifier(
-                    function.__name__,
-                    verifier)
-            # Don't actually modify the final function.
+            Dipla._process_decorated_function(function, verifier)
+            Dipla._task_creators[id(function)] = Dipla._create_normal_task
             return function
+
         return distributable_decorator
+
+    @staticmethod
+    def scoped_distributable(count, verifier=None):
+        """
+        Takes a function and converts it to a binary, the binary is then
+        registered with the BinaryManager. The function is returned unchanged.
+
+        This function must have parameters called `index` and `count` as
+        the last two parameters which contain integer values for the
+        current interval (index) out of the total number of intervals
+        (count) for this function
+        """
+        # If no count is supplied then count will be a function. This is
+        # not supported
+        if callable(count):
+            raise NotImplementedError(
+                "Cannot create scoped distributable without providing a count")
+
+        def _create_scoped_task(sources, task_instructions):
+            """
+            sources are objects that can be used to create a data
+            source, e.g. an iterable or another task
+            """
+
+            def read_without_consuming(collection, current_location):
+                return collection[0]
+
+            def return_current_location(collection, current_location):
+                return current_location
+
+            def available_n_times(collection, current_location):
+                return current_location < count
+
+            def always_move_by_1(collection, current_location):
+                return current_location + 1
+
+            source_uids = []
+
+            def create_data_source(source, data_source_creator):
+                return data_source_creator(
+                    source,
+                    Dipla._generate_uid_in_list(source_uids),
+                    read_without_consuming,
+                    available_n_times,
+                    always_move_by_1)
+
+            task = Dipla._create_clientside_task(task_instructions)
+            Dipla._add_sources_to_task(sources, task, create_data_source)
+
+            task.add_data_source(DataSource.create_source_from_iterable(
+                [0],
+                Dipla._generate_uid_in_list(source_uids),
+                return_current_location,
+                available_n_times,
+                always_move_by_1))
+
+            task.add_data_source(DataSource.create_source_from_iterable(
+                [count],
+                Dipla._generate_uid_in_list(source_uids),
+                read_without_consuming,
+                available_n_times,
+                always_move_by_1))
+
+            return task
+
+        def real_decorator(function):
+            Dipla._task_creators[id(function)] = _create_scoped_task
+            Dipla._process_decorated_function(function, verifier)
+            return function
+        return real_decorator
 
     @staticmethod
     def data_source(function):
@@ -104,7 +230,7 @@ class Dipla:
         return Promise(task_uid)
 
     @staticmethod
-    def apply_distributable(function, *args):
+    def apply_distributable(function, *raw_args):
         """
         Takes a distributable function, and any number of further arguments
         where each is a list of immediate values or a Promise of future values,
@@ -124,31 +250,20 @@ class Dipla:
          - A Promise, which can be used later as the input to another task,
         or the user can await its results.
         """
-        task_uid = uid_generator.generate_uid(
-            length=8,
-            existing_uids=Dipla.task_queue.get_task_ids())
-        task = Task(
-            task_uid,
-            function.__name__,
-            MachineType.client,
-            complete_check=Dipla.complete_on_eof)
-        for arg in args:
-            if isinstance(arg, list):
-                source_uid = uid_generator.generate_uid(
-                    length=8,
-                    existing_uids=Dipla.task_queue.get_task_ids())
-                task.add_data_source(DataSource.create_source_from_iterable(
-                    arg,
-                    source_uid))
-            elif isinstance(arg, Promise):
-                arg_uid = arg.task_uid
-                task.add_data_source(DataSource.create_source_from_task(
-                    Dipla.task_queue.get_task_by_id(arg_uid),
-                    arg_uid))
+        if id(function) not in Dipla._task_creators:
+            raise KeyError("Provided function was not decorated using Dipla")
+
+        args = []
+        for arg in raw_args:
+            if isinstance(arg, Promise):
+                args.append(Dipla.task_queue.get_task_by_id(arg.task_uid))
+            elif isinstance(arg, list):
+                args.append(arg)
             else:
                 raise UnsupportedInput()
+        task = Dipla._task_creators[id(function)](args, function.__name__)
         Dipla.task_queue.push_task(task)
-        return Promise(task_uid)
+        return Promise(task.uid)
 
     @staticmethod
     def get(promise):
