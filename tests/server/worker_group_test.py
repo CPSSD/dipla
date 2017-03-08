@@ -2,7 +2,8 @@ import unittest
 from dipla.server import worker_group
 from dipla.server.worker_group import Worker, WorkerFactory
 from dipla.shared import statistics
-from tests.utils import create_mock_object
+from dipla.shared.network.network_connection import ServerConnection
+from pocketmock import create_mock_object
 
 
 class WorkerGroupTest(unittest.TestCase):
@@ -99,7 +100,7 @@ class WorkerFactoryTest(unittest.TestCase):
         self.uid = uid
 
     def given_a_mocked_connection(self):
-        self.connection = create_mock_object([])
+        self.connection = create_mock_object(ServerConnection)
 
     def when_creating_worker(self):
         self.worker = self.factory.create_from(self.uid, self.connection)
