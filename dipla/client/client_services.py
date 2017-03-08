@@ -20,8 +20,11 @@ class ClientService(ABC):
     def execute(self, data):
         """
         This method should contain whatever 'executing' your service entails.
+
         :param data: a json object containing any data relevant to the service.
+
         :returns: Any results of the service execution.
+
         For example, an `AdditionService` implementation might take
         {'values': [2, 2, 3]} as the data field and return a 7.
         """
