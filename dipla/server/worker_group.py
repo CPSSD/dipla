@@ -3,8 +3,6 @@ This module contains the WorkerGroup and other supporting classes. It is
 intended for this file to contain the code to manage the workers.
 """
 import heapq
-import operator
-
 from dipla.shared import uid_generator
 
 
@@ -166,7 +164,7 @@ class Worker:
     WorkerGroup.
     """
 
-    def __init__(self, uid, websocket, quality=None):
+    def __init__(self, uid, connection, quality=None):
         """
         Initalises the worker. Workers are given a correctness score to
         indicate how correct the results have been that have been
@@ -182,8 +180,8 @@ class Worker:
         """
         self.uid = uid
         self._quality = quality
-        self.websocket = websocket
-
+        self.connection = connection
+        self.websocket = connection
         self.correctness_score = 1.0
 
     def set_quality(self, quality):
@@ -216,3 +214,9 @@ class Worker:
 
     def __gt__(self, other):
         return self.quality() > other.quality()
+
+
+class WorkerFactory:
+
+    def create_from(self, uid, connection):
+        return Worker(uid, connection)

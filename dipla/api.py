@@ -1,5 +1,6 @@
 from dipla.api_support.function_serialise import get_encoded_script
-from dipla.server.server import BinaryManager, Server, ServerServices
+from dipla.server.server import BinaryManager, Server
+from dipla.server.server_services import ServerServices
 from dipla.server.task_queue import TaskQueue, Task, DataSource, MachineType
 from dipla.shared import uid_generator, statistics
 

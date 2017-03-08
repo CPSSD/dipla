@@ -6,7 +6,7 @@ from dipla.server.worker_group import WorkerGroup, WorkerFactory
 from dipla.shared.network.network_connection import ServerConnection
 from pocketmock import create_mock_object
 from dipla.server.task_queue import TaskQueue
-from server.task_distribution import TaskInputDistributor
+from dipla.server.task_distribution import TaskInputDistributor
 from dipla.shared.network.server_connection_provider import \
      ServerConnectionProvider
 
