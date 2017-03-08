@@ -1,6 +1,7 @@
 import json
 import unittest
-from dipla.discovery_server import DiscoveryServer
+from dipla.discovery_server.app import DiscoveryServer
+from dipla.discovery_server.project import Project
 
 
 class DiscoveryTest(unittest.TestCase):
@@ -27,16 +28,14 @@ class DiscoveryTest(unittest.TestCase):
         data = json.loads(response.data.decode())
         self.assertEqual(0, len(data["servers"]))
 
-        self.servers["http://example.com:1234"] = None
+        address = "http://example.com:1234"
+        self.servers[address] = Project(address, None, None)
         response = self.app.get("/get_servers")
         data = json.loads(response.data.decode())
         self.assertEqual(1, len(data["servers"]))
 
     def test_add_server(self):
-        response = self.app.get("/get_servers")
-        data = json.loads(response.data.decode())
-        self.assertEqual(0, len(data["servers"]))
-
+        self.assertEqual(0, len(self.servers))
         address = "http://socialism.software:666"
         response = self.app.post("/add_server", data=dict(
             address=address,
@@ -45,16 +44,17 @@ class DiscoveryTest(unittest.TestCase):
         data = json.loads(response.data.decode())
         self.assertIn("success", data)
         self.assertTrue(data["success"])
-        self.assertEqual(1, len(data["servers"]))
-        self.assertEqual(address, data["servers"][0][address])
+        self.assertEqual(1, len(self.servers))
+        self.assertEqual(address, self.servers.popitem()[1].address)
 
     def test_add_bad_server_fails(self):
-        response = self.app.post("/add_sever", data=dict(
+        response = self.app.post("/add_server", data=dict(
             address="nope"))
+        data = json.loads(response.data.decode())
         self.assertIn("success", data)
         self.assertFalse(data["success"])
         self.assertIn("error", data)
-        slf.assertIn("400", data["error"])
+        self.assertIn("400", data["error"])
 
 
 if __name__ == '__main__':

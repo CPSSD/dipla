@@ -1,7 +1,7 @@
 import werkzeug
 from flask import abort, Flask, json, request
 from flask.views import View, MethodView
-from project import Project
+from dipla.discovery_server.project import Project
 
 
 class DiscoveryGetServersView(View):
