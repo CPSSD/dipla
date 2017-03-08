@@ -37,7 +37,7 @@ class DiscoveryTest(unittest.TestCase):
         data = json.loads(response.data.decode())
         self.assertEqual(0, len(data["servers"]))
 
-        address ="http://socialism.software:666"
+        address = "http://socialism.software:666"
         response = self.app.post("/add_server", data=dict(
             address=address,
             title="Socialist Software",
