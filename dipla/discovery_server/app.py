@@ -58,14 +58,21 @@ class DiscoveryServer:
         self._app = self._create_flask_app()
 
     def _create_flask_app(self):
-        """Create the flask app and register the endpoints, but don't run it yet."""
+        """Create the flask app and register the endpoints,
+        but don't run it yet."""
         app = Flask(__name__)
-        get_servers = DiscoveryGetServersView.as_view("api/get_servers", servers = self.__servers)
-        add_server = DiscoveryAddServerView.as_view("api/add_server", servers = self.__servers)
-        app.add_url_rule("/get_servers", "api/get_servers", view_func = get_servers)
-        app.add_url_rule("/add_server", "api/add_server", view_func = add_server)
-        app.register_error_handler(werkzeug.exceptions.BadRequest, self._error_bad_request)
-        app.register_error_handler(werkzeug.exceptions.Conflict, self._error_conflict)
+        get_servers = DiscoveryGetServersView.as_view(
+            "api/get_servers", servers=self.__servers)
+        add_server = DiscoveryAddServerView.as_view(
+            "api/add_server", servers=self.__servers)
+        app.add_url_rule("/get_servers", "api/get_servers",
+                         view_func=get_servers)
+        app.add_url_rule("/add_server", "api/add_server",
+                         view_func=add_server)
+        app.register_error_handler(
+            werkzeug.exceptions.BadRequest, self._error_bad_request)
+        app.register_error_handler(
+            werkzeug.exceptions.Conflict, self._error_conflict)
         return app
 
     def _error_bad_request(self, e):
