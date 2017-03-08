@@ -37,6 +37,14 @@ class Dipla:
             return True
         return False
 
+    # TODO(StefanKennedy) There's a bit of tracking the number of
+    # expected values for tasks, it's possible that using
+    # complete_when_unavailable can avoid the need to track expected
+    # values. Investigate this, it could clean up the code
+    @staticmethod
+    def complete_when_unavailable(streamer):
+        return not streamer.has_available_data()
+
     @staticmethod
     def stream_not_empty(stream, location):
         return len(stream) > 0
@@ -49,7 +57,7 @@ class Dipla:
             task_uid,
             task_instructions,
             MachineType.client,
-            complete_check=Dipla.complete_on_eof)
+            complete_check=Dipla.complete_when_unavailable)
 
     def _generate_uid_in_list(uids_list):
         new_uid = uid_generator.generate_uid(length=8, existing_uids=uids_list)
