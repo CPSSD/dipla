@@ -75,7 +75,22 @@ class RunInstructionsService(BinaryRunnerService):
 
     def execute(self, data):
         result_message = super().execute(data)
-        result_message['label'] = 'client_result'
+        result_message["signals"] = {}
+        for signal in data["signals"]:
+            m = result_message["data"]["results"];
+            signal_start = m.index(signal)
+            discovered_data=m[signal_start+len(signal):]
+            lenstr = discovered_data[discovered_data.index("(")+1:discovered_data.index(")")]
+            length = int(lenstr)
+            discovered=discovered_data[len(lenstr)+3:len(lenstr)+3+length]
+
+            a = result_message["data"]["results"]
+
+            result_message["data"]["results"] = a[:m.index(signal)] + a[m.index(signal)+len(signal)+length+4+len(lenstr):]
+            result_message['label'] = 'client_result'
+            # TODO This should work for whatever signals are specified, do not
+            # always do this with DISCOVERED
+            result_message['signals'][signal] = discovered
         return result_message
 
 

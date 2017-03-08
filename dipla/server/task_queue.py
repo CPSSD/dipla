@@ -235,7 +235,8 @@ class TaskQueueNode:
             self.task_item.uid,
             self.task_item.instructions,
             self.task_item.machine_type,
-            arguments)
+            arguments,
+            self.task_item.signals)
 
     def has_next_input(self):
         if len(self.dependencies) == 0:
@@ -376,7 +377,12 @@ class DataStreamer:
 
 class TaskInput:
 
-    def __init__(self, task_uid, task_instructions, machine_type, values):
+    def __init__(self,
+                 task_uid,
+                 task_instructions,
+                 machine_type,
+                 values,
+                 signals=[]):
         """
         This is what is given out by the task queue when some values
         are requested from a pop/peek etc. The values attribute
@@ -400,6 +406,7 @@ class TaskInput:
         self.task_instructions = task_instructions
         self.machine_type = machine_type
         self.values = values
+        self.signals = signals
 
 
 # Abstraction of the information necessary to represent a task
@@ -420,7 +427,8 @@ class Task:
             task_instructions,
             machine_type,
             open_check=lambda x: True,
-            complete_check=lambda x: False):
+            complete_check=lambda x: False,
+            signals=[]):
         """
         Initalises the Task
 
@@ -443,6 +451,8 @@ class Task:
         be used for any distributed operation. This defaults to a
         function that always returns False so that the task does not
         close. This takes the remaining, unread stream as an argument
+         - signals: A list of keywords that should be detected in the
+        output of the task and sent to the server for processing
         """
         self.uid = uid
         self.instructions = task_instructions
@@ -456,6 +466,8 @@ class Task:
         self.inputs_exhausted = False
         self.num_expected_results = 0
         self.num_seen_results = 0
+
+        self.signals = signals
 
         self.task_output = []
 

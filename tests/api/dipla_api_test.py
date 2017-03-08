@@ -166,3 +166,22 @@ class DiplaAPITest(unittest.TestCase):
 
     def tearDown(self):
         Dipla._task_creators = dict()
+
+    def test_explorer_adds_signal_to_created_task(self):
+        @Dipla.explorer()
+        @Dipla.distributable()
+        def funky():
+            pass
+        
+        Dipla.apply_distributable(funky, [1, 2, 3])
+
+        class TaskWithDiscoveredSignal(Task):
+            def __init__(self):
+                super().__init__(Mock(), Mock(), Mock())
+
+            def __eq__(self, other):
+                 print(other.signals)
+                 return other.signals == ["DISCOVERED"]
+
+        self.mock_task_queue.push_task.assert_called_with(
+            TaskWithDiscoveredSignal())

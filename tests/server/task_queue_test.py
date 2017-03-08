@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import MagicMock
 from dipla.server import task_queue
 from dipla.server.task_queue import Task, TaskQueueNode, DataSource
 from dipla.server.task_queue import MachineType
@@ -272,3 +273,12 @@ class TaskQueueTest(unittest.TestCase):
         gotten_task = self.queue.get_task_by_id("foo")
         self.assertEqual(given_task.uid, gotten_task.uid)
         self.assertEqual(given_task.instructions, gotten_task.instructions)
+
+    def test_task_queue_node_next_input_contains_task_signals(self):
+        mock_task = MagicMock()
+        mock_task.signals = ["FOO", "BAR"]
+        mock_task.data_instructions = [MagicMock()]
+        node = TaskQueueNode(mock_task)
+
+        task_input = node.next_input()
+        self.assertEqual(["FOO", "BAR"], task_input.signals)
