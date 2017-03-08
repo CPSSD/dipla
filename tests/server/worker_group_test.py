@@ -1,7 +1,8 @@
 import unittest
 from dipla.server import worker_group
-from dipla.server.worker_group import Worker
+from dipla.server.worker_group import Worker, WorkerFactory
 from dipla.shared import statistics
+from tests.utils import create_mock_object
 
 
 class WorkerGroupTest(unittest.TestCase):
@@ -79,3 +80,32 @@ class WorkerGroupTest(unittest.TestCase):
 
         with self.assertRaises(KeyError):
             self.group.return_worker("Z")
+
+
+class WorkerFactoryTest(unittest.TestCase):
+
+    def test_that_it_creates_a_worker(self):
+        self.given_a_worker_factory()
+        self.given_the_uid('abc_uid')
+        self.given_a_mocked_connection()
+        self.when_creating_worker()
+        self.then_the_worker_has_the_uid('abc_uid')
+        self.then_the_worker_has_the_mocked_connection()
+
+    def given_a_worker_factory(self):
+        self.factory = WorkerFactory()
+
+    def given_the_uid(self, uid):
+        self.uid = uid
+
+    def given_a_mocked_connection(self):
+        self.connection = create_mock_object([])
+
+    def when_creating_worker(self):
+        self.worker = self.factory.create_from(self.uid, self.connection)
+
+    def then_the_worker_has_the_uid(self, expected):
+        self.assertEqual(expected, self.worker.uid)
+
+    def then_the_worker_has_the_mocked_connection(self):
+        self.assertEqual(self.connection, self.worker.connection)
