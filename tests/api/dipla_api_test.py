@@ -164,9 +164,6 @@ class DiplaAPITest(unittest.TestCase):
                           func,
                           [1, 2, 3])
 
-    def tearDown(self):
-        Dipla._task_creators = dict()
-
     def test_explorer_adds_signal_to_created_task(self):
         @Dipla.explorer()
         @Dipla.distributable()
@@ -185,3 +182,6 @@ class DiplaAPITest(unittest.TestCase):
 
         self.mock_task_queue.push_task.assert_called_with(
             TaskWithDiscoveredSignal())
+
+    def tearDown(self):
+        Dipla._task_creators = dict()
