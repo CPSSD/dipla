@@ -1,6 +1,6 @@
 # Dipla Discovery Server
 
-The Discovery Server is a directory server, keeping a list of currently active pprojects. A potential volunteer to a project does not need to know the specific address and port of the project they want to contribute to if they instead connect to an always-on discovery server, as it will be able to provide that information.
+The Discovery Server is a directory server, keeping a list of currently active projects. A potential volunteer to a project does not need to know the specific address and port of the project they want to contribute to if they instead connect to an always-on discovery server, as it will be able to provide that information.
 
 The discovery server provides the following REST endpoints. Every response should be in Json format, and should contain a `success` field with a boolean value to signify if the operation had any errors or not. If `success` is `false`, the response should also include a string field `error` with human-readable information about what went wrong.
 
@@ -13,7 +13,7 @@ This is a GET request that takes no parameters, and returns a json document like
 	"success": true,
 	"servers": [
 		{
-			"address": "123.56.67.89:9876",
+			"address": "ws://123.56.67.89:9876",
 			"title": "Laundry Folding",
 			"description": "Protein folding is so 2007, it's time to fold some laundry"
 		}

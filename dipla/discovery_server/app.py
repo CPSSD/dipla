@@ -91,8 +91,3 @@ class DiscoveryServer:
 
     def start(self):
         self._app.run(host=self.__host, port=self.__port)
-
-
-if __name__ == '__main__':
-    server = DiscoveryServer()
-    server.start()
