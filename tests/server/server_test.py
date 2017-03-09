@@ -156,6 +156,7 @@ class ServerEventListenerTest(TestCase):
         self.then_the_worker_is_added_to_worker_group("Fake Worker")
 
     def test_worker_is_removed_when_connection_closes(self):
+        self.given_the_worker_uids_are('xyz_uid')
         self.given_the_uid_generator_returns('xyz_uid')
         self.given_a_server_event_listener()
         self.when_the_connection_is_opened()
@@ -163,11 +164,26 @@ class ServerEventListenerTest(TestCase):
         self.then_the_worker_is_removed_from_worker_group('xyz_uid')
 
     def test_worker_is_removed_when_connection_error_occurs(self):
+        self.given_the_worker_uids_are('123_uid')
         self.given_the_uid_generator_returns('123_uid')
         self.given_a_server_event_listener()
         self.when_the_connection_is_opened()
         self.when_a_connection_error_occurs()
         self.then_the_worker_is_removed_from_worker_group('123_uid')
+
+    def test_worker_not_removed_if_does_not_exist(self):
+        self.given_worker_group_has_no_workers()
+        self.given_the_uid_generator_returns('abc_uid')
+        self.given_a_server_event_listener()
+        self.when_the_connection_is_opened()
+        self.when_the_connection_is_closed()
+        self.then_no_worker_was_removed()
+
+    def given_the_worker_uids_are(self, uids):
+        self.worker_group.worker_uids.return_value = uids
+
+    def given_worker_group_has_no_workers(self):
+        self.worker_group.worker_uids.return_value = []
 
     def given_the_services(self, service_names):
         self.services = {}
@@ -230,6 +246,10 @@ class ServerEventListenerTest(TestCase):
 
     def then_the_worker_is_removed_from_worker_group(self, expected_arguments):
         self.worker_group.remove_worker.assert_called_with(expected_arguments)
+
+    def then_no_worker_was_removed(self):
+        method = self.worker_group.remove_worker
+        self.assertEqual(0, method.call_count)
 
     def __instantiate_mock_connection(self):
         self.connection = create_mock_object(ServerConnection)

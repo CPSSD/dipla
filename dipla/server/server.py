@@ -90,9 +90,11 @@ class ServerEventListener(EventListener):
         self.__add_worker_to_worker_group()
 
     def on_close(self, connection, reason):
+        print("on close was called")
         self.__remove_worker_from_worker_group()
 
     def on_error(self, connection, error):
+        print("on error was called")
         self.__remove_worker_from_worker_group()
 
     def on_message(self, connection, message_object):
@@ -109,7 +111,11 @@ class ServerEventListener(EventListener):
         self.__worker_group.add_worker(self.__worker)
 
     def __remove_worker_from_worker_group(self):
-        self.__worker_group.remove_worker(self.__worker_uid)
+        if self.__worker_exists():
+            self.__worker_group.remove_worker(self.__worker_uid)
+
+    def __worker_exists(self):
+        return self.__worker_uid in self.__worker_group.worker_uids()
 
     def __fetch_service(self, message_object):
         service_name = message_object['label']
