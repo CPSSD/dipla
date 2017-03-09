@@ -1,3 +1,4 @@
+import json
 from threading import Thread
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -346,17 +347,24 @@ class Dipla:
                                 project_address,
                                 project_title,
                                 project_description):
+        full_address = '{}/add_server'.format(discovery_server_address)
         post_data = {
             'address': project_address,
             'title': project_title,
             'description': project_description,
         }
-        request = Request(discovery_server_address,
+        request = Request(full_address,
                           urlencode(post_data).encode())
-        json = urlopen(request).read().decode()
-        data = json.loads(json)
+        raw_data = urlopen(request).read().decode()
+        data = json.loads(raw_data)
         if not data['success']:
-            pass
+            error_msg = 'Received error from discovery server: "{}"'
+            if '409' in data['error']:
+                raise DiscoveryConflict(error_msg.format(data['error']))
+            elif '400' in data['error']:
+                raise DiscoveryBadRequest(error_msg.format(data['error']))
+            else:
+                raise RuntimeError(error_msg.format(data['error']))
 
 
 class Promise:
@@ -369,6 +377,20 @@ class UnsupportedInput(Exception):
     """
     An exception that is raised when an input of an unsupported type is
     applied to a distributable
+    """
+    pass
+
+class DiscoveryConflict(RuntimeError):
+    """
+    An exception that is raied when the discovery server returns a http
+    409 error
+    """
+    pass
+
+class DiscoveryBadRequest(RuntimeError):
+    """
+    An exception that is raised when the discovery server returns a http
+    400 error
     """
     pass
 
