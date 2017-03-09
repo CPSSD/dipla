@@ -1,4 +1,6 @@
 from threading import Thread
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
 
 from dipla.api_support.function_serialise import get_encoded_script
 from dipla.server.dashboard import DashboardServer
@@ -338,6 +340,23 @@ class Dipla:
         stat_reader = statistics.StatisticsReader(Dipla._stats)
         dashboard = DashboardServer(host, port, stat_reader)
         dashboard.start()
+
+    @staticmethod
+    def inform_discovery_server(discovery_server_address,
+                                project_address,
+                                project_title,
+                                project_description):
+        post_data = {
+            'address': project_address,
+            'title': project_title,
+            'description': project_description,
+        }
+        request = Request(discovery_server_address,
+                          urlencode(post_data).encode())
+        json = urlopen(request).read().decode()
+        data = json.loads(json)
+        if not data['success']:
+            pass
 
 
 class Promise:
