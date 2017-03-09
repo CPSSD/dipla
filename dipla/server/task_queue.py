@@ -213,7 +213,6 @@ class TaskQueueNode:
             raise DataStreamerEmpty(
                 "Attempted to read input from an empty source")
 
-        input_exhausted = False
         arguments = []
         for dependency in self.dependencies:
             argument_id = dependency.source_uid
@@ -222,12 +221,6 @@ class TaskQueueNode:
             if not isinstance(arg, list):
                 arg = [arg]
             arguments.append(arg)
-            # If any dependencies do not have data available the
-            if self.task_item.complete_check(dependency.data_streamer):
-                input_exhausted = True
-
-        if input_exhausted:
-            self.task_item.mark_inputs_exhausted()
 
         # Not very pretty, but expect a result for every element in the args
         self.task_item.inc_expected_results_by(len(arguments[0]))
@@ -235,7 +228,8 @@ class TaskQueueNode:
             self.task_item.uid,
             self.task_item.instructions,
             self.task_item.machine_type,
-            arguments)
+            arguments,
+            signals=[x for x in self.task_item.signals])
 
     def has_next_input(self):
         if len(self.dependencies) == 0:
@@ -376,7 +370,12 @@ class DataStreamer:
 
 class TaskInput:
 
-    def __init__(self, task_uid, task_instructions, machine_type, values):
+    def __init__(self,
+                 task_uid,
+                 task_instructions,
+                 machine_type,
+                 values,
+                 signals=[]):
         """
         This is what is given out by the task queue when some values
         are requested from a pop/peek etc. The values attribute
@@ -395,11 +394,14 @@ class TaskInput:
         to clients to execute the task and return the results. It is a
         dictionary of the task_uid that this data is coming from (the
         source) to a list of the actual data values
+
+        signals is a list of reserved signal keywords for this input
         """
         self.task_uid = task_uid
         self.task_instructions = task_instructions
         self.machine_type = machine_type
         self.values = values
+        self.signals = signals
 
 
 # Abstraction of the information necessary to represent a task
@@ -420,7 +422,8 @@ class Task:
             task_instructions,
             machine_type,
             open_check=lambda x: True,
-            complete_check=lambda x: False):
+            complete_check=lambda x: False,
+            signals={}):
         """
         Initalises the Task
 
@@ -443,6 +446,8 @@ class Task:
         be used for any distributed operation. This defaults to a
         function that always returns False so that the task does not
         close. This takes the remaining, unread stream as an argument
+         - signals: a dictionary of signal name to a function that can
+        process the output of that signal
         """
         self.uid = uid
         self.instructions = task_instructions
@@ -453,18 +458,25 @@ class Task:
         self.open = False
         self.complete_check = complete_check
         self.complete = False
-        self.inputs_exhausted = False
         self.num_expected_results = 0
         self.num_seen_results = 0
 
+        self.signals = signals
         self.task_output = []
+
+    def inputs_exhausted(self):
+        for source in self.data_instructions:
+            # If any dependencies do not have data available the
+            if self.complete_check(source.data_streamer):
+                return True
+        return False
 
     def add_result(self, result):
         self.task_output.append(result)
         self.num_seen_results += 1
         # If our inputs have nothing left in them and we've recieved the
         # number of results we expect then this task is complete
-        self.complete = (self.inputs_exhausted and
+        self.complete = (self.inputs_exhausted() and
                          self.num_seen_results == self.num_expected_results)
         if self.open_check(result):
             self._open_task()
@@ -479,10 +491,6 @@ class Task:
 
     def _open_task(self):
         self.open = True
-
-    def mark_inputs_exhausted(self):
-        # Mark the task as having no new inputs to expect
-        self.inputs_exhausted = True
 
     def inc_expected_results_by(self, count):
         # Increase the number of results we should expect

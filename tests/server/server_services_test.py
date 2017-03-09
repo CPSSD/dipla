@@ -229,3 +229,21 @@ class ServerServicesTest(unittest.TestCase):
         service(message, ServiceParams(self.mock_server, self.foo_worker))
         self.assertTrue(
             "bar_worker" in self.mock_server.worker_group.worker_uids())
+
+    def test_handle_client_results_calls_signal_function(self):
+        service = self.server_services.get_service("client_result")
+
+        message = {
+            "task_uid": "foo_task",
+            "results": [1, 2, 3],
+            "signals": {"FOOBAR": ["[[0, 0], [3, 3]]"]}
+        }
+
+        mock_task = Mock()
+        self.mock_server.task_queue.get_task.return_value = mock_task
+        mock_task.signals = {"FOOBAR": Mock()}
+
+        service(message, ServiceParams(self.mock_server, self.foo_worker))
+
+        mock_task.signals["FOOBAR"].assert_called_with(
+            "foo_task", [[0, 0], [3, 3]])
