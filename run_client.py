@@ -1,4 +1,4 @@
-from client.quality_scorer import QualityScorer
+from dipla.client.quality_scorer import QualityScorer
 from dipla.client.client import Client, ClientEventListener
 from dipla.client.config_handler import ConfigHandler
 from dipla.client.client_services import RunInstructionsService
