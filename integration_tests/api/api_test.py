@@ -45,7 +45,7 @@ class APIIntegrationTest(TestCase):
         @Dipla.distributable()
         def func(inputsA, inputsB):
             return
-        
+
         # Causes task to register in queue
         inputsA = []
         inputsB = []

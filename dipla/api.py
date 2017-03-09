@@ -205,7 +205,6 @@ class Dipla:
     def explorer():
         def real_decorator(function):
             def discovered_handler(task_uid, signal_inputs):
-                print(signal_inputs)
                 Dipla.task_queue.push_task_input(task_uid, signal_inputs)
 
             function_id = id(function)
@@ -295,7 +294,6 @@ class Dipla:
         if function_id in Dipla._task_signals:
             task.signals = Dipla._task_signals[function_id]
         Dipla.task_queue.push_task(task)
-        print(task.uid)
         return Promise(task.uid)
 
     @staticmethod

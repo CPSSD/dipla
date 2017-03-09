@@ -119,8 +119,11 @@ class ServerServices:
             # The following line "rotates" this 2d list structure so that the
             # 0th element in `input_lists` is the list of inputs used to get
             # the 0th result in `results`
-            input_lists = zip(*worker.last_inputs)
-            for inp, result in zip(input_lists, results):
+            last_inputs = [x for x in zip(*worker.last_inputs)]
+            remove_indices = []
+            for i in range(min(len(results), len(last_inputs))):
+                inp = last_inputs[i]
+                result = results[i]
                 if server.result_verifier.check_output(t_instr, inp, result):
                     worker.correctness_score += 0.05
                 else:
@@ -129,9 +132,13 @@ class ServerServices:
                     # the server won't exit if the verification fails as it's
                     # still expecting another result.
                     worker.correctness_score -= 0.05
+                    remove_indices.append(i)
                     e = ("{} verifier declared output '{}' incorrect "
                          "for input '{}'")
                     LogUtils.warning(e.format(t_instr, result, inp))
+
+            for x in remove_indices[::-1]:
+                results.pop(x)
 
         if "signals" in message:
             message_signals = message["signals"]
@@ -146,6 +153,7 @@ class ServerServices:
 
         # TODO remove results if not verified
         for result in results:
+            print("adding result for", task_id, result)
             server.task_queue.add_result(task_id, result)
 
         # We need to send verify_inputs before returning the worker so
