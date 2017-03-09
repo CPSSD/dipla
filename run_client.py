@@ -38,9 +38,7 @@ def main(argv):
 
 def create_default_client_stats():
     return {
-        'number_of_things_thinged': 0,
-        'number_of_jobs_jobbed': 0,
-        'name_of_firstborn': 'Leshaniqua',
+        'messages_sent': 0,
         'running': False
     }
 

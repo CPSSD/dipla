@@ -48,6 +48,7 @@ class Client(object):
 
         # run the coroutine to send the message
         asyncio.ensure_future(self._send_async(json_message))
+        self._stats_updater.increment('messages_sent')
 
     def send_error(self, details, code):
         """Send an error to the server.
@@ -143,6 +144,7 @@ class Client(object):
                 self.connect_tries_limit)
             return
         receive_task = asyncio.ensure_future(self.receive_loop())
+        self._stats_updater.overwrite('running', True)
         data = {
             'platform': self._get_platform(),
             'quality': self._get_quality(),
