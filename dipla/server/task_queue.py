@@ -66,6 +66,31 @@ class TaskQueue:
         if active:
             self._active_tasks.add(item.uid)
 
+    def push_task_input(self, task_id, inputs):
+        """
+        Adds more input for a task. This will raise a ValueError if
+        inputs is not suitable for pushing as task input
+
+        task_id is the id of the task that these inputs will be added
+        for
+
+        inputs is a multidimensional list. The first dimension indexes
+        the i'th argument/parameter to the task. The second dimension
+        represents the values that are passed as that parameter in the
+        order they should be inputted
+        """
+        if task_id not in self._nodes:
+            raise KeyError(
+                "Attempted to add input to unknown task id", task_id)
+
+        if len(inputs) != len(self._nodes[task_id].dependencies):
+            raise ValueError(
+                "Attempted to add input with mismatching number of arguments")
+
+        for i in range(len(inputs)):
+            self._nodes[task_id].dependencies[i].data_streamer.add_inputs(
+                inputs[i])
+
     def has_next_input(self, machine_type=None):
         """
         Returns true if there are task input values that can be popped
@@ -367,6 +392,13 @@ class DataStreamer:
                 read, self.stream_location)
         return read
 
+    def add_inputs(self, inputs):
+        """
+        inputs is a list of values that sould be outputted from this
+        DataStreamer when it is read
+        """
+        self.stream.extend(inputs)
+
 
 class TaskInput:
 
@@ -446,8 +478,10 @@ class Task:
         be used for any distributed operation. This defaults to a
         function that always returns False so that the task does not
         close. This takes the remaining, unread stream as an argument
-         - signals: a dictionary of signal name to a function that can
-        process the output of that signal
+         - signals: A dict with keys as words that should be detected
+        in the output of the task as signals and sent to the server for
+        processing. The values are the functions that should be used to
+        process that inputs from that signal
         """
         self.uid = uid
         self.instructions = task_instructions

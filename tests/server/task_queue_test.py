@@ -1,6 +1,8 @@
 import unittest
+from unittest.mock import MagicMock, Mock
 from dipla.server import task_queue
-from dipla.server.task_queue import Task, TaskQueueNode, DataSource
+from dipla.server.task_queue import Task, TaskQueueNode
+from dipla.server.task_queue import DataSource, DataStreamer
 from dipla.server.task_queue import MachineType
 from dipla.server.task_queue import TaskQueueEmpty, DataStreamerEmpty
 
@@ -272,3 +274,55 @@ class TaskQueueTest(unittest.TestCase):
         gotten_task = self.queue.get_task_by_id("foo")
         self.assertEqual(given_task.uid, gotten_task.uid)
         self.assertEqual(given_task.instructions, gotten_task.instructions)
+
+    def test_task_queue_node_next_input_contains_task_signals(self):
+        mock_task = MagicMock()
+        mock_task.signals = ["FOO", "BAR"]
+        mock_task.data_instructions = [MagicMock()]
+        node = TaskQueueNode(mock_task)
+
+        task_input = node.next_input()
+        self.assertEqual(["FOO", "BAR"], task_input.signals)
+
+    def test_push_task_input_adds_new_input_for_task_with_immediate_inputs(self):  # nopep8
+        mock_task = MagicMock()
+        mock_task.uid = "foo"
+
+        # source_task_uid needs to be set to none because it would
+        # return a Mock otherwise. Immediate sources should return None
+        mock_source_a = Mock()
+        mock_source_a.source_task_uid = None
+        mock_source_b = Mock()
+        mock_source_b.source_task_uid = None
+
+        mock_task.data_instructions = [mock_source_a, mock_source_b]
+        self.queue.push_task(mock_task)
+
+        self.queue.push_task_input("foo", [[1, 2, 3], [4, 5, 6]])
+        mock_source_a.data_streamer.add_inputs.assert_called_with([1, 2, 3])
+        mock_source_b.data_streamer.add_inputs.assert_called_with([4, 5, 6])
+
+    def test_data_streamer_add_inputs_adds_to_stream(self):
+        mock_stream = Mock()
+
+        data_streamer = DataStreamer(mock_stream, Mock(), Mock(), Mock())
+        data_streamer.add_inputs([1, 2, 3])
+        data_streamer.stream.extend.assert_called_with([1, 2, 3])
+
+    def test_push_task_input_raises_error_if_task_id_unrecognised(self):
+        with self.assertRaises(KeyError):
+            self.queue.push_task_input("unrecognised", [[1, 2]])
+
+    def test_push_task_input_raises_error_if_non_matching_num_arguments(self):
+        mock_task = MagicMock()
+        mock_task.uid = "foo"
+
+        mock_source = Mock()
+        mock_source.source_task_uid = None
+
+        mock_task.data_instructions = [mock_source]
+
+        self.queue.push_task(mock_task)
+
+        with self.assertRaises(ValueError):
+            self.queue.push_task_input("foo", [[1, 2], [1, 2]])

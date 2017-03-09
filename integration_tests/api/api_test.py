@@ -2,6 +2,10 @@ from unittest import TestCase
 
 from dipla.shared import uid_generator
 from dipla.api import Dipla
+from dipla.shared import uid_generator
+from dipla.server.server import Server
+from dipla.server.server_services import ServerServices, ServiceParams
+from dipla.server.worker_group import WorkerGroup, Worker
 
 
 class APIIntegrationTest(TestCase):
@@ -21,15 +25,15 @@ class APIIntegrationTest(TestCase):
         Dipla.apply_distributable(func, [(1, 12)])
         inputs = []
         while Dipla.task_queue.has_next_input():
+
             inputs.append(Dipla.task_queue.pop_task_input().values)
         self.assertEquals(3, len(inputs))
         # Should contain 3 intervals, each with the same (1, 12) input
         self.assertEquals(
             [
-                 [[(1, 12)], [0], [3]],
-                 [[(1, 12)], [1], [3]],
-                 [[(1, 12)], [2], [3]]
-            ],
+                [[(1, 12)], [0], [3]],
+                [[(1, 12)], [1], [3]],
+                [[(1, 12)], [2], [3]]],
             inputs)
 
     def test_explorer_task_adds_discovered_signal_inputs_to_task_queue(self):
@@ -41,7 +45,7 @@ class APIIntegrationTest(TestCase):
         @Dipla.distributable()
         def func(inputsA, inputsB):
             return
-
+        
         # Causes task to register in queue
         inputsA = []
         inputsB = []
