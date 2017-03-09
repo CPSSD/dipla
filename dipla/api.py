@@ -7,9 +7,8 @@ from dipla.shared.network.server_connection_provider import\
 from dipla.server.task_distribution import TaskInputDistributor, \
     VerificationInputStorer
 from dipla.server.worker_group import WorkerGroup, WorkerFactory
+from dipla.server.server_services import ServerServices
 from random import random
-
-from server.server_services import ServerServices
 
 SERVER_PORT = 51234
 
