@@ -1,3 +1,4 @@
+import json
 from dipla.shared.logutils import LogUtils
 from dipla.shared.services import ServiceError
 from dipla.shared.error_codes import ErrorCodes
@@ -121,7 +122,6 @@ class ServerServices:
             input_lists = zip(*worker.last_inputs)
             for inp, result in zip(input_lists, results):
                 if server.result_verifier.check_output(t_instr, inp, result):
-                    server.task_queue.add_result(task_id, result)
                     worker.correctness_score += 0.05
                 else:
                     # TODO(Cian): Add input back into the list of things to do.
@@ -132,10 +132,19 @@ class ServerServices:
                     e = ("{} verifier declared output '{}' incorrect "
                          "for input '{}'")
                     LogUtils.warning(e.format(t_instr, result, inp))
-        else:
-            # If no verification, add everything to task_queue
-            for result in results:
-                server.task_queue.add_result(task_id, result)
+
+        if "signals" in message:
+            message_signals = message["signals"]
+            task_uid = message["task_uid"]
+            task_signals = server.task_queue.get_task(task_uid).signals
+            for signal in message_signals:
+                if signal in task_signals:
+                    task_signals[signal](
+                        task_uid, json.loads(message_signals[signal]))
+
+        # TODO remove results if not verified
+        for result in results:
+            server.task_queue.add_result(task_id, result)
 
         # We need to send verify_inputs before returning the worker so
         # that we dont send it to the original worker

@@ -95,7 +95,7 @@ class BinaryReceiverServiceTest(TestCase):
 
 class RunInstructionsServiceTest(TestCase):
 
-    def test_signal_results_are_sent_separately(self):
+    def test_signal_results_are_separated(self):
         mock_client = MagicMock()
         mock_client.binary_paths = {
             "foo": "bar"
@@ -112,10 +112,9 @@ class RunInstructionsServiceTest(TestCase):
             "signals": ["DISCOVERED", "LOST"]
         }
         returned = self.service.execute(data)
-        print(returned)
         self.assertEquals("[2, 4]", returned["data"]["results"])
-        self.assertEquals({ "DISCOVERED": "[[0, 0], [3, 3]]", "LOST": "FOO" },
-                          returned["signals"])
+        self.assertEquals({"DISCOVERED": "[[0, 0], [3, 3]]", "LOST": "FOO"},
+                          returned["data"]["signals"])
 
 
 class DummyClient:

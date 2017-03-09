@@ -169,7 +169,7 @@ class DiplaAPITest(unittest.TestCase):
         @Dipla.distributable()
         def funky():
             pass
-        
+
         Dipla.apply_distributable(funky, [1, 2, 3])
 
         class TaskWithDiscoveredSignal(Task):
@@ -177,8 +177,8 @@ class DiplaAPITest(unittest.TestCase):
                 super().__init__(Mock(), Mock(), Mock())
 
             def __eq__(self, other):
-                 print(other.signals)
-                 return other.signals == ["DISCOVERED"]
+                print(other.signals.keys())
+                return [x for x in other.signals.keys()] == ["DISCOVERED"]
 
         self.mock_task_queue.push_task.assert_called_with(
             TaskWithDiscoveredSignal())
