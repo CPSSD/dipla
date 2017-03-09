@@ -6,8 +6,10 @@ from dipla.shared.network.server_connection_provider import\
     ServerConnectionProvider
 from dipla.server.task_distribution import TaskInputDistributor, \
     VerificationInputStorer
-from dipla.server.worker_group import WorkerGroup
+from dipla.server.worker_group import WorkerGroup, WorkerFactory
 from random import random
+
+from server.server_services import ServerServices
 
 SERVER_PORT = 51234
 
@@ -165,13 +167,24 @@ class Dipla:
 
     @staticmethod
     def _instantiate_server():
+
+        worker_factory = WorkerFactory()
+        worker_group = WorkerGroup(Dipla._stats)
+        services = ServerServices(Dipla.binary_manager)
+        event_listener_arguments = [
+            worker_factory,
+            worker_group,
+            services
+        ]
+
         established_connections = {}
         connection_provider = ServerConnectionProvider(
             established_connections,
             SERVER_PORT,
-            ServerEventListener
+            ServerEventListener,
+            event_listener_arguments
         )
-        worker_group = WorkerGroup(Dipla._stats)
+
         verification_inputs = {}
         verification_probability = 0
         verification_input_storer = VerificationInputStorer(
