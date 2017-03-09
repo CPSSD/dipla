@@ -65,8 +65,7 @@ class DiplaClientUI:
         self._draw_stats_frame()
 
     def _draw_client_selection(self):
-        # Draw client selector
-        self._selected_client = tkinter.StringVar(self._root, '')
+        self._selected_client = tkinter.StringVar(self._root, ' '*20)
         self._selected_client.trace('w', self._change_client)
         self._client_selector = tkinter.OptionMenu(
             master=self._root,
@@ -75,6 +74,7 @@ class DiplaClientUI:
         self._client_selector.configure(state='disabled')
         self._client_selector.grid(
             columnspan=1,
+            sticky='ew',
             column=0, row=0,
             padx=5, pady=5)
 
@@ -82,7 +82,8 @@ class DiplaClientUI:
         self._add_client_button = tkinter.Button(
             master=self._root,
             text="Add Client",
-            command=self._add_client)
+            command=self._add_client,
+            width=12)
         self._add_client_button.grid(
             column=3, row=0,
             padx=5, pady=5)
@@ -90,7 +91,8 @@ class DiplaClientUI:
             master=self._root,
             state='disabled',
             text="Remove Client",
-            command=self._rem_client)
+            command=self._rem_client,
+            width=12)
         self._rem_client_button.grid(
             column=1, row=0,
             padx=5, pady=5)
@@ -164,6 +166,7 @@ class DiplaClientUI:
         self._stat_labels = {}
         self._stat_vars = {}
         for i, stat in enumerate(sorted(self._default_stats)):
+            row = i + 2
             # Make label for stat name
             self._stat_labels[stat] = tkinter.Label(
                 master=self._lf,
@@ -172,7 +175,7 @@ class DiplaClientUI:
                 padx=10,
                 state='disabled')
             self._stat_labels[stat].grid(
-                column=0, row=i,
+                column=0, row=row,
                 padx=5, pady=5)
             # Make label for stat value
             self._stat_vars[stat] = tkinter.Label(
@@ -181,7 +184,7 @@ class DiplaClientUI:
                 pady=5, padx=10,
                 state='disabled')
             self._stat_vars[stat].grid(
-                column=1, row=i,
+                column=1, row=row,
                 padx=5, pady=5)
 
     def _set_single_client_ui_state(self, state):
@@ -243,7 +246,6 @@ class DiplaClientUI:
         # Swap to the first item
         self._client_selector['menu'].invoke(0)
         self._total_clients -= 1
-
 
     def _add_param_to_config(self, entry, option_name):
         corr_type = self._configs[self._curr_client].config_types[option_name]
