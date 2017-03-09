@@ -46,5 +46,12 @@ class ConfigHandlerTest(TestCase):
         with self.assertRaises(InvalidConfigException):
             c.add_param(param_name, param_value)
 
+    def test_making_non_mutating_copy(self):
+        c = ConfigHandler(fill_defaults=False)
+        c2 = c.copy()
+        param_name, param_value = self.get_valid_param()
+        c2.add_param(param_name, param_value)
+        self.assertNotIn(param_name, c.params)
+
     def get_valid_param(self):
         return list(ConfigHandler.config_defaults.items())[0]
