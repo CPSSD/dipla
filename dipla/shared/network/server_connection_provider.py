@@ -13,9 +13,11 @@ class ServerConnectionProvider(Thread):
     Enables multiple clients to connect to the same port.
     """
 
-    def __init__(self, established_connections, port, event_listener_class):
+    def __init__(self, established_connections, port, event_listener_class,
+                 event_listener_arguments):
         self.__established_connections = established_connections
         self.__event_listener_class = event_listener_class
+        self.__event_listener_arguments = event_listener_arguments
         self.__logger = logging.getLogger(__name__)
         self.__stop_event = Event()
         self.__current_server_connection = None
@@ -50,7 +52,9 @@ class ServerConnectionProvider(Thread):
         self.__logger.debug(CREATING_SERVER_CONNECTION_MESSAGE)
         self.__current_server_connection = ServerConnection(
             self.__master_socket,
-            self.__event_listener_class()
+            self.__event_listener_class(
+                *self.__event_listener_arguments
+            )
         )
         self.__logger.debug(CREATED_SERVER_CONNECTION_MESSAGE)
 

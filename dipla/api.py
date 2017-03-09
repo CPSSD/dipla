@@ -1,8 +1,15 @@
 from dipla.api_support.function_serialise import get_encoded_script
-from dipla.server.server import BinaryManager, Server
-from dipla.server.server_services import ServerServices
+from dipla.server.server import BinaryManager, Server, ServerEventListener
 from dipla.server.task_queue import TaskQueue, Task, DataSource, MachineType
 from dipla.shared import uid_generator, statistics
+from dipla.shared.network.server_connection_provider import\
+    ServerConnectionProvider
+from dipla.server.task_distribution import TaskInputDistributor, \
+    VerificationInputStorer
+from dipla.server.worker_group import WorkerGroup
+from random import random
+
+SERVER_PORT = 51234
 
 
 class Dipla:
@@ -151,12 +158,38 @@ class Dipla:
             Dipla.task_queue.get_task(promise.task_uid), source_uid))
         Dipla.task_queue.push_task(get_task)
 
-        server = Server(Dipla.task_queue,
-                        ServerServices(Dipla.binary_manager),
-                        stats=Dipla.stat_updater)
+        server = Dipla._instantiate_server()
         server.start()
 
         return get_task.task_output
+
+    @staticmethod
+    def _instantiate_server():
+        established_connections = {}
+        connection_provider = ServerConnectionProvider(
+            established_connections,
+            SERVER_PORT,
+            ServerEventListener
+        )
+        worker_group = WorkerGroup(Dipla._stats)
+        verification_inputs = {}
+        verification_probability = 0
+        verification_input_storer = VerificationInputStorer(
+            verification_inputs,
+            verification_probability,
+            random
+        )
+        task_input_distributor = TaskInputDistributor(
+            worker_group,
+            Dipla.task_queue,
+            verification_input_storer
+        )
+        server = Server(
+            connection_provider,
+            Dipla.task_queue,
+            task_input_distributor
+        )
+        return server
 
 
 class Promise:

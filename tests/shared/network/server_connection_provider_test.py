@@ -1,6 +1,11 @@
 import queue
 import unittest
-from dipla.shared.network.network_connection import ClientConnection
+from unittest.mock import MagicMock
+
+from pocketmock import create_mock_object
+
+from dipla.shared.network.network_connection import ClientConnection, \
+    EventListener
 from dipla.shared.network.server_connection_provider import ServerConnectionProvider  # nopep8
 from .network_connection_test import EventSavingEventListener, EchoEventListener  # nopep8
 from .useful_assertions import *
@@ -19,6 +24,8 @@ class ServerConnectionProviderTest(unittest.TestCase):
         self.established_server_connections = queue.Queue()
         self.client_connections = []
         self.client_event_listeners = []
+        self.event_listener_class = EchoEventListener
+        self.event_listener_arguments = []
 
     def tearDown(self):
         self.close_all_connections()
@@ -58,13 +65,27 @@ class ServerConnectionProviderTest(unittest.TestCase):
         self.then_client_receives(1, {'label': '', 'data': "Echo: There"})
         self.then_client_receives(2, {'label': '', 'data': "Echo: Friends"})
 
+    def test_event_listener_instantiated_with_supplied_arguments(self):
+        self.given_a_mocked_event_listener()
+        self.given_the_event_listener_arguments(['x', 'y', 'z'])
+        self.given_a_server_connection_provider()
+        self.when_started()
+        self.then_the_event_listener_was_instantiated_with(['x', 'y', 'z'])
+
     def given_a_server_connection_provider(self):
         self.established_server_connections = queue.Queue()
         self.server_connection_provider = ServerConnectionProvider(
             self.established_server_connections,
             PORT,
-            EchoEventListener
+            self.event_listener_class,
+            self.event_listener_arguments
         )
+
+    def given_the_event_listener_arguments(self, args):
+        self.event_listener_arguments = args
+
+    def given_a_mocked_event_listener(self):
+        self.event_listener_class = MagicMock()
 
     def when_started(self):
         self.server_connection_provider.start()
@@ -110,6 +131,9 @@ class ServerConnectionProviderTest(unittest.TestCase):
             self.client_connections[0],
             ASSERTION_TIMEOUT
         )
+
+    def then_the_event_listener_was_instantiated_with(self, expected):
+        self.event_listener_class.assert_called_with(*expected)
 
     def close_all_connections(self):
         for client_connection in self.client_connections:
