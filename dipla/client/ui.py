@@ -65,13 +65,13 @@ class DiplaClientUI:
         self._draw_stats_frame()
 
     def _draw_client_selection(self):
-        self._selected_client = tkinter.StringVar(self._root, ' '*20)
+        self._selected_client = tkinter.StringVar(self._root, '')
         self._selected_client.trace('w', self._change_client)
         self._client_selector = tkinter.OptionMenu(
             master=self._root,
             variable=self._selected_client,
             value='')
-        self._client_selector.configure(state='disabled')
+        self._client_selector.configure(state='disabled', width=12)
         self._client_selector.grid(
             columnspan=1,
             sticky='ew',
@@ -259,6 +259,8 @@ class DiplaClientUI:
             state, button_text = 'normal', 'Run Client'
         self._toggle_button.configure(text=button_text)
         for option, entry in self._option_vars.items():
+            # Entry is temporarily set to normal so the text is writeable
+            entry.configure(state='normal')
             entry.delete(0, 'end')
             entry.insert(0, self._configs[self._curr_client].params[option])
             entry.configure(state=state)
