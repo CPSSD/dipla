@@ -14,7 +14,6 @@ class ClientService(ABC):
     @abstractmethod
     def get_label():
         """Get the label that identifies messages for this service"""
-        pass
 
     @abstractmethod
     def execute(self, data):

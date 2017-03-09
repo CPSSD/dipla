@@ -1,12 +1,162 @@
-import sys
-import argparse
-
-from dipla.server.server import BinaryManager, Server, ServerServices
-from dipla.server.task_queue import TaskQueue, Task, DataSource, MachineType
-from dipla.shared import uid_generator, statistics
-from dipla.api import Dipla
-from dipla.shared.logutils import LogUtils
+from argparse import ArgumentParser
 from logging import FileHandler
+from queue import Queue
+from random import random
+from dipla.server.server import BinaryManager, Server, ServerEventListener
+from dipla.server.task_queue import TaskQueue, Task, DataSource, MachineType
+from dipla.shared import uid_generator
+from dipla.shared.logutils import LogUtils
+from dipla.shared.statistics import StatisticsUpdater
+from dipla.server.task_distribution import TaskInputDistributor
+from dipla.server.task_distribution import VerificationInputStorer
+from dipla.server.worker_group import WorkerGroup
+from dipla.shared.network.server_connection_provider import \
+    ServerConnectionProvider
+
+
+def main():
+    LogUtils.init(handler=FileHandler("DIPLA_SERVER.log"))
+
+    args = get_arguments()
+
+    task_queue = TaskQueue()
+    add_tasks_to(task_queue)
+
+    binary_manager = BinaryManager()
+    add_binary_paths_to(binary_manager)
+
+    statistics = generate_default_statistics()
+    statistics_updater = StatisticsUpdater(statistics)
+
+    established_connections = Queue()
+    connection_provider = ServerConnectionProvider(
+        established_connections,
+        args.port,
+        ServerEventListener
+    )
+
+    worker_group = WorkerGroup(statistics_updater)
+
+    verification_inputs = {}
+    verification_probability = 0.5
+    verification_input_storer = VerificationInputStorer(
+        verification_inputs,
+        verification_probability,
+        random
+    )
+
+    task_input_distributor = TaskInputDistributor(
+        worker_group,
+        task_queue,
+        verification_input_storer
+    )
+
+    server = Server(
+        connection_provider,
+        task_queue,
+        task_input_distributor
+    )
+
+    server.start()
+
+
+def get_arguments():
+    parser = ArgumentParser(description="Start a Dipla server.")
+    parser.add_argument('-u', default='localhost', dest='url')
+    parser.add_argument('-p', default=8765, dest='port', type=int)
+    parser.add_argument('--pass', default=None, dest='password')
+    return parser.parse_args()
+
+
+def add_tasks_to(task_queue):
+    server_side_task_uid = generate_uid(existing=[])
+    server_side_task = Task(
+        server_side_task_uid,
+        'server_side',
+        MachineType.server
+    )
+    root_source = [1, 2, 3, 4, 5]
+    iterable_source_uid1 = generate_uid(existing=[])
+    server_side_task.add_data_source(
+        DataSource.create_source_from_iterable(
+            root_source,
+            iterable_source_uid1,
+        )
+    )
+    fibonacci_task_uid = generate_uid(existing=[server_side_task_uid])
+    fibonacci_task = Task(
+        fibonacci_task_uid,
+        'fibonacci',
+        MachineType.client
+    )
+    server_side_source_uid = generate_uid(existing=[])
+    fibonacci_task.add_data_source(
+        DataSource.create_source_from_task(
+            server_side_task,
+            server_side_source_uid
+        )
+    )
+    negate_task_uid = generate_uid(
+        existing=[
+            fibonacci_task_uid,
+            server_side_task_uid
+        ]
+    )
+    negate_task = Task(
+        negate_task_uid,
+        'negate',
+        MachineType.client
+    )
+    iterable_source_uid2 = generate_uid(existing=[])
+    negate_task.add_data_source(
+        DataSource.create_source_from_iterable(
+            root_source,
+            iterable_source_uid2
+        )
+    )
+    reduce_task_uid = generate_uid(
+        existing=[
+            fibonacci_task_uid,
+            negate_task_uid,
+            server_side_task_uid
+        ]
+    )
+    reduce_task = Task(
+        reduce_task_uid,
+        'reduce',
+        MachineType.client
+    )
+
+    def consuming_read_function(stream, stream_location):
+        values = list(stream)[stream_location:]
+        stream.clear()
+        return values
+
+    fibonacci_task_source_uid = generate_uid(existing=[])
+    reduce_task.add_data_source(
+        DataSource.create_source_from_task(
+            fibonacci_task,
+            fibonacci_task_source_uid,
+            consuming_read_function
+        )
+    )
+    negate_task_source_uid = generate_uid(existing=[fibonacci_task_source_uid])
+    reduce_task.add_data_source(
+        DataSource.create_source_from_task(
+            negate_task,
+            negate_task_source_uid,
+            consuming_read_function
+        )
+    )
+
+    tasks = [
+        server_side_task,
+        fibonacci_task,
+        negate_task,
+        reduce_task
+    ]
+    for task in tasks:
+        task_queue.push_task(task)
 
 
 def generate_default_statistics():
@@ -15,95 +165,24 @@ def generate_default_statistics():
         'num_idle_workers': 0,
     }
 
+
 def generate_uid(existing):
     return uid_generator.generate_uid(
         length=8, existing_uids=existing)
 
 
-def main(argv):
-    LogUtils.init(handler=FileHandler("DIPLA_SERVER.log"))
-
-    tq = TaskQueue()
-
-    root_source = [1, 2, 3, 4, 5]
-
-    def consuming_read_function(stream, stream_location):
-        values = list(stream)[stream_location:]
-        stream.clear()
-        return values
-
-    # I know there's lots of generating ids here which will probably
-    # annoy people. This will not be necessary in future code because
-    # we will have a more sophisticated generation approach. The id
-    # generation should not be done inside the Task constructor or
-    # inside the add_data_source function
-
-    serverside_task_uid = generate_uid(existing=[])
-    serverside_task = Task(
-        serverside_task_uid, 'serverside', MachineType.server)
-
-    iterable_source_uid1 = generate_uid(existing=[])
-    serverside_task.add_data_source(DataSource.create_source_from_iterable(
-        root_source, iterable_source_uid1))
-
-    # Create the fibonacci task depending on root_source
-    fibonacci_task_uid = generate_uid(existing=[serverside_task_uid])
-    fibonacci_task = Task(fibonacci_task_uid, 'fibonacci', MachineType.client)
-
-    serverside_source_uid = generate_uid(existing=[])
-    fibonacci_task.add_data_source(DataSource.create_source_from_task(
-        serverside_task, serverside_source_uid))
-
-    # Create the negate task depending on root_source
-    negate_task_uid = generate_uid(
-        existing=[fibonacci_task_uid, serverside_task_uid])
-    negate_task = Task(negate_task_uid, 'negate', MachineType.client)
-
-    iterable_source_uid2 = generate_uid(existing=[])
-    negate_task.add_data_source(DataSource.create_source_from_iterable(
-        root_source, iterable_source_uid2))
-
-    # Create the reduce task depending on the first two tasks
-    reduce_task_uid = generate_uid(
-        existing=[fibonacci_task_uid, negate_task_uid, serverside_task_uid])
-    reduce_task = Task(reduce_task_uid, 'reduce', MachineType.client)
-
-    fibonacci_task_source_uid = generate_uid(existing=[])
-    reduce_task.add_data_source(DataSource.create_source_from_task(
-        fibonacci_task, fibonacci_task_source_uid, consuming_read_function))
-
-    negate_task_source_uid = generate_uid(existing=[fibonacci_task_source_uid])
-    reduce_task.add_data_source(DataSource.create_source_from_task(
-        negate_task, negate_task_source_uid, consuming_read_function))
-
-    tq.push_task(serverside_task)
-    tq.push_task(fibonacci_task)
-    tq.push_task(negate_task)
-    tq.push_task(reduce_task)
-
-    bm = BinaryManager()
-    bm.add_binary_paths('.*x.*', [
+def add_binary_paths_to(binary_manager):
+    binary_manager.add_binary_paths('.*x.*', [
         ('fibonacci', 'fibonacci'),
         ('negate', 'negate'),
         ('reduce', 'reduce')
     ])
-    bm.add_binary_paths('.*win32.*', [
+    binary_manager.add_binary_paths('.*win32.*', [
         ('fibonacci', 'fibonacci'),
         ('negate', 'negate'),
         ('reduce', 'reduce')
     ])
 
-    stats = generate_default_statistics()
-    stat_updater = statistics.StatisticsUpdater(stats)
-
-    s = Server(tq, ServerServices(bm), stats=stat_updater)
-    print('Starting server')
-    parser = argparse.ArgumentParser(description="Start a Dipla server.")
-    parser.add_argument('-u', default='localhost', dest='url')
-    parser.add_argument('-p', default=8765, dest='port', type=int)
-    parser.add_argument('--pass', default=None, dest='password')
-    args = parser.parse_args()
-    s.start(args.url, args.port, args.password)
 
 if __name__ == '__main__':
-    main(sys.argv)
+    main()
