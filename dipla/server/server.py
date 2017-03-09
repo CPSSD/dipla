@@ -1,17 +1,8 @@
 import re
-import sys
-import json
-import asyncio
-import websockets
-import random
-
-from dipla.server.task_queue import MachineType
-from dipla.server.worker_group import WorkerGroup, Worker
-from dipla.server.server_services import ServerServices, ServiceParams
 from dipla.shared.services import ServiceError
 from dipla.shared.message_generator import generate_message
-from dipla.shared.error_codes import ErrorCodes
 from base64 import b64encode
+from dipla.shared.network.network_connection import EventListener
 
 
 class BinaryManager:
@@ -70,167 +61,73 @@ class BinaryManager:
 class Server:
 
     def __init__(self,
+                 server_connection_provider,
                  task_queue,
-                 services,
-                 worker_group=None,
-                 stats=None):
-        """
-        task_queue is a TaskQueue object that tasks to be run are taken from
+                 task_input_distributor):
+        self.__server_connection_provider = server_connection_provider
+        self.__task_queue = task_queue
+        self.__task_input_distributor = task_input_distributor
 
-        binary_manager is an instance of BinaryManager to be used to source
-        task binaries
+    def start(self):
+        self.__server_connection_provider.start()
+        while not self.__task_queue.is_inactive():
+            self.tick()
+        self.__server_connection_provider.stop()
 
-        worker_group is the WorkerGroup class used to manage and sort workers
+    def tick(self):
+        self.__task_input_distributor.distribute_task_input()
 
-        services is an instance of ServerServices that is used to lookup
-        functions for handling client requests. If this is not provided a
-        default instance is used.
 
-        stats is an instance of shared.statistics.StatisticsUpdater,
-        used to update information on the current runtime status of the
-        project.
+class ServerEventListener(EventListener):
 
-        This constructor creates variables used in verifying inputs,
-        where whether or not verification is performed is decided
-        probabilistically using the verify_probability ratio
+    def __init__(self, worker_factory, worker_group, services):
+        self.__worker_factory = worker_factory
+        self.__worker_group = worker_group
+        self.__services = services
 
-        verify_inputs is a dictionary of inputs with an array as the
-        value, indexed by `{worker.uid}-{task_uid}` of the worker and
-        task that they are the inputs for, that store the inputs that
-        will be verified once the actual answers have been obtained
-        """
-        self.task_queue = task_queue
-        self.services = services
+    def on_open(self, connection, message_object):
+        self.__create_worker(connection)
+        self.__add_worker_to_worker_group()
 
-        self.worker_group = worker_group
-        self.min_worker_correctness = 0.99
-        if not self.worker_group:
-            self.worker_group = WorkerGroup(stats)
+    def on_close(self, connection, reason):
+        self.__remove_worker_from_worker_group()
 
-        self.stats = stats
+    def on_error(self, connection, error):
+        self.__remove_worker_from_worker_group()
 
-        self.verify_probability = 0.5
-        self.verify_inputs = {}
+    def on_message(self, connection, message_object):
+        service = self.__fetch_service(message_object)
+        result = self.__run_service_using(service, connection, message_object)
+        self.__send_result_back_to(result, connection)
 
-    async def websocket_handler(self, websocket, path):
-        user_id = self.worker_group.generate_uid()
-        worker = Worker(user_id, websocket)
+    def __create_worker(self, connection):
+        self.__worker_uid = self.__worker_group.generate_uid()
+        self.__worker = self.__worker_factory.create_from(self.__worker_uid,
+                                                          connection)
+
+    def __add_worker_to_worker_group(self):
+        self.__worker_group.add_worker(self.__worker)
+
+    def __remove_worker_from_worker_group(self):
+        self.__worker_group.remove_worker(self.__worker_uid)
+
+    def __fetch_service(self, message_object):
+        service_name = message_object['label']
+        return self.__services[service_name]
+
+    def __run_service_using(self, service, connection, message_object):
+        service_data = message_object['data']
+        return self.__run_service(service, service_data, connection)
+
+    def __send_result_back_to(self, result, connection):
+        if result is not None:
+            connection.send(result)
+
+    @staticmethod
+    def __run_service(service, service_data, connection):
         try:
-            # recv() raises a ConnectionClosed exception when the client
-            # disconnects, which breaks out of the while True loop.
-            while True:
-                try:
-                    # Parse the message, get the corresponding service, send
-                    # back the response.
-                    message = self._decode_message(
-                        await worker.websocket.recv())
-                    service = self.services.get_service(message['label'])
-                    response_data = service(
-                        message['data'], params=ServiceParams(self, worker))
-                    if response_data is None:
-                        continue
-                    self.send(
-                        worker.websocket, message['label'], response_data)
-                except (ValueError, KeyError) as e:
-                    # If there is a general error that isn't service specific
-                    # then send a message with the 'runtime_error' label.
-                    data = {
-                        'details': 'Error during websocket loop: %s' % str(e),
-                        'code': ErrorCodes.server_websocket_loop,
-                    }
-                    self.send(worker.websocket, 'runtime_error', data)
-                except ServiceError as e:
-                    # This error has a specific code to transmit attached to it
-                    data = {'details': str(e), 'code': e.code}
-                    self.send(worker.websocket, 'runtime_error', data)
-        except websockets.exceptions.ConnectionClosed as e:
-            print(worker.uid + " has closed the connection")
-        finally:
-            if worker.uid in self.worker_group.worker_uids():
-                self.worker_group.remove_worker(worker.uid)
-
-    def _get_distributable_task_input(self):
-        """
-        Used to get the next task input for either distributing to
-        clients or running on the server. This will consider whether
-        there are any available workers, and if not will only get server
-        side tasks. This is an implementation detail of at least the
-        distribute_tasks method.
-        """
-        if not self.worker_group.has_available_worker():
-            if self.task_queue.has_next_input(MachineType.server):
-                return self.task_queue.pop_task_input(MachineType.server)
-            return None
-        return self.task_queue.pop_task_input()
-
-    def _add_verify_input_data(self, task_input, worker_id, task_id):
-        self.verify_inputs[worker_id + "-" + task_id] = {
-            "task_instructions": task_input.task_instructions,
-            "inputs": task_input.values,
-            "original_worker_uid": worker_id
-        }
-
-    def distribute_tasks(self):
-        # By leasing workers without specifying an id, we get the
-        # highest quality worker for the task
-        while self.task_queue.has_next_input():
-            # If workers are connected pop any kind of task input. If no
-            # workers are connected we must only get server task input
-
-            task_input = self._get_distributable_task_input()
-            if task_input is None:  # Happens when no input can be used
-                break
-
-            if task_input.machine_type == MachineType.client:
-                # Create the message and send it
-                data = {}
-                data['task_instructions'] = task_input.task_instructions
-                data['task_uid'] = task_input.task_uid
-                data['arguments'] = task_input.values
-                # TODO(Update the documentation with this)
-                worker = self.worker_group.lease_worker()
-                self.send(worker.websocket, 'run_instructions', data)
-
-                if(random.random() < self.verify_probability):
-                    self._add_verify_input_data(
-                        task_input, worker.uid, task_input.task_uid)
-            elif task_input.machine_type == MachineType.server:
-                # Server side tasks do not have any maching binaries, so
-                # we skip the send-to-client stage and move the read
-                # data straight to the results. All server side tasks
-                # have one argument, so extract the values for that lone
-                # argument
-                task_values = task_input.values[0]
-                for result in task_values:
-                    self.task_queue.add_result(task_input.task_uid, result)
-
-            if self.task_queue.is_inactive():
-                # Kill the server
-                # TODO(cianlr): This kills things unceremoniously, there may be
-                # a better way.
-                asyncio.get_event_loop().stop()
-
-    def _decode_message(self, message):
-        message_dict = json.loads(message)
-        if 'label' not in message_dict or 'data' not in message_dict:
-            raise ValueError('Message missing "label" or "data": {}'.format(
-                str(message_dict)))
-        return message_dict
-
-    async def _send_message(self, socket, label, data):
-        message = generate_message(label, data)
-        await socket.send(json.dumps(message))
-
-    def send(self, socket, label, data):
-        asyncio.ensure_future(self._send_message(socket, label, data))
-
-    def start(self, address='localhost', port=8765, password=None):
-        server = websockets.serve(
-            self.websocket_handler,
-            address,
-            port)
-        self.password = password
-
-        asyncio.get_event_loop().run_until_complete(server)
-        asyncio.get_event_loop().call_soon(self.distribute_tasks)
-        asyncio.get_event_loop().run_forever()
+            return service(service_data)
+        except ServiceError as service_error:
+            data = {'details': str(service_error), 'code': service_error.code}
+            error_message_object = generate_message('runtime_error', data)
+            connection.send(error_message_object)
