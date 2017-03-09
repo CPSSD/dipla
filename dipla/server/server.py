@@ -85,10 +85,6 @@ class ServerEventListener(EventListener):
         self.__worker_group = worker_group
         self.__services = services
 
-        self.__service = None
-        self.__worker = None
-        self.__worker_uid = None
-
     def on_open(self, connection, message_object):
         self.__create_worker(connection)
         self.__add_worker_to_worker_group()
@@ -100,9 +96,9 @@ class ServerEventListener(EventListener):
         self.__remove_worker_from_worker_group()
 
     def on_message(self, connection, message_object):
-        self.__fetch_service(message_object)
-        self.__run_service_using(connection, message_object)
-        self.__send_result_back_to(connection)
+        service = self.__fetch_service(message_object)
+        result = self.__run_service_using(service, connection, message_object)
+        self.__send_result_back_to(result, connection)
 
     def __create_worker(self, connection):
         self.__worker_uid = self.__worker_group.generate_uid()
@@ -117,17 +113,15 @@ class ServerEventListener(EventListener):
 
     def __fetch_service(self, message_object):
         service_name = message_object['label']
-        self.__service = self.__services[service_name]
+        return self.__services[service_name]
 
-    def __run_service_using(self, connection, message_object):
+    def __run_service_using(self, service, connection, message_object):
         service_data = message_object['data']
-        self.__service_result = self.__run_service(self.__service,
-                                                   service_data,
-                                                   connection)
+        return self.__run_service(service, service_data, connection)
 
-    def __send_result_back_to(self, connection):
-        if self.__service_result is not None:
-            connection.send(self.__service_result)
+    def __send_result_back_to(self, result, connection):
+        if result is not None:
+            connection.send(result)
 
     @staticmethod
     def __run_service(service, service_data, connection):
