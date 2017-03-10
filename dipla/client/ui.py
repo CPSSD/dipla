@@ -41,14 +41,14 @@ class DiplaClientUI:
             self._stats[self._curr_client])
 
     def _update_stats(self, reschedule=True):
+        if reschedule:
+            self._root.after(self._UPDATE_PERIOD, self._update_stats)
         if not self._curr_client:
             return
         for stat in self._stat_vars:
             new_value = str(
                 self._stats_readers[self._curr_client].read(stat))
             self._stat_vars[stat].configure(text=new_value)
-        if reschedule:
-            self._root.after(self._UPDATE_PERIOD, self._update_stats)
 
     def _draw_ui(self):
         # Create root window
