@@ -38,6 +38,9 @@ def main(argv):
 
 def create_default_client_stats():
     return {
+        'processing_time': 0.0,
+        'requests_resolved': 0,
+        'tasks_done': 0,
         'messages_sent': 0,
         'running': False
     }
