@@ -75,6 +75,7 @@ class Client(object):
                 message = await self.websocket.recv()
                 try:
                     self._handle(message)
+                    self._stats_updater.increment('requests_resolved')
                 except ServiceError as e:
                     self.send_error(str(e), e.code)
         except websockets.exceptions.ConnectionClosed:
@@ -89,10 +90,19 @@ class Client(object):
         if not ('label' in message and 'data' in message):
             raise ServiceError('Missing field from message: %s' % message, 4)
 
+        started_processing_at = time.time()
+
         result_message = self._run_service(message["label"], message["data"])
+
+        finished_processing_at = time.time()
+        time_taken_to_process = finished_processing_at - started_processing_at
+        self._stats_updater.adjust('processing_time', time_taken_to_process)
+
         if result_message is not None:
             # send the client_result back to the server
             self.send(result_message)
+
+        self._stats_updater.increment('tasks_done')
 
     def _run_service(self, label, data):
         try:
