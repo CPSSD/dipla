@@ -1,4 +1,7 @@
+import json
 from threading import Thread
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
 
 from dipla.api_support.function_serialise import get_encoded_script
 from dipla.server.dashboard import DashboardServer
@@ -339,6 +342,62 @@ class Dipla:
         dashboard = DashboardServer(host, port, stat_reader)
         dashboard.start()
 
+    @staticmethod
+    def inform_discovery_server(discovery_server_address,
+                                project_address,
+                                project_title,
+                                project_description):
+        """
+        Give a discovery server at the provided address information about
+        this project, and inform it that the project is accepting
+        volunteers.
+
+        Params:
+        - discovery_server_address: A string with the fully resolvable
+          location of the desired discovery server, eg. "http://example.com
+        - project_address: A string with the fully resolvable location of
+          this dipla server, that clients will be able to use to connect.
+          It must have an explicit protocol, host, and port. For example,
+          the string "http://example.com:9876" is valid, but the string
+          "example.com" is not.
+        - project_title: The title of this dipla project, that potential
+          volunteers will see in the client when they are choosing a
+          project to connect to.
+        - project_description: Some more information about this dipla
+          project, that volunteers will see in the client when they are
+          connecting.
+
+        Raises:
+        - urllib.error.HTTPError if there was a problem in connecting
+          with a discovery server at the given address.
+        - DiscoveryConflict if a HTTP error 409 was received from the
+          discovery server (eg. if there is already a project
+          registered with that server at the given address).
+        - DiscoveryBadRequest if a HTTP error 400 was received from the
+          discovery server (eg. if the project address you gave was not
+          fully resolvable)
+        - RuntimeError if a different kind of error was received as a
+          response from the discovery server.
+        """
+        full_address = '{}/add_server'.format(discovery_server_address)
+        post_data = {
+            'address': project_address,
+            'title': project_title,
+            'description': project_description,
+        }
+        request = Request(full_address,
+                          urlencode(post_data).encode())
+        raw_data = urlopen(request).read().decode()
+        data = json.loads(raw_data)
+        if not data['success']:
+            error_msg = 'Received error from discovery server: "{}"'
+            if '409' in data['error']:
+                raise DiscoveryConflict(error_msg.format(data['error']))
+            elif '400' in data['error']:
+                raise DiscoveryBadRequest(error_msg.format(data['error']))
+            else:
+                raise RuntimeError(error_msg.format(data['error']))
+
 
 class Promise:
 
@@ -350,6 +409,22 @@ class UnsupportedInput(Exception):
     """
     An exception that is raised when an input of an unsupported type is
     applied to a distributable
+    """
+    pass
+
+
+class DiscoveryConflict(RuntimeError):
+    """
+    An exception that is raied when the discovery server returns a http
+    409 error
+    """
+    pass
+
+
+class DiscoveryBadRequest(RuntimeError):
+    """
+    An exception that is raised when the discovery server returns a http
+    400 error
     """
     pass
 
