@@ -1,3 +1,4 @@
+import json
 from dipla.shared.logutils import LogUtils
 from dipla.shared.services import ServiceError
 from dipla.shared.error_codes import ErrorCodes
@@ -118,10 +119,12 @@ class ServerServices:
             # The following line "rotates" this 2d list structure so that the
             # 0th element in `input_lists` is the list of inputs used to get
             # the 0th result in `results`
-            input_lists = zip(*worker.last_inputs)
-            for inp, result in zip(input_lists, results):
+            last_inputs = [x for x in zip(*worker.last_inputs)]
+            remove_indices = []
+            for i in range(min(len(results), len(last_inputs))):
+                inp = last_inputs[i]
+                result = results[i]
                 if server.result_verifier.check_output(t_instr, inp, result):
-                    server.task_queue.add_result(task_id, result)
                     worker.correctness_score += 0.05
                 else:
                     # TODO(Cian): Add input back into the list of things to do.
@@ -129,13 +132,29 @@ class ServerServices:
                     # the server won't exit if the verification fails as it's
                     # still expecting another result.
                     worker.correctness_score -= 0.05
+                    remove_indices.append(i)
                     e = ("{} verifier declared output '{}' incorrect "
                          "for input '{}'")
                     LogUtils.warning(e.format(t_instr, result, inp))
-        else:
-            # If no verification, add everything to task_queue
-            for result in results:
-                server.task_queue.add_result(task_id, result)
+
+            for x in remove_indices[::-1]:
+                results.pop(x)
+
+        if "signals" in message:
+            message_signals = message["signals"]
+            task_uid = message["task_uid"]
+            task_signals = server.task_queue.get_task(task_uid).signals
+            for signal in message_signals:
+                if signal not in task_signals:
+                    continue
+                for values in message_signals[signal]:
+                    task_signals[signal](task_uid, json.loads(values))
+            server.distribute_tasks()
+
+        # TODO remove results if not verified
+        for result in results:
+            print("adding result for", task_id, result)
+            server.task_queue.add_result(task_id, result)
 
         # We need to send verify_inputs before returning the worker so
         # that we dont send it to the original worker

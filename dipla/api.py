@@ -31,6 +31,12 @@ class Dipla:
     # take two parameters, the task/iterable being sourced from and the
     # name of the task being performed on that source
     _task_creators = dict()
+    # This is a dictionary of functon id to another dictionary that is
+    # the signal to a function that processes the input received from
+    # this signal. This embedded dict should contain a key for each
+    # signal registered under the function. Check the comments for
+    # Dipla_task_creators for details on how the id is determined.
+    _task_signals = dict()
 
     # Stop reading the data source once we hit EOF
     # TODO(StefanKennedy) Set up data sources to run indefinitely.
@@ -199,6 +205,20 @@ class Dipla:
         return real_decorator
 
     @staticmethod
+    def explorer():
+        def real_decorator(function):
+            def discovered_handler(task_uid, signal_inputs):
+                Dipla.task_queue.push_task_input(task_uid, signal_inputs)
+
+            function_id = id(function)
+            if function_id not in Dipla._task_signals:
+                Dipla._task_signals[function_id] = dict()
+            Dipla._task_signals[function_id]["DISCOVERED"] =\
+                discovered_handler
+            return function
+        return real_decorator
+
+    @staticmethod
     def data_source(function):
         def read_function_wrapper(source, location):
             # Abstract the ability to return multiple results from the
@@ -272,7 +292,10 @@ class Dipla:
                 args.append(arg)
             else:
                 raise UnsupportedInput()
-        task = Dipla._task_creators[id(function)](args, function.__name__)
+        function_id = id(function)
+        task = Dipla._task_creators[function_id](args, function.__name__)
+        if function_id in Dipla._task_signals:
+            task.signals = Dipla._task_signals[function_id]
         Dipla.task_queue.push_task(task)
         return Promise(task.uid)
 

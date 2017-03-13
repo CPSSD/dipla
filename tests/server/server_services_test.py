@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import Mock
+from unittest.mock import call, Mock
 from dipla.server.result_verifier import ResultVerifier
 from dipla.server.server import ServerServices, ServiceParams, ServiceError
 from dipla.server.server import BinaryManager
@@ -94,6 +94,7 @@ class ServerServicesTest(unittest.TestCase):
         def verify_bar(i, o):
             verify_inputs.append(i[0])
             verify_outputs.append(o)
+            print("returing true")
             return True
         self.mock_server.result_verifier.add_verifier('bar', verify_bar)
 
@@ -229,3 +230,45 @@ class ServerServicesTest(unittest.TestCase):
         service(message, ServiceParams(self.mock_server, self.foo_worker))
         self.assertTrue(
             "bar_worker" in self.mock_server.worker_group.worker_uids())
+
+    def test_handle_client_results_calls_signal_function(self):
+        service = self.server_services.get_service("client_result")
+
+        message = {
+            "task_uid": "foo_task",
+            "results": [1, 2, 3],
+            "signals": {"FOOBAR": ["[[0, 0], [3, 3]]"]}
+        }
+
+        mock_task = Mock()
+        self.mock_server.task_queue.get_task.return_value = mock_task
+        mock_task.signals = {"FOOBAR": Mock()}
+
+        service(message, ServiceParams(self.mock_server, self.foo_worker))
+
+        mock_task.signals["FOOBAR"].assert_called_with(
+            "foo_task", [[0, 0], [3, 3]])
+
+    def test_handle_client_result_does_not_add_invalid_results(self):
+        service = self.server_services.get_service("client_result")
+
+        message = {
+            "task_uid": "foo_id",
+            "results": [1, 2, 3]
+        }
+
+        service(message, ServiceParams(self.mock_server, self.foo_worker))
+
+        verify = False
+
+        def verify_every_second_value(task_instructions, input_value, result):
+            verify = not verify
+            print("Returning", verify)
+            return verify
+
+        original_verifier = self.mock_server.result_verifier
+        self.mock_server.result_verifier.check_output =\
+            verify_every_second_value
+        self.mock_server.task_queue.add_result.assert_has_calls(
+            [call("foo_id", 1), call("foo_id", 2), call("foo_id", 3)])
+        self.mock_server_result_verifier = original_verifier

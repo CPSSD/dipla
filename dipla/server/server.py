@@ -191,6 +191,7 @@ class Server:
                 data['task_instructions'] = task_instructions
                 data['task_uid'] = task_input.task_uid
                 data['arguments'] = task_input.values
+                data['signals'] = [x for x in task_input.signals]
                 # TODO(Update the documentation with this)
                 worker = self.worker_group.lease_worker()
                 worker.current_task_instr = task_instructions

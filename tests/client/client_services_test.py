@@ -1,8 +1,10 @@
 import os
 from unittest import TestCase
+from unittest.mock import MagicMock
 from dipla.client.command_line_binary_runner import CommandLineBinaryRunner
 from dipla.client.client_services import BinaryRunnerService
 from dipla.client.client_services import BinaryReceiverService
+from dipla.client.client_services import RunInstructionsService
 from dipla.shared.services import ServiceError
 from dipla.shared.error_codes import ErrorCodes
 
@@ -89,6 +91,32 @@ class BinaryReceiverServiceTest(TestCase):
 
     def tearDown(self):
         os.remove(self.base_filepath + self.binary_name)
+
+
+class RunInstructionsServiceTest(TestCase):
+
+    def test_signal_results_are_separated(self):
+        mock_client = MagicMock()
+        mock_client.binary_paths = {
+            "foo": "bar"
+        }
+        mock_binary_runner = MagicMock()
+        self.service = RunInstructionsService(mock_client, mock_binary_runner)
+
+        mock_binary_runner.run.return_value = [
+            "[2, 4]DISCOVERED(16)([[0, 0], [3, 3]])LOST(3)(FOO)",
+            "[1, 3]DISCOVERED(8)([[0, 0]])"]
+        data = {
+            "task_uid": "foo_id",
+            "task_instructions": "foo",
+            "arguments": [[1, 2], [1, 2]],
+            "signals": ["DISCOVERED", "LOST"]
+        }
+        returned = self.service.execute(data)
+        self.assertEquals(["[2, 4]", "[1, 3]"], returned["data"]["results"])
+        self.assertEquals(
+            {"DISCOVERED": ["[[0, 0], [3, 3]]", "[[0, 0]]"], "LOST": ["FOO"]},
+            returned["data"]["signals"])
 
 
 class DummyClient:

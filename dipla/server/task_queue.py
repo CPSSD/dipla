@@ -66,6 +66,31 @@ class TaskQueue:
         if active:
             self._active_tasks.add(item.uid)
 
+    def push_task_input(self, task_id, inputs):
+        """
+        Adds more input for a task. This will raise a ValueError if
+        inputs is not suitable for pushing as task input
+
+        task_id is the id of the task that these inputs will be added
+        for
+
+        inputs is a multidimensional list. The first dimension indexes
+        the i'th argument/parameter to the task. The second dimension
+        represents the values that are passed as that parameter in the
+        order they should be inputted
+        """
+        if task_id not in self._nodes:
+            raise KeyError(
+                "Attempted to add input to unknown task id", task_id)
+
+        if len(inputs) != len(self._nodes[task_id].dependencies):
+            raise ValueError(
+                "Attempted to add input with mismatching number of arguments")
+
+        for i in range(len(inputs)):
+            self._nodes[task_id].dependencies[i].data_streamer.add_inputs(
+                inputs[i])
+
     def has_next_input(self, machine_type=None):
         """
         Returns true if there are task input values that can be popped
@@ -213,7 +238,6 @@ class TaskQueueNode:
             raise DataStreamerEmpty(
                 "Attempted to read input from an empty source")
 
-        input_exhausted = False
         arguments = []
         for dependency in self.dependencies:
             argument_id = dependency.source_uid
@@ -222,12 +246,6 @@ class TaskQueueNode:
             if not isinstance(arg, list):
                 arg = [arg]
             arguments.append(arg)
-            # If any dependencies do not have data available the
-            if self.task_item.complete_check(dependency.data_streamer):
-                input_exhausted = True
-
-        if input_exhausted:
-            self.task_item.mark_inputs_exhausted()
 
         # Not very pretty, but expect a result for every element in the args
         self.task_item.inc_expected_results_by(len(arguments[0]))
@@ -235,7 +253,8 @@ class TaskQueueNode:
             self.task_item.uid,
             self.task_item.instructions,
             self.task_item.machine_type,
-            arguments)
+            arguments,
+            signals=[x for x in self.task_item.signals])
 
     def has_next_input(self):
         if len(self.dependencies) == 0:
@@ -373,10 +392,22 @@ class DataStreamer:
                 read, self.stream_location)
         return read
 
+    def add_inputs(self, inputs):
+        """
+        inputs is a list of values that sould be outputted from this
+        DataStreamer when it is read
+        """
+        self.stream.extend(inputs)
+
 
 class TaskInput:
 
-    def __init__(self, task_uid, task_instructions, machine_type, values):
+    def __init__(self,
+                 task_uid,
+                 task_instructions,
+                 machine_type,
+                 values,
+                 signals=[]):
         """
         This is what is given out by the task queue when some values
         are requested from a pop/peek etc. The values attribute
@@ -395,11 +426,14 @@ class TaskInput:
         to clients to execute the task and return the results. It is a
         dictionary of the task_uid that this data is coming from (the
         source) to a list of the actual data values
+
+        signals is a list of reserved signal keywords for this input
         """
         self.task_uid = task_uid
         self.task_instructions = task_instructions
         self.machine_type = machine_type
         self.values = values
+        self.signals = signals
 
 
 # Abstraction of the information necessary to represent a task
@@ -420,7 +454,8 @@ class Task:
             task_instructions,
             machine_type,
             open_check=lambda x: True,
-            complete_check=lambda x: False):
+            complete_check=lambda x: False,
+            signals={}):
         """
         Initalises the Task
 
@@ -443,6 +478,10 @@ class Task:
         be used for any distributed operation. This defaults to a
         function that always returns False so that the task does not
         close. This takes the remaining, unread stream as an argument
+         - signals: A dict with keys as words that should be detected
+        in the output of the task as signals and sent to the server for
+        processing. The values are the functions that should be used to
+        process that inputs from that signal
         """
         self.uid = uid
         self.instructions = task_instructions
@@ -453,18 +492,25 @@ class Task:
         self.open = False
         self.complete_check = complete_check
         self.complete = False
-        self.inputs_exhausted = False
         self.num_expected_results = 0
         self.num_seen_results = 0
 
+        self.signals = signals
         self.task_output = []
+
+    def inputs_exhausted(self):
+        for source in self.data_instructions:
+            # If any dependencies do not have data available the
+            if self.complete_check(source.data_streamer):
+                return True
+        return False
 
     def add_result(self, result):
         self.task_output.append(result)
         self.num_seen_results += 1
         # If our inputs have nothing left in them and we've recieved the
         # number of results we expect then this task is complete
-        self.complete = (self.inputs_exhausted and
+        self.complete = (self.inputs_exhausted() and
                          self.num_seen_results == self.num_expected_results)
         if self.open_check(result):
             self._open_task()
@@ -479,10 +525,6 @@ class Task:
 
     def _open_task(self):
         self.open = True
-
-    def mark_inputs_exhausted(self):
-        # Mark the task as having no new inputs to expect
-        self.inputs_exhausted = True
 
     def inc_expected_results_by(self, count):
         # Increase the number of results we should expect
