@@ -2,13 +2,14 @@ from unittest import TestCase
 from unittest.mock import MagicMock
 from dipla.server.server import ServerEventListener, Server
 from dipla.shared.services import ServiceError
-from dipla.server.worker_group import WorkerGroup, WorkerFactory
+from dipla.server.worker_group import WorkerFactory
 from dipla.shared.network.network_connection import ServerConnection
 from pocketmock import create_mock_object
-from dipla.server.task_queue import TaskQueue
 from dipla.server.task_distribution import TaskInputDistributor
 from dipla.shared.network.server_connection_provider import \
      ServerConnectionProvider
+from dipla.server.task_queue import TaskQueue
+from dipla.server.worker_group import WorkerGroup
 
 
 class ServerTest(TestCase):

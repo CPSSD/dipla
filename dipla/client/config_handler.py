@@ -43,6 +43,12 @@ class ConfigHandler:
         self.__check_param(param_name, param_value)
         self.params[param_name] = param_value
 
+    def copy(self):
+        ch = ConfigHandler()
+        for name, value in self.params.items():
+            ch.add_param(name, value)
+        return ch
+
     def __check_param(self, param_name, param_value):
         if param_name not in self.config_types:
             raise InvalidConfigException(

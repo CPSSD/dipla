@@ -1,0 +1,15 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Dipla</title>
+        <link rel="stylesheet" href="{{ url_for("static", filename="style.css") }}">
+    </head>
+    <body>
+    <div id="root"></div>
+    <script type="text/javascript">
+        const stats = {{ stats|safe }};
+    </script>
+    <script type="text/javascript" src="{{ url_for("static", filename="app.compiled.js") }}"></script>
+    </body>
+</html>

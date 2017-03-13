@@ -1,0 +1,32 @@
+body {
+    padding: 0;
+    background-color: #111;
+    margin: auto;
+    text-align: center;
+    margin-top: 5%;
+}
+
+p {
+    color: #eee;
+    font: 1.5em "Open Sans", sans-serif;
+}
+
+p .big {
+    font-size: 5em;
+}
+
+#root {
+    text-align: center;
+    margin: auto;
+    max-width: 500px;
+}
+
+#workerchart {
+    float: right;
+    margin: auto;
+}
+
+h1 {
+    font-size: 2em;
+    color: #E85422;
+}

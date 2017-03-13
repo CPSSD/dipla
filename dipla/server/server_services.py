@@ -1,3 +1,4 @@
+import json
 from dipla.shared.logutils import LogUtils
 from dipla.shared.services import ServiceError
 from dipla.shared.error_codes import ErrorCodes
@@ -5,7 +6,7 @@ from dipla.shared.error_codes import ErrorCodes
 
 class ServerServices:
 
-    def __init__(self, binary_manager):
+    def __init__(self, binary_manager, stats):
         """
         Raising an exception will transmit it back to the client. A
         ServiceError lets you include a specific error code to allow
@@ -18,6 +19,8 @@ class ServerServices:
 
         binary_manager is a BinaryManager instance containing the task
         binaries that can be requested by a client
+        stats is an instance of statistics.shared.StatisticsUpdater,
+        used here to track the number of responses from clients.
         """
         self.services = {
             'get_binaries': self._handle_get_binaries,
@@ -27,6 +30,7 @@ class ServerServices:
             'verify_inputs_result': self._handle_verify_inputs
         }
         self.binary_manager = binary_manager
+        self.__statistics_updater = stats
 
     def get_service(self, label):
         if label in self.services:
@@ -100,13 +104,62 @@ class ServerServices:
         task_id = message['task_uid']
         results = message['results']
         server = params.server
+        worker = params.worker
+        self.__statistics_updater.adjust("num_results_from_clients",
+                                         len(results))
+
+        t_instr = worker.current_task_instr
+        if server.result_verifier.has_verifier(t_instr):
+            # Iterate through inputs and outputs, verifying each
+
+            # The last_inputs is a list containing lists, each of which
+            # represents the next N inputs from a data source. So the 0th
+            # element in `results` is computed from the 0th elements of each
+            # of the lists in worker.last_inputs and so on.
+            # The following line "rotates" this 2d list structure so that the
+            # 0th element in `input_lists` is the list of inputs used to get
+            # the 0th result in `results`
+            last_inputs = [x for x in zip(*worker.last_inputs)]
+            remove_indices = []
+            for i in range(min(len(results), len(last_inputs))):
+                inp = last_inputs[i]
+                result = results[i]
+                if server.result_verifier.check_output(t_instr, inp, result):
+                    worker.correctness_score += 0.05
+                else:
+                    # TODO(Cian): Add input back into the list of things to do.
+                    # Currently the task will never be marked as complete and
+                    # the server won't exit if the verification fails as it's
+                    # still expecting another result.
+                    worker.correctness_score -= 0.05
+                    remove_indices.append(i)
+                    e = ("{} verifier declared output '{}' incorrect "
+                         "for input '{}'")
+                    LogUtils.warning(e.format(t_instr, result, inp))
+
+            for x in remove_indices[::-1]:
+                results.pop(x)
+
+        if "signals" in message:
+            message_signals = message["signals"]
+            task_uid = message["task_uid"]
+            task_signals = server.task_queue.get_task(task_uid).signals
+            for signal in message_signals:
+                if signal not in task_signals:
+                    continue
+                for values in message_signals[signal]:
+                    task_signals[signal](task_uid, json.loads(values))
+            server.distribute_tasks()
+
+        # TODO remove results if not verified
         for result in results:
+            print("adding result for", task_id, result)
             server.task_queue.add_result(task_id, result)
 
         # We need to send verify_inputs before returning the worker so
         # that we dont send it to the original worker
-        self._send_verify_inputs(server, results, params.worker.uid, task_id)
-        server.worker_group.return_worker(params.worker.uid)
+        self._send_verify_inputs(server, results, worker.uid, task_id)
+        server.worker_group.return_worker(worker.uid)
         server.distribute_tasks()
         return None
 

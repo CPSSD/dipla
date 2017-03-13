@@ -1,26 +1,29 @@
-import unittest
-from unittest.mock import Mock
-from dipla.server.server_services import ServerServices, ServiceParams,\
-        ServiceError
+from unittest import TestCase
+from unittest.mock import call, Mock
+from dipla.server.result_verifier import ResultVerifier
+from dipla.server.server import ServerServices, ServiceParams, ServiceError
 from dipla.server.server import BinaryManager
 from dipla.server.worker_group import Worker, WorkerGroup
 from dipla.shared import statistics
 from dipla.shared.error_codes import ErrorCodes
 
 
-class WorkerGroupTest(unittest.TestCase):
+class ServerServicesTest(TestCase):
 
     def setUp(self):
-        self.server_services = ServerServices(BinaryManager())
 
         mock_server = Mock()
         mock_server.verify_inputs = {}
+        mock_server.result_verifier = ResultVerifier()
 
         stats = {
             "num_total_workers": 0,
-            "num_idle_workers": 0
+            "num_idle_workers": 0,
+            "num_results_from_clients": 0
         }
         stat_updater = statistics.StatisticsUpdater(stats)
+        self.server_services = ServerServices(BinaryManager(),
+                                              stat_updater)
         mock_server.worker_group = WorkerGroup(stat_updater)
         mock_server.password = None
         mock_server.min_worker_correctness = 0.99
@@ -83,6 +86,47 @@ class WorkerGroupTest(unittest.TestCase):
             service(None, ServiceParams(self.mock_server, self.foo_worker))
         self.assertEquals(
             ErrorCodes.user_id_already_taken, context.exception.code)
+
+    def test_handle_client_result_runs_verifier(self):
+        verify_inputs = []
+        verify_outputs = []
+
+        def verify_bar(i, o):
+            verify_inputs.append(i[0])
+            verify_outputs.append(o)
+            print("returing true")
+            return True
+        self.mock_server.result_verifier.add_verifier('bar', verify_bar)
+
+        test_inputs = [1, 2, 3]
+        test_outputs = [-1, -2, -3]
+
+        self.foo_worker.current_task_instr = 'bar'
+        self.foo_worker.last_inputs = [test_inputs]
+
+        message = {
+            'task_uid': 'bar_task_uid',
+            'results': test_outputs,
+        }
+        service = self.server_services.get_service('client_result')
+        service(message, ServiceParams(self.mock_server, self.foo_worker))
+
+        self.assertEquals(test_inputs, verify_inputs)
+        self.assertEquals(test_outputs, verify_outputs)
+
+    def test_handle_client_result_verification_affects_worker_score(self):
+        self.mock_server.result_verifier.add_verifier('a', lambda a, b: False)
+        self.foo_worker.current_task_instr = 'a'
+        self.foo_worker.last_inputs = [[1, 2, 3]]
+        self.foo_worker.correctness_score = 1
+        message = {
+            'task_uid': 'a_task_uid',
+            'results': [-1, -2, -3],
+        }
+        service = self.server_services.get_service('client_result')
+        service(message, ServiceParams(self.mock_server, self.foo_worker))
+
+        self.assertLess(self.foo_worker.correctness_score, 1)
 
     def test_handle_client_result_sends_verify_message(self):
         service = self.server_services.get_service('client_result')
@@ -186,3 +230,45 @@ class WorkerGroupTest(unittest.TestCase):
         service(message, ServiceParams(self.mock_server, self.foo_worker))
         self.assertTrue(
             "bar_worker" in self.mock_server.worker_group.worker_uids())
+
+    def test_handle_client_results_calls_signal_function(self):
+        service = self.server_services.get_service("client_result")
+
+        message = {
+            "task_uid": "foo_task",
+            "results": [1, 2, 3],
+            "signals": {"FOOBAR": ["[[0, 0], [3, 3]]"]}
+        }
+
+        mock_task = Mock()
+        self.mock_server.task_queue.get_task.return_value = mock_task
+        mock_task.signals = {"FOOBAR": Mock()}
+
+        service(message, ServiceParams(self.mock_server, self.foo_worker))
+
+        mock_task.signals["FOOBAR"].assert_called_with(
+            "foo_task", [[0, 0], [3, 3]])
+
+    def test_handle_client_result_does_not_add_invalid_results(self):
+        service = self.server_services.get_service("client_result")
+
+        message = {
+            "task_uid": "foo_id",
+            "results": [1, 2, 3]
+        }
+
+        service(message, ServiceParams(self.mock_server, self.foo_worker))
+
+        verify = False
+
+        def verify_every_second_value(task_instructions, input_value, result):
+            inner_verify = not verify
+            print("Returning", inner_verify)
+            return inner_verify
+
+        original_verifier = self.mock_server.result_verifier
+        self.mock_server.result_verifier.check_output =\
+            verify_every_second_value
+        self.mock_server.task_queue.add_result.assert_has_calls(
+            [call("foo_id", 1), call("foo_id", 2), call("foo_id", 3)])
+        self.mock_server_result_verifier = original_verifier
