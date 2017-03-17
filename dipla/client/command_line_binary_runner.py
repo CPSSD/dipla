@@ -50,7 +50,10 @@ class CommandLineBinaryRunner(object):
             shell=False
         )
         process_output = process.communicate(None)[0]
-        return json.loads(process_output.strip().decode())['data']
+        cleaned_output = process_output.strip().decode()
+        if cleaned_output:
+            return json.loads(cleaned_output)['data']
+        return ''
 
 
 class InvalidArgumentsError(Exception):

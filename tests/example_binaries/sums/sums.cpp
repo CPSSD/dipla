@@ -6,16 +6,24 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
   
-  if (argc < 3) {
+  if (argc < 2) {
     cout << "Not enough arguments" << endl;
     return 1;
   }
 
-  int numA = atoi(argv[1]);
-  int numB = atoi(argv[2]);
+  string arg = argv[1];
+
+  int end_of_num_A = arg.find(",");
+  int numA = atoi(arg.substr(1, end_of_num_A - 1).c_str());
+  int numB = atoi(arg.substr(
+    end_of_num_A + 2,
+    arg.size() - end_of_num_A - 3).c_str());
+
   int sum = numA + numB;
 
-  cout << sum << endl;
+  string output = "{\"data\": }";
+  output.insert(9, to_string(sum));
+  cout << output << endl;
 
   return 0;
 }
