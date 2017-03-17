@@ -21,5 +21,7 @@ def unwraped_func():
 unwraped_func.__code__ = func_code
 
 args = json.loads(sys.argv[1])
-print(unwraped_func(*args))
+output = dict()
+output['data'] = unwraped_func(*args)
+print(json.dumps(output))
 """
