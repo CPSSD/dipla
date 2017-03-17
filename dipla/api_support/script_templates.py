@@ -7,6 +7,7 @@ argv_input_script = """#! /usr/bin/python3
 from base64 import b64decode
 from types import CodeType
 import pickle
+import json
 import sys
 
 encoded_code = {}
@@ -19,5 +20,6 @@ def unwraped_func():
 
 unwraped_func.__code__ = func_code
 
-print(unwraped_func(*sys.argv[1:]))
+args = json.loads(sys.argv[1])
+print(unwraped_func(*args))
 """

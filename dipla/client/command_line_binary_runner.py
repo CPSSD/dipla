@@ -1,3 +1,4 @@
+import json
 from logging import getLogger
 from subprocess import Popen, PIPE
 from os.path import isfile
@@ -42,7 +43,7 @@ class CommandLineBinaryRunner(object):
     def _run_binary(self, file_path, arguments):
         self._logger.debug("About to run binary %s" % file_path)
         process = Popen(
-            args=[file_path] + [str(x) for x in arguments],
+            args=[file_path] + [json.dumps(arguments)],
             stdin=PIPE,
             stdout=PIPE,
             stderr=PIPE,
