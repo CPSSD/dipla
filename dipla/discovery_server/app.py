@@ -50,13 +50,21 @@ class DiscoveryAddServerView(MethodView):
 
 class DiscoveryServer:
 
-    def __init__(self, host='0.0.0.0', port=8766, servers=None):
+    def __init__(self, host='0.0.0.0', port=8766, server_file=None):
         self.__host = host
         self.__port = port
-        if servers is None:
-            self.__servers = {}
-        else:
-            self.__servers = servers
+        servers = {}
+        self.__server_file = server_file
+        if server_file is not None:
+            with open(server_file, 'r') as f:
+                lines = f.readlines()
+                for line in line:
+                    data = json.loads(line)
+                    project = Project(data['address'],
+                                      data['title'],
+                                      data['description'])
+                    servers.add(project)
+        self.__servers = servers
         self._app = self._create_flask_app()
 
     def _create_flask_app(self):
