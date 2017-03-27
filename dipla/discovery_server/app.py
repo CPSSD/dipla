@@ -61,15 +61,34 @@ class DiscoveryAddServerView(MethodView):
 class DiscoveryServer:
 
     def __init__(self, host='0.0.0.0', port=8766, server_file=None):
+        """
+        Start a discovery server running.
+
+        Params:
+        - host: A string with the host that this server will run on.
+          Defaults to '0.0.0.0', which will accept incoming
+          connections on all IPs.
+        - port: An integer with the port this server will run on.
+        - server_file: A string declaring the path of a file to
+          save project details to as new projects announce themselves.
+          When the server boots, it will load project information
+          from this file to pre-populate its project listing. If the
+          given file doesn't exist, it will be created. Defaults to
+          None, which means no file will be used to pre-populate
+          the server, and the new projects it finds out about will
+          not be saved anywhere.
+        """
         self.__host = host
         self.__port = port
         servers = {}
         self.__server_file = server_file
+
         if server_file is not None:
             def opener(path, flags):
                 # define opener that will open the file for reading
                 # and create the file if it doesn't already exist
                 return os.open(path, os.O_CREAT | os.O_RDONLY)
+
             with open(server_file, opener=opener) as f:
                 lines = f.readlines()
                 for line in lines:
@@ -78,6 +97,7 @@ class DiscoveryServer:
                                       data['title'],
                                       data['description'])
                     servers[project.address] = project
+
         self.__servers = servers
         self._app = self._create_flask_app()
 
@@ -88,7 +108,9 @@ class DiscoveryServer:
         get_servers = DiscoveryGetServersView.as_view(
             "api/get_servers", servers=self.__servers)
         add_server = DiscoveryAddServerView.as_view(
-            "api/add_server", servers=self.__servers, server_file=self.__server_file)
+            "api/add_server",
+            servers=self.__servers,
+            server_file=self.__server_file)
         app.add_url_rule("/get_servers", "api/get_servers",
                          view_func=get_servers)
         app.add_url_rule("/add_server", "api/add_server",
