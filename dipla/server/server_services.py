@@ -153,7 +153,6 @@ class ServerServices:
 
         # TODO remove results if not verified
         for result in results:
-            print("adding result for", task_id, result)
             server.task_queue.add_result(task_id, result)
 
         # We need to send verify_inputs before returning the worker so
