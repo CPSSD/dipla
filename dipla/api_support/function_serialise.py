@@ -1,6 +1,6 @@
 from dipla.api_support.script_templates import argv_input_script
 from base64 import b64encode
-import pickle
+import dill 
 
 
 def get_encoded_script(func):
@@ -41,4 +41,4 @@ def serialise_code_object(co):
         co.co_freevars,
         co.co_cellvars,
     )
-    return pickle.dumps(co_tuple)
+    return dill.dumps(co_tuple)
