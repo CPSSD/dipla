@@ -13,6 +13,7 @@ int main(int argc, char *argv[]) {
 
   string arg = argv[1];
 
+  // This code's purpose is to parse out the JSON provided on argv
   int end_of_num_A = arg.find(",");
   int numA = atoi(arg.substr(1, end_of_num_A - 1).c_str());
   int numB = atoi(arg.substr(

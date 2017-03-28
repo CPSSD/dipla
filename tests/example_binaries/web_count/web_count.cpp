@@ -35,6 +35,7 @@ int main(int argc, char* argv[]) {
 
   string arg = argv[1];
 
+  // This code's purpose is to parse out the JSON provided on argv
   int end_of_url = arg.find("\",");
   string url = arg.substr(2, end_of_url - 2);
   string term = arg.substr(

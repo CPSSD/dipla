@@ -53,7 +53,7 @@ class CommandLineBinaryRunner(object):
         cleaned_output = process_output.strip().decode()
         if cleaned_output:
             return json.loads(cleaned_output)['data']
-        return ''
+        return {}
 
 
 class InvalidArgumentsError(Exception):
