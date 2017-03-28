@@ -21,15 +21,15 @@ class CommandLineBinaryRunnerTest(TestCase):
 
     def test_that_binary_produces_valid_output(self):
         self.given_a_sums_binary()
-        self.given_summing("3", "5")
+        self.given_summing(3, 5)
         self.when_the_binary_is_run()
-        self.then_the_result_will_be(["8"])
+        self.then_the_result_will_be([8])
 
     def test_that_binary_produces_valid_output_with_more_input(self):
         self.given_a_sums_binary()
-        self.given_summing("1", "2")
+        self.given_summing(1, 2)
         self.when_the_binary_is_run()
-        self.then_the_result_will_be(["3"])
+        self.then_the_result_will_be([3])
 
     def given_a_non_existent_binary(self):
         self.filepath = "/dont_exist/binary"

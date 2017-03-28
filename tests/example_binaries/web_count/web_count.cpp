@@ -28,10 +28,19 @@ int count_substr(const string& base, const string& sub) {
 
 int main(int argc, char* argv[]) {
   
-  if (argc < 3) {
-    cout << "Usage: web_count <url> <search_term>" << endl;
+  if (argc < 2) {
+    cout << "Usage: web_count [<url>, <search_term>]" << endl;
     return 1;
   }
+
+  string arg = argv[1];
+
+  // This code's purpose is to parse out the JSON provided on argv
+  int end_of_url = arg.find("\",");
+  string url = arg.substr(2, end_of_url - 2);
+  string term = arg.substr(
+    end_of_url + 4,
+    arg.size() - end_of_url - 6);
 
   CURL *curl = curl_easy_init();
   CURLcode res;
@@ -40,14 +49,17 @@ int main(int argc, char* argv[]) {
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);  
 
-  curl_easy_setopt(curl, CURLOPT_URL, argv[1]);
+  curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
   res = curl_easy_perform(curl);
-  if(res != CURLE_OK) {
-    cout << "-1";
-  } else {
-    cout << count_substr(response, argv[2]) << endl;
+  int num_substr = -1;
+  if(res == CURLE_OK) {
+    num_substr = count_substr(response, term);
   }
-  
+
+  string output = "{\"data\": }";
+  output.insert(9, to_string(num_substr));
+  cout << output << endl;
+
   curl_easy_cleanup(curl);
   return 0;
 }
