@@ -10,8 +10,8 @@ def get_encoded_script(func):
     Returns:
         A base64 python script that executes the input function
     """
-    pickle_code = serialise_code_object(func.__code__)
-    b64_code = b64encode(pickle_code)
+    dill_code = serialise_code_object(func.__code__)
+    b64_code = b64encode(dill_code)
     filled_script = argv_input_script.format(str(b64_code))
     return b64encode(bytes(filled_script, 'UTF-8')).decode('UTF-8')
 
