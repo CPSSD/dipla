@@ -1,6 +1,6 @@
 from dipla.api_support.script_templates import argv_input_script
 from base64 import b64encode
-import dill 
+import dill
 
 
 def get_encoded_script(func):
