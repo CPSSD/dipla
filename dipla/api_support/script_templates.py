@@ -20,8 +20,16 @@ def unwraped_func():
 
 unwraped_func.__code__ = func_code
 
-args = json.loads(sys.argv[1])
+
 output = dict()
+output['signals'] = dict()
+
+def discovered(val):
+    if 'DISCOVERED' not in output['signals']:
+        output['signals']['DISCOVERED'] = []
+    output['signals']['DISCOVERED'].append([val])
+
+args = json.loads(sys.argv[1])
 output['data'] = unwraped_func(*args)
 print(json.dumps(output))
 """

@@ -54,12 +54,13 @@ class BinaryRunnerService(ClientService):
             raise ServiceError(KeyError('Task "' + task + '" does not exist'),
                                ErrorCodes.invalid_binary_key)
 
-        results = self._binary_runner.run(
+        results, signals = self._binary_runner.run(
             self._client.binary_paths[task],
             data["arguments"])
         result_data = {
             'task_uid': data["task_uid"],
-            'results': results
+            'results': results,
+            'signals': signals,
         }
 
         message = message_generator.generate_message(
@@ -73,52 +74,8 @@ class RunInstructionsService(BinaryRunnerService):
     def get_label():
         return 'run_instructions'
 
-    def _get_signal_length_string(self, signal, string):
-        signal_start = string.index(signal)
-        cropped = string[signal_start+len(signal):]
-        return cropped[cropped.index("(")+1:cropped.index(")")]
-
-    def _get_signal_value(self, signal, string):
-        length_string = self._get_signal_length_string(signal, string)
-        cropped = string[string.index(signal)+len(signal):]
-        value_start = len(length_string)+3
-        return cropped[value_start:value_start+int(length_string)]
-
-    def _get_string_without_signal(self, signal, string):
-        length_string = self._get_signal_length_string(signal, string)
-        length = int(length_string)
-        return string[:string.index(signal)] + string[
-            string.index(signal)+len(signal)+length+4+len(length_string):]
-
-    def _get_signal_values(self, signals, strings):
-        values = {}  # Signal name to list of values
-        for signal in signals:
-            for string in strings:
-                if signal not in string:
-                    continue
-                if signal not in values:
-                    values[signal] = []
-                values[signal].append(self._get_signal_value(signal, string))
-        return values
-
-    def _remove_signals_from_strings(self, signals, strings):
-        for signal in signals:
-            for i in range(len(strings)):
-                string = strings[i]
-                if signal not in string:
-                    continue
-                strings[i] = self._get_string_without_signal(signal, string)
-
     def execute(self, data):
         result_message = super().execute(data)
-        if 'signals' in data:
-            signals = data['signals']
-            results = result_message['data']['results']
-            result_message['data']['signals'] = self._get_signal_values(
-                signals, results)
-            self._remove_signals_from_strings(signals, results)
-        else:
-            result_message['data']['signals'] = {}
         result_message['label'] = 'client_result'
         return result_message
 

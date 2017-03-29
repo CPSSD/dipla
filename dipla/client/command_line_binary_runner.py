@@ -23,6 +23,7 @@ class CommandLineBinaryRunner(object):
                     raise InvalidArgumentsError(
                         "Non-uniform number of values supplied to run binary")
             results = []
+            signals = {}
             for input_index in range(expected_runs):
                 # Collect the i'th value for each argument
                 next_values = []
@@ -30,8 +31,15 @@ class CommandLineBinaryRunner(object):
                     next_values.append(
                         argument_values[input_index])
                 # Run the next set of input values
-                results.append(self._run_binary(file_path, next_values))
-            return results
+                res, sigs = self._run_binary(file_path, next_values)
+                results.append(res)
+                # Add all signals of the same type to the list
+                for key in sigs:
+                    if key in signals:
+                        signals[key].append(sigs[key])
+                    else:
+                        signals[key] = [sigs[key]]
+            return results, signals
         else:
             error_message = "Could not locate binary: '{}'".format(file_path)
             self._logger.error(error_message)
@@ -52,8 +60,9 @@ class CommandLineBinaryRunner(object):
         process_output = process.communicate(None)[0]
         cleaned_output = process_output.strip().decode()
         if cleaned_output:
-            return json.loads(cleaned_output)['data']
-        return {}
+            out = json.loads(cleaned_output)
+            return out['data'], out['signals']
+        return {}, {}
 
 
 class InvalidArgumentsError(Exception):
