@@ -18,7 +18,6 @@ except ImportError:
     TK_AVAILABLE = False
 
 
-
 def main(argv):
     parser = argparse.ArgumentParser(description="Start a Dipla client.")
     parser.add_argument('-c', default='', dest='config_path',
@@ -32,7 +31,10 @@ def main(argv):
     if args.config_path:
         config.parse_from_file(args.config_path)
 
-    if args.ui and TK_AVAILABLE:
+    if args.ui:
+        if not TK_AVAILABLE:
+            print("Please install tkinter to use UI")
+            sys.exit(1)
         ui = DiplaClientUI(
             config=config,
             client_creator=create_and_run_client,
