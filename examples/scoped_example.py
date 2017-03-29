@@ -11,10 +11,10 @@ def get_evens(input_value, index, count):
     # input value is a json representation of the provided inputs,
     # get the range and divide it by the count (number of workers) to
     # get the interval size
-    interval = int(json.loads(input_value)[1]) // int(count)
+    interval = input_value[1] // count
     # Create an output list with all the even numbers
     out = []
-    for i in range(interval * int(index), interval * (int(index)+1)):
+    for i in range(interval * index, interval * (index + 1)):
         if i % 2 == 0:
             out.append(i)
     return out
