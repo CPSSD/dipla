@@ -1,5 +1,4 @@
 from dipla.client.client import Client
-from dipla.client.ui import DiplaClientUI
 from dipla.client.config_handler import ConfigHandler
 from dipla.client.client_services import RunInstructionsService
 from dipla.client.client_services import VerifyInputsService
@@ -11,6 +10,12 @@ from dipla.shared.statistics import StatisticsUpdater
 import sys
 import argparse
 from logging import FileHandler
+
+TK_AVAILABLE = True
+try:
+    from dipla.client.ui import DiplaClientUI
+except ImportError:
+    TK_AVAILABLE = False
 
 
 def main(argv):
@@ -27,6 +32,9 @@ def main(argv):
         config.parse_from_file(args.config_path)
 
     if args.ui:
+        if not TK_AVAILABLE:
+            print("Please install tkinter to use UI")
+            sys.exit(1)
         ui = DiplaClientUI(
             config=config,
             client_creator=create_and_run_client,
