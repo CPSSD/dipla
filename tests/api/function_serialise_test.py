@@ -1,6 +1,6 @@
 from unittest import TestCase
 from base64 import b64decode
-from pickle import loads
+from dill import loads
 from types import CodeType
 from dipla.api_support.function_serialise import serialise_code_object
 from dipla.api_support.function_serialise import get_encoded_script
