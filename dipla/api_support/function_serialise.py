@@ -41,4 +41,4 @@ def serialise_code_object(co):
         co.co_freevars,
         co.co_cellvars,
     )
-    return dill.dumps(co_tuple)
+    return dill.dumps(co_tuple, byref=False)
