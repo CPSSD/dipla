@@ -1,4 +1,6 @@
 import json
+import types
+import collections
 from threading import Thread
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -90,6 +92,8 @@ class Dipla:
             data_source_creator = DataSource.create_source_from_iterable
             if isinstance(source, Task):
                 data_source_creator = DataSource.create_source_from_task
+            if isinstance(source, types.GeneratorType):
+                data_source_creator = DataSource.create_source_from_generator
             task.add_data_source(
                 create_data_source_function(source, data_source_creator))
 
@@ -251,7 +255,10 @@ class Dipla:
         # Create a reader task that consumes the input source being read,
         # this does not move the location because consuming the values
         # will cause the read function to find new values anyway
-        read_task.add_data_source(DataSource.create_source_from_iterable(
+        create_source_function = DataSource.create_source_from_iterable
+        if isinstance(source, types.GeneratorType):
+            create_source_function = DataSource.create_source_from_generator
+        read_task.add_data_source(create_source_function(
             source,
             source_uid,
             read_function,
@@ -288,7 +295,7 @@ class Dipla:
         for arg in raw_args:
             if isinstance(arg, Promise):
                 args.append(Dipla.task_queue.get_task_by_id(arg.task_uid))
-            elif isinstance(arg, list):
+            elif isinstance(arg, collections.abc.Iterable):
                 args.append(arg)
             else:
                 raise UnsupportedInput()

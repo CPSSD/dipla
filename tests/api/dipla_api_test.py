@@ -17,6 +17,16 @@ class DiplaAPITest(unittest.TestCase):
             print(len(other.data_instructions))
             return len(other.data_instructions) == self.n
 
+    class GeneratorWithDataSource(Task):
+        def __init__(self, expected_values):
+            super().__init__(Mock(), Mock(), Mock())
+            self.expected = expected_values
+
+        def __eq__(self, other):
+            found = other.data_instructions[0].data_streamer.stream.next_values
+            print(found)
+            return self.expected == found
+
     def setUp(self):
         self.mock_task_queue = Mock()
         Dipla.task_queue = self.mock_task_queue
@@ -121,6 +131,32 @@ class DiplaAPITest(unittest.TestCase):
             @Dipla.scoped_distributable
             def func(input_value, index, count):
                 return input_value+1
+
+    def test_read_data_source_with_generator_argument(self):
+        def generate():
+            yield [1, 2, 3]
+            yield [2, 3, 4]
+
+        @Dipla.data_source
+        def func(input_value):
+            return input_value
+
+        promised = Dipla.read_data_source(func, generate())
+        self.mock_task_queue.push_task.assert_called_with(
+            DiplaAPITest.GeneratorWithDataSource([1, 2, 3]))
+
+    def test_apply_distributable_with_generator_argument(self):
+        def generate():
+            yield [1, 2, 3]
+            yield [2, 3, 4]
+
+        @Dipla.distributable()
+        def func(input_value):
+            return input_value
+
+        promised = Dipla.apply_distributable(func, generate())
+        self.mock_task_queue.push_task.assert_called_with(
+            DiplaAPITest.GeneratorWithDataSource([1, 2, 3]))
 
     def test_apply_scoped_distributable_with_multiple_immediate_arguments(self):  # nopep8
         @Dipla.scoped_distributable(count=1)
