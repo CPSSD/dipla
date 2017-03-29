@@ -1,5 +1,6 @@
 import json
 import types
+import collections
 from threading import Thread
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -294,7 +295,7 @@ class Dipla:
         for arg in raw_args:
             if isinstance(arg, Promise):
                 args.append(Dipla.task_queue.get_task_by_id(arg.task_uid))
-            elif isinstance(arg, list) or isinstance(arg, types.GeneratorType):
+            elif isinstance(arg, collections.abc.Iterable):
                 args.append(arg)
             else:
                 raise UnsupportedInput()
