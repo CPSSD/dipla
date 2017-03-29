@@ -22,7 +22,7 @@ int main(int argc, char *argv[]) {
 
   int sum = numA + numB;
 
-  string output = "{\"data\": }";
+  string output = "{\"data\": , \"signals\": {}}";
   output.insert(9, to_string(sum));
   cout << output << endl;
 

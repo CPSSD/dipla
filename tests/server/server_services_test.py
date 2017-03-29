@@ -237,7 +237,7 @@ class ServerServicesTest(unittest.TestCase):
         message = {
             "task_uid": "foo_task",
             "results": [1, 2, 3],
-            "signals": {"FOOBAR": ["[[0, 0], [3, 3]]"]}
+            "signals": {"FOOBAR": [[[0, 0], [3, 3]]]}
         }
 
         mock_task = Mock()

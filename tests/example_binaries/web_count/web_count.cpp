@@ -56,7 +56,7 @@ int main(int argc, char* argv[]) {
     num_substr = count_substr(response, term);
   }
 
-  string output = "{\"data\": }";
+  string output = "{\"data\": , \"signals\": {}}";
   output.insert(9, to_string(num_substr));
   cout << output << endl;
 

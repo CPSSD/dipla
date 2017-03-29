@@ -49,7 +49,7 @@ class CommandLineBinaryRunnerTest(TestCase):
 
     def when_the_binary_is_run(self):
         self.runner = CommandLineBinaryRunner()
-        self.result = self.runner.run(
+        self.result, self.signals = self.runner.run(
             self.filepath, self.arguments)
 
     def then_a_FileNotFoundError_will_be_thrown(self):

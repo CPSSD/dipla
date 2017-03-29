@@ -71,7 +71,7 @@ class APIIntegrationTest(TestCase):
         message = {
                 "task_uid": "foo_id",
                 "results": [1, 2, 3],
-                "signals": {"DISCOVERED": ["[[0, 0], [3, 3]]"]}
+                "signals": {"DISCOVERED": [[[0, 0], [3, 3]]]}
         }
 
         service(message, ServiceParams(server, worker))
