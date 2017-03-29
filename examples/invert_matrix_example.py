@@ -13,7 +13,7 @@ def transpose(matrix):
     return [[matrix[j][i] for j in range(size)] for i in range(size)]
 
 
-@Dipla.scoped_distributable(count=5)
+@Dipla.scoped_distributable(count=4)
 def cofactors_matrix(matrix, index, count):
     import json
     from examples.matrix_operations.matrix_operations import MatrixOperations
