@@ -78,5 +78,22 @@ class APIIntegrationTest(TestCase):
         self.assertEquals([0, 0], inputsA)
         self.assertEquals([3, 3], inputsB)
 
+    def test_generator_can_be_used_as_data_source(self):
+        def generate():
+            yield [1, 2, 3]
+            yield [2, 3, 4]
+
+        @Dipla.data_source
+        def inputter(input_value):
+            return input_value
+
+        Dipla.read_data_source(inputter, generate())
+        self.assertEquals([[1]], Dipla.task_queue.pop_task_input().values)
+        self.assertEquals([[2]], Dipla.task_queue.pop_task_input().values)
+        self.assertEquals([[3]], Dipla.task_queue.pop_task_input().values)
+        self.assertEquals([[2]], Dipla.task_queue.pop_task_input().values)
+        self.assertEquals([[3]], Dipla.task_queue.pop_task_input().values)
+        self.assertEquals([[4]], Dipla.task_queue.pop_task_input().values)
+
     def tearDown(self):
         uid_generator.generate_uid = self.old_generate_uid
