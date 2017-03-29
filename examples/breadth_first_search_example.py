@@ -5,7 +5,6 @@ sys.path.append(path.abspath('../dipla'))
 
 from dipla.api import Dipla
 
-@Dipla.explorer()
 @Dipla.scoped_distributable(count=4)
 def bfs(grid, index, count):
     from queue import Queue
