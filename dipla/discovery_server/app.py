@@ -1,24 +1,33 @@
+import asyncio
 import os
+import threading
+import time
+import websockets
 import werkzeug
 from flask import abort, Flask, json, request
 from flask.views import View, MethodView
 from dipla.discovery_server.project import Project
+from threading import Lock
 
 
 class DiscoveryGetServersView(View):
 
-    def __init__(self, servers):
+    def __init__(self, servers, servers_lock):
         self.__servers = servers
+        self.__servers_lock = servers_lock
 
     def dispatch_request(self, *url_args, **url_kwargs):
         server_list = []
-        for key in self.__servers:
-            server = self.__servers[key]
-            server_list.append({
-                'address': server.address,
-                'title': server.title,
-                'description': server.description,
-            })
+        with self.__servers_lock:
+            for key in self.__servers:
+                server = self.__servers[key]
+                if not server.alive:
+                    continue
+                server_list.append({
+                    'address': server.address,
+                    'title': server.title,
+                    'description': server.description,
+                })
         return json.jsonify({
             'success': True,
             'servers': server_list,
@@ -27,8 +36,9 @@ class DiscoveryGetServersView(View):
 
 class DiscoveryAddServerView(MethodView):
 
-    def __init__(self, servers, server_file=None):
+    def __init__(self, servers, servers_lock, server_file=None):
         self.__servers = servers
+        self.__servers_lock = servers_lock
         self.__server_file = server_file
 
     def _is_valid_address(self, address):
@@ -49,15 +59,89 @@ class DiscoveryAddServerView(MethodView):
             abort(400)
         project = Project(request.form['address'],
                           request.form['title'],
-                          request.form['description'])
-        if project.address in self.__servers.keys():
-            abort(409)
-        self.__servers[project.address] = project
+                          request.form['description'],
+                          alive=True)
+        with self.__servers_lock:
+            if project.address in self.__servers.keys():
+                abort(409)
+            self.__servers[project.address] = project
         if self.__server_file is not None:
             self._write_new_project_to_file(project)
         return json.jsonify({
             'success': True,
         })
+
+
+class ProjectStatusChecker(threading.Thread):
+
+    def __init__(self, servers, servers_lock, poll_time=10):
+        """Create a new ProjectStatusChecker. This is a loop that
+        runs in a new thread, activated by .start(). It runs through
+        all of the projects the discovery server knows about,
+        and checks if each is alive and accepting connections. It
+        also does one initial run-through when it is first started,
+        with no pauses between checks, as the directory server
+        might have loaded some old information from a file that
+        needs to be updated.
+
+        Params:
+        - servers: A reference to the dict of projects the directory
+          server keeps.
+        - servers_lock: A reference to the mutex controlling access
+          to the project dict.
+        - poll_time: An int defining the number of seconds to wait
+          between each project check. Defaults to 10 seconds."""
+        super().__init__()
+        self.__servers = servers
+        self.__servers_lock = servers_lock
+        self.__poll_time = poll_time
+
+    async def _websocket_connect(self, address):
+        try:
+            message = await websockets.connect(address)
+            return message
+        except Exception as e:
+            return None
+
+    def _check_project(self, project):
+        """Return True if a websocket connection to the given
+        project is accepted, and False oherwise."""
+        loop = asyncio.get_event_loop()
+        websocket = loop.run_until_complete(
+                self._websocket_connect(project.address))
+        return websocket is not None
+
+    def _check_all_projects(self, timeout, repeat=False):
+        """Run through all projects and update their entries
+        in the server dict to reflect whether they are alive
+        and accepting connections or not. Wait `timeout`
+        seconds between each project check."""
+        i = 0
+        while True:
+            with self.__servers_lock:
+                if not repeat and i >= len(self.__servers):
+                    break
+                if len(self.__servers) > 0:
+                    keys = sorted(list(self.__servers.keys()))
+                    i %= len(keys)
+                    k = keys[i]
+                    proj = self.__servers[k]
+                    alive = self._check_project(proj)
+                    print('Project', proj.address, 'alive:', alive)
+                    self.__servers[k].alive = alive
+            time.sleep(timeout)
+            i += 1
+
+    def run(self):
+        # this runs in a new thread, so we need a new event loop
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        # run through all projects first to see what is still
+        # online out of all of the servers loaded from file
+        self._check_all_projects(0)
+        # continually run through servers with a timeout,
+        # to keep the server list up to date
+        self._check_all_projects(self.__poll_time, repeat=True)
 
 
 class DiscoveryServer:
@@ -97,9 +181,14 @@ class DiscoveryServer:
                     data = json.loads(line)
                     project = Project(data['address'],
                                       data['title'],
-                                      data['description'])
+                                      data['description'],
+                                      alive=False)
                     self._servers[project.address] = project
 
+        self.__servers_lock = Lock()
+        self._status_checker = ProjectStatusChecker(
+                self._servers,
+                self.__servers_lock)
         self._app = self._create_flask_app()
 
     def _create_flask_app(self):
@@ -107,10 +196,13 @@ class DiscoveryServer:
         but don't run it yet."""
         app = Flask(__name__)
         get_servers = DiscoveryGetServersView.as_view(
-            "api/get_servers", servers=self._servers)
+            "api/get_servers",
+            servers=self._servers,
+            servers_lock=self.__servers_lock)
         add_server = DiscoveryAddServerView.as_view(
             "api/add_server",
             servers=self._servers,
+            servers_lock=self.__servers_lock,
             server_file=self.__server_file)
         app.add_url_rule("/get_servers", "api/get_servers",
                          view_func=get_servers)
@@ -135,4 +227,5 @@ class DiscoveryServer:
         })
 
     def start(self):
+        self._status_checker.start()
         self._app.run(host=self.__host, port=self.__port)
