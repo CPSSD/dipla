@@ -13,6 +13,10 @@ def transpose(matrix):
     return [[matrix[j][i] for j in range(size)] for i in range(size)]
 
 
+# Note: This example uses the examples.matrix_operatons module. This
+# means that it requires all clients to have that module also. It
+# imports this from example.matrix_operations so the client should
+# save this file with the same module signature
 @Dipla.scoped_distributable(count=4)
 def cofactors_matrix(matrix, index, count):
     import json
@@ -25,6 +29,7 @@ def cofactors_matrix(matrix, index, count):
     i = int(index)
     size = len(matrix)
     cofactors = []
+    # Generate all the cofactors in the i'th row (i = index)
     for j in range(size):
         sign = 1 if (i+j) % 2 == 0 else -1
         cofactors.append(sign * MatrixOperations.determinant(
