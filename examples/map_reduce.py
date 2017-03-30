@@ -17,13 +17,22 @@ def square(n):
     return int(n)**2
 
 
+def generate_inputs():
+    inputs = []
+    for n in range(COMPUTATIONAL_INTENSITY):
+        inputs.append(str(n))
+        if len(inputs) == 5:
+            yield inputs
+            inputs = []
+    yield inputs
+
+
 def main():
     # Dipla.start_dashboard()
 
-    inputs = [str(n) for n in range(COMPUTATIONAL_INTENSITY)]
     data_source = Dipla.read_data_source(
         read,
-        inputs
+        generate_inputs()
     )
 
     squared_inputs_promise = Dipla.apply_distributable(
