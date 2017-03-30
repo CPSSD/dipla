@@ -1,4 +1,5 @@
 import json
+import os
 import unittest
 from dipla.discovery_server.app import DiscoveryServer, DiscoveryAddServerView
 from dipla.discovery_server.project import Project
@@ -6,13 +7,25 @@ from dipla.discovery_server.project import Project
 
 class DiscoveryTest(unittest.TestCase):
 
-    def setUp(self):
+    SERVER_FILE = "servers.tmp"
 
-        self.servers = {}
-        self.discovery_server = DiscoveryServer(host='localhost',
-                                                port=1337,
-                                                servers=self.servers)
+    def _createDiscoveryServer(self, server_file):
+        return DiscoveryServer(host='localhost',
+                               port=1337,
+                               server_file=server_file)
+
+    def setUp(self):
+        self.discovery_server = self._createDiscoveryServer(
+            DiscoveryTest.SERVER_FILE)
         self.app = self.discovery_server._app.test_client()
+
+        # pull out a reference to the server list for easier testing
+        self.servers = self.discovery_server._servers
+
+    def tearDown(self):
+        # if there is a server list file, delete it
+        if os.path.isfile(DiscoveryTest.SERVER_FILE):
+            os.remove(DiscoveryTest.SERVER_FILE)
 
     def test_get_servers_empty(self):
         response = self.app.get("/get_servers")
@@ -46,6 +59,35 @@ class DiscoveryTest(unittest.TestCase):
         self.assertTrue(data["success"])
         self.assertEqual(1, len(self.servers))
         self.assertEqual(address, self.servers.popitem()[1].address)
+
+    def test_add_server_writes_to_file(self):
+        d = {
+            'address': 'protocol:address:port',
+            'title': 'gotta get that',
+            'description': 'boom boom boom',
+        }
+        response = self.app.post('/add_server', data=d)
+        with open(DiscoveryTest.SERVER_FILE, 'r') as f:
+            lines = f.readlines()
+            self.assertEqual(1, len(lines))
+            data = json.loads(lines[0])
+            self.assertTrue(all(d[k] == data[k] for k in d))
+
+    def test_server_reads_from_file(self):
+        p = Project('ws://hard.brexit',
+                    'Help free() the UK',
+                    'Surrey is just one big memory leak')
+        with open(DiscoveryTest.SERVER_FILE, 'w') as f:
+            s = json.dumps(p,
+                           default=lambda x: x.serialize(),
+                           indent=None)
+            f.write(s)
+            f.write('\n')
+        self.discovery_server = self._createDiscoveryServer(
+            DiscoveryTest.SERVER_FILE)
+        self.assertEqual(1, len(self.discovery_server._servers))
+        q = self.discovery_server._servers.popitem()[1]
+        self.assertEqual(p.serialize(), q.serialize())
 
     def test_add_server_with_missing_details_fails(self):
         response = self.app.post("/add_server", data=dict(
