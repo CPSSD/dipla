@@ -112,7 +112,7 @@ class DiscoveryTest(unittest.TestCase):
         self.assertIn("409", data["error"])
 
     def test_valid_server_addresses_are_recognised(self):
-        add_server_view = DiscoveryAddServerView({})
+        add_server_view = DiscoveryAddServerView({}, None)
         check = add_server_view._is_valid_address
         self.assertTrue(check("https://disco.server.com:1972"))
         self.assertTrue(check("http://localhost:1482"))

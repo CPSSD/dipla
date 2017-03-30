@@ -3,12 +3,14 @@ import werkzeug
 from flask import abort, Flask, json, request
 from flask.views import View, MethodView
 from dipla.discovery_server.project import Project
+from threading import Lock
 
 
 class DiscoveryGetServersView(View):
 
-    def __init__(self, servers):
+    def __init__(self, servers, servers_lock):
         self.__servers = servers
+        self.__servers_lock = servers_lock
 
     def dispatch_request(self, *url_args, **url_kwargs):
         server_list = []
@@ -27,8 +29,9 @@ class DiscoveryGetServersView(View):
 
 class DiscoveryAddServerView(MethodView):
 
-    def __init__(self, servers, server_file=None):
+    def __init__(self, servers, servers_lock, server_file=None):
         self.__servers = servers
+        self.__servers_lock = servers_lock
         self.__server_file = server_file
 
     def _is_valid_address(self, address):
@@ -100,6 +103,7 @@ class DiscoveryServer:
                                       data['description'])
                     self._servers[project.address] = project
 
+        self.__servers_lock = Lock()
         self._app = self._create_flask_app()
 
     def _create_flask_app(self):
@@ -107,10 +111,13 @@ class DiscoveryServer:
         but don't run it yet."""
         app = Flask(__name__)
         get_servers = DiscoveryGetServersView.as_view(
-            "api/get_servers", servers=self._servers)
+            "api/get_servers",
+            servers=self._servers,
+            servers_lock=self.__servers_lock)
         add_server = DiscoveryAddServerView.as_view(
             "api/add_server",
             servers=self._servers,
+            servers_lock=self.__servers_lock,
             server_file=self.__server_file)
         app.add_url_rule("/get_servers", "api/get_servers",
                          view_func=get_servers)
