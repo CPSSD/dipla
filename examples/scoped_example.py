@@ -7,8 +7,6 @@ from dipla.api import Dipla
 
 @Dipla.scoped_distributable(count=3)
 def get_evens(input_value, index, count):
-    import json
-    # input value is a json representation of the provided inputs,
     # get the range and divide it by the count (number of workers) to
     # get the interval size
     interval = input_value[1] // count
