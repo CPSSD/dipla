@@ -1,4 +1,8 @@
+import asyncio
 import os
+import threading
+import time
+import websockets
 import werkzeug
 from flask import abort, Flask, json, request
 from flask.views import View, MethodView
@@ -14,13 +18,14 @@ class DiscoveryGetServersView(View):
 
     def dispatch_request(self, *url_args, **url_kwargs):
         server_list = []
-        for key in self.__servers:
-            server = self.__servers[key]
-            server_list.append({
-                'address': server.address,
-                'title': server.title,
-                'description': server.description,
-            })
+        with self.__servers_lock:
+            for key in self.__servers:
+                server = self.__servers[key]
+                server_list.append({
+                    'address': server.address,
+                    'title': server.title,
+                    'description': server.description,
+                })
         return json.jsonify({
             'success': True,
             'servers': server_list,
@@ -53,14 +58,53 @@ class DiscoveryAddServerView(MethodView):
         project = Project(request.form['address'],
                           request.form['title'],
                           request.form['description'])
-        if project.address in self.__servers.keys():
-            abort(409)
-        self.__servers[project.address] = project
+        with self.__servers_lock:
+            if project.address in self.__servers.keys():
+                abort(409)
+            self.__servers[project.address] = project
         if self.__server_file is not None:
             self._write_new_project_to_file(project)
         return json.jsonify({
             'success': True,
         })
+
+class ProjectStatusChecker(threading.Thread):
+
+    def __init__(self, servers, servers_lock, poll_time=30):
+        super().__init__()
+        self.__servers = servers
+        self.__servers_lock = servers_lock
+        self.__poll_time = poll_time
+
+    async def _websocket_connect(self, address):
+        try:
+            message = await websockets.connect(address)
+            return message
+        except Exception as e:
+            return None
+
+    def _check_project(self, project):
+        loop = asyncio.get_event_loop()
+        websocket = loop.run_until_complete(
+                self._websocket_connect(project.address))
+        print('trying', project.address)
+        if websocket is None:
+            print ('not online')
+        else:
+            print ('all g')
+
+    def run(self):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        i = -1
+        while True:
+            with self.__servers_lock:
+                if len(self.__servers) > 0:
+                    keys = list(self.__servers.keys())
+                    i = (i+1) % len(keys)
+                    proj = self.__servers[keys[i]]
+                    self._check_project(proj)
+            time.sleep(self.__poll_time)
 
 
 class DiscoveryServer:
@@ -104,6 +148,9 @@ class DiscoveryServer:
                     self._servers[project.address] = project
 
         self.__servers_lock = Lock()
+        self._status_checker = ProjectStatusChecker(
+                self._servers,
+                self.__servers_lock)
         self._app = self._create_flask_app()
 
     def _create_flask_app(self):
@@ -141,5 +188,8 @@ class DiscoveryServer:
             'error': '409: Conflict',
         })
 
+
+
     def start(self):
+        self._status_checker.start()
         self._app.run(host=self.__host, port=self.__port)
