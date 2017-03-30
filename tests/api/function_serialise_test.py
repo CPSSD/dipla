@@ -4,6 +4,7 @@ from dill import loads
 from types import CodeType
 from dipla.api_support.function_serialise import serialise_code_object
 from dipla.api_support.function_serialise import get_encoded_script
+from dipla.api_support import script_templates
 
 
 class SerialiseCodeObjectTest(TestCase):
@@ -30,11 +31,15 @@ class ScriptEncoderTest(TestCase):
 
     def test_function_can_be_encoded(self):
         example_func = self._get_example_function()
-        b64_script = get_encoded_script(example_func)
+        b64_script = get_encoded_script(
+            example_func,
+            script_templates.argv_input_script)
 
     def test_encoded_script_valid_base64(self):
         example_func = self._get_example_function()
-        b64_script = get_encoded_script(example_func)
+        b64_script = get_encoded_script(
+            example_func,
+            script_templates.argv_input_script)
         decoded_script = b64decode(b64_script)
         self.assertEqual(type(decoded_script), bytes)
 

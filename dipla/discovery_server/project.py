@@ -4,3 +4,10 @@ class Project:
         self.address = address
         self.title = title
         self.description = description
+
+    def serialize(self):
+        return {
+            'address': self.address,
+            'title': self.title,
+            'description': self.description
+        }

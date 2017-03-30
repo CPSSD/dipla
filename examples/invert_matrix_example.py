@@ -19,9 +19,7 @@ def transpose(matrix):
 # save this file with the same module signature
 @Dipla.scoped_distributable(count=4)
 def cofactors_matrix(matrix, index, count):
-    import json
     from examples.matrix_operations.matrix_operations import MatrixOperations
-    matrix = json.loads(matrix)
 
     size = len(matrix)
 
@@ -46,7 +44,7 @@ matrix = [
 ]
 cofactors = Dipla.get(Dipla.apply_distributable(cofactors_matrix, [[matrix]]))
 
-transposed = transpose([json.loads(x) for x in cofactors if len(x) > 0])
+transposed = transpose([x for x in cofactors if len(x) > 0])
 
 determinant_inverse = 1/MatrixOperations.determinant(matrix)
 print('\n'.join(

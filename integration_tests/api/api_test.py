@@ -4,6 +4,7 @@ from dipla.shared import uid_generator
 from dipla.api import Dipla
 from dipla.shared import uid_generator
 from dipla.server.server import Server
+from dipla.server.server import BinaryManager
 from dipla.server.server_services import ServerServices, ServiceParams
 from dipla.server.worker_group import WorkerGroup, Worker
 
@@ -52,7 +53,7 @@ class APIIntegrationTest(TestCase):
         Dipla.apply_distributable(func, inputsA, inputsB)
 
         server_services = ServerServices(
-            Dipla.binary_manager, Dipla.stat_updater)
+            BinaryManager(), Dipla.stat_updater)
         service = server_services.get_service("client_result")
 
         worker_group = WorkerGroup(Dipla.stat_updater)
@@ -71,7 +72,7 @@ class APIIntegrationTest(TestCase):
         message = {
                 "task_uid": "foo_id",
                 "results": [1, 2, 3],
-                "signals": {"DISCOVERED": ["[[0, 0], [3, 3]]"]}
+                "signals": {"DISCOVERED": [[[0, 0], [3, 3]]]}
         }
 
         service(message, ServiceParams(server, worker))

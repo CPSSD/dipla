@@ -103,9 +103,10 @@ class RunInstructionsServiceTest(TestCase):
         mock_binary_runner = MagicMock()
         self.service = RunInstructionsService(mock_client, mock_binary_runner)
 
-        mock_binary_runner.run.return_value = [
-            "[2, 4]DISCOVERED(16)([[0, 0], [3, 3]])LOST(3)(FOO)",
-            "[1, 3]DISCOVERED(8)([[0, 0]])"]
+        mock_binary_runner.run.return_value = (
+            [[2, 4], [1, 3]],
+            {"DISCOVERED": [[[0, 0], [3, 3]], [[0, 0]]], "LOST": ["FOO"]})
+
         data = {
             "task_uid": "foo_id",
             "task_instructions": "foo",
@@ -113,9 +114,9 @@ class RunInstructionsServiceTest(TestCase):
             "signals": ["DISCOVERED", "LOST"]
         }
         returned = self.service.execute(data)
-        self.assertEquals(["[2, 4]", "[1, 3]"], returned["data"]["results"])
+        self.assertEquals([[2, 4], [1, 3]], returned["data"]["results"])
         self.assertEquals(
-            {"DISCOVERED": ["[[0, 0], [3, 3]]", "[[0, 0]]"], "LOST": ["FOO"]},
+            {"DISCOVERED": [[[0, 0], [3, 3]], [[0, 0]]], "LOST": ["FOO"]},
             returned["data"]["signals"])
 
 
@@ -128,6 +129,7 @@ class MockBinaryRunner(CommandLineBinaryRunner):
     def run(self, file_path, arguments):
         self.filepath = file_path
         self.arguments = arguments
+        return {}, {}
 
     def received(self, filepath, arguments):
         filepaths_match = self.filepath == filepath

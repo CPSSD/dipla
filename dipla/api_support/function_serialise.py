@@ -1,18 +1,18 @@
-from dipla.api_support.script_templates import argv_input_script
 from base64 import b64encode
 import dill
 
 
-def get_encoded_script(func):
+def get_encoded_script(func, input_script_template):
     """
-    Takes in a function and wraps it in an execution script
+    Takes in a function and a template and wraps the function in that
+    template
 
     Returns:
         A base64 python script that executes the input function
     """
-    dill_code = serialise_code_object(func.__code__)
-    b64_code = b64encode(dill_code)
-    filled_script = argv_input_script.format(str(b64_code))
+    pickle_code = serialise_code_object(func.__code__)
+    b64_code = b64encode(pickle_code)
+    filled_script = input_script_template.format(str(b64_code))
     return b64encode(bytes(filled_script, 'UTF-8')).decode('UTF-8')
 
 
