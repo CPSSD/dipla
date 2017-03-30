@@ -256,4 +256,9 @@ class Server:
 
         asyncio.get_event_loop().run_until_complete(server)
         asyncio.get_event_loop().call_soon(self.distribute_tasks)
+        input("Press enter to start server BOIIIIII")
+        import time
+        start = time.time()
         asyncio.get_event_loop().run_forever()
+        end = time.time()
+        print("Took {:.2f} seconds!".format(end - start))
