@@ -38,15 +38,9 @@ args = json.loads(sys.argv[1])
 output['data'] = unwraped_func(*args, discovered)
 
 for value in discovered:
-    f = open('yolo.swag', "w")
-    f.write(str(value) + " in discovered")
     if 'DISCOVERED' not in output['signals']:
-        f.write("setting signal to empty list discovered")
         output['signals']['DISCOVERED'] = []
-    f.write("about to appedn")
     output['signals']['DISCOVERED'].append([value])
-    f.write("Appended")
-    f.close()
 
 print(json.dumps(output))
 """
