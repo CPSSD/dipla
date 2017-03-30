@@ -407,7 +407,7 @@ class TaskInput:
                  task_instructions,
                  machine_type,
                  values,
-                 signals=[]):
+                 signals={}):
         """
         This is what is given out by the task queue when some values
         are requested from a pop/peek etc. The values attribute

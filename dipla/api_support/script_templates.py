@@ -3,7 +3,7 @@
 # The '{}' will be replaced with the base64 of the pickle of the deconstructed
 # function code object.
 
-argv_input_script = """#! /usr/bin/python3
+unwrap_function_script = """#! /usr/bin/python3
 from base64 import b64decode
 from types import CodeType
 import dill
@@ -19,17 +19,28 @@ def unwraped_func():
     pass
 
 unwraped_func.__code__ = func_code
+"""
 
+argv_input_script = unwrap_function_script + """
+output = dict()
+
+args = json.loads(sys.argv[1])
+output['data'] = unwraped_func(*args)
+output['signals'] = dict()
+print(json.dumps(output))"""
+
+explorer_argv_input_script = unwrap_function_script + """discovered = []
 
 output = dict()
 output['signals'] = dict()
 
-def discovered(val):
+args = json.loads(sys.argv[1])
+output['data'] = unwraped_func(*args, discovered)
+
+for value in discovered:
     if 'DISCOVERED' not in output['signals']:
         output['signals']['DISCOVERED'] = []
-    output['signals']['DISCOVERED'].append([val])
+    output['signals']['DISCOVERED'].append([value])
 
-args = json.loads(sys.argv[1])
-output['data'] = unwraped_func(*args)
 print(json.dumps(output))
 """

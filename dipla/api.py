@@ -3,6 +3,7 @@ from threading import Thread
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
+from dipla.api_support import script_templates
 from dipla.api_support.function_serialise import get_encoded_script
 from dipla.server.dashboard import DashboardServer
 from dipla.server.result_verifier import ResultVerifier
@@ -14,7 +15,6 @@ from dipla.shared import uid_generator, statistics
 class Dipla:
 
     # BinaryManager, TaskQueue and ResultVerifier to be injected into server.
-    binary_manager = BinaryManager()
     task_queue = TaskQueue()
     result_verifier = ResultVerifier()
     _password = None
@@ -31,12 +31,16 @@ class Dipla:
     # take two parameters, the task/iterable being sourced from and the
     # name of the task being performed on that source
     _task_creators = dict()
-    # This is a dictionary of functon id to another dictionary that is
-    # the signal to a function that processes the input received from
+    # Dictionary of function id to function object. Check the comments
+    # for Dipla_task_creators for details on how the id is determined.
+    _task_functions = dict()
+    # This is a dictionary of functon id to tuples, where the first
+    # value is the input script wrapper, and the second is a dictionary
+    # of a signal to a function that processes the input received from
     # this signal. This embedded dict should contain a key for each
     # signal registered under the function. Check the comments for
     # Dipla_task_creators for details on how the id is determined.
-    _task_signals = dict()
+    _task_input_script_info = dict()
 
     # Stop reading the data source once we hit EOF
     # TODO(StefanKennedy) Set up data sources to run indefinitely.
@@ -109,13 +113,8 @@ class Dipla:
         return task
 
     def _process_decorated_function(function, verifier=None):
-        # Turn the function into a base64'd Python script.
-        base64_binary = get_encoded_script(function)
-        # Register the result as a new binary for any platform with the
-        # name of the function as the task name.
-        Dipla.binary_manager.add_encoded_binaries('.*', [
-            (function.__name__, base64_binary),
-        ])
+        function_id = id(function)
+        Dipla._task_functions[function_id] = function
         if verifier:
             Dipla.result_verifier.add_verifier(
                 function.__name__,
@@ -210,11 +209,11 @@ class Dipla:
             def discovered_handler(task_uid, signal_inputs):
                 Dipla.task_queue.push_task_input(task_uid, signal_inputs)
 
-            function_id = id(function)
-            if function_id not in Dipla._task_signals:
-                Dipla._task_signals[function_id] = dict()
-            Dipla._task_signals[function_id]["DISCOVERED"] =\
-                discovered_handler
+            signals = {
+                "DISCOVERED": discovered_handler
+            }
+            Dipla._task_input_script_info[id(function)] =\
+                (script_templates.explorer_argv_input_script, signals)
             return function
         return real_decorator
 
@@ -294,10 +293,13 @@ class Dipla:
                 raise UnsupportedInput()
         function_id = id(function)
         task = Dipla._task_creators[function_id](args, function.__name__)
-        if function_id in Dipla._task_signals:
-            task.signals = Dipla._task_signals[function_id]
+        if function_id in Dipla._task_input_script_info:
+            task.signals = Dipla._task_input_script_info[function_id][1]
         Dipla.task_queue.push_task(task)
         return Promise(task.uid)
+
+    def _create_binary_manager():
+        return BinaryManager()
 
     @staticmethod
     def get(promise):
@@ -317,10 +319,24 @@ class Dipla:
             Dipla.task_queue.get_task(promise.task_uid), source_uid))
         Dipla.task_queue.push_task(get_task)
 
+        binary_manager = Dipla._create_binary_manager()
+        for function_id in Dipla._task_functions:
+            input_template = (script_templates.argv_input_script, dict())
+            if function_id in Dipla._task_input_script_info:
+                input_template = Dipla._task_input_script_info[function_id]
+            function = Dipla._task_functions[function_id]
+            # Turn the function into a base64'd Python script.
+            base64_binary = get_encoded_script(function, input_template[0])
+            # Register the result as a new binary for any platform with the
+            # name of the function as the task name.
+            binary_manager.add_encoded_binaries('.*', [
+                (function.__name__, base64_binary),
+            ])
+
         server = Server(
             task_queue=Dipla.task_queue,
             services=ServerServices(
-                Dipla.binary_manager,
+                binary_manager,
                 Dipla.stat_updater),
             result_verifier=Dipla.result_verifier,
             stats=Dipla.stat_updater)

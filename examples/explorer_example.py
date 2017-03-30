@@ -5,13 +5,12 @@ sys.path.append(path.abspath('../dipla'))
 
 from dipla.api import Dipla
 
-
 @Dipla.explorer()
 @Dipla.distributable()
-def add_ten(input_value):
+def add_ten(input_value, discovered):
     # If the input value is 1, discover a new input, '8'
     if input_value == 1:
-        discovered(8)
+        discovered.append(8)
     return input_value + 10
 
 added_ten = Dipla.apply_distributable(add_ten, [1, 2, 3])
