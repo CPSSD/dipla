@@ -73,7 +73,23 @@ class DiscoveryAddServerView(MethodView):
 
 class ProjectStatusChecker(threading.Thread):
 
-    def __init__(self, servers, servers_lock, poll_time=30):
+    def __init__(self, servers, servers_lock, poll_time=10):
+        """Create a new ProjectStatusChecker. This is a loop that
+        runs in a new thread, activated by .start(). It runs through
+        all of the projects the discovery server knows about,
+        and checks if each is alive and accepting connections. It
+        also does one initial run-through when it is first started,
+        with no pauses between checks, as the directory server
+        might have loaded some old information from a file that
+        needs to be updated.
+
+        Params:
+        - servers: A reference to the dict of projects the directory
+          server keeps.
+        - servers_lock: A reference to the mutex controlling access
+          to the project dict.
+        - poll_time: An int defining the number of seconds to wait
+          between each project check. Defaults to 10 seconds."""
         super().__init__()
         self.__servers = servers
         self.__servers_lock = servers_lock
@@ -94,20 +110,37 @@ class ProjectStatusChecker(threading.Thread):
                 self._websocket_connect(project.address))
         return websocket is not None
 
-    def run(self):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        i = -1
+    def _check_all_projects(self, timeout, repeat=False):
+        """Run through all projects and update their entries
+        in the server dict to reflect whether they are alive
+        and accepting connections or not. Wait `timeout`
+        seconds between each project check."""
+        i = 0
         while True:
             with self.__servers_lock:
+                if not repeat and i >= len(self.__servers):
+                    break
                 if len(self.__servers) > 0:
-                    keys = list(self.__servers.keys())
-                    i = (i+1) % len(keys)
+                    keys = sorted(list(self.__servers.keys()))
+                    i %= len(keys)
                     k = keys[i]
                     proj = self.__servers[k]
                     alive = self._check_project(proj)
-                    servers[k].alive = alive
-            time.sleep(self.__poll_time)
+                    print('Project', proj.address, 'alive:', alive)
+                    self.__servers[k].alive = alive
+            time.sleep(timeout)
+            i += 1
+
+    def run(self):
+        # this runs in a new thread, so we need a new event loop
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        # run through all projects first to see what is still
+        # online out of all of the servers loaded from file
+        self._check_all_projects(0)
+        # continually run through servers with a timeout,
+        # to keep the server list up to date
+        self._check_all_projects(self.__poll_time, repeat=True)
 
 
 class DiscoveryServer:
@@ -191,8 +224,6 @@ class DiscoveryServer:
             'success': False,
             'error': '409: Conflict',
         })
-
-
 
     def start(self):
         self._status_checker.start()
