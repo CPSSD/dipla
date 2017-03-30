@@ -56,3 +56,23 @@ You can check if your code complies with the PEP8 style guide using `pep8`.
 
 * Checking all of the production code: `pep8 dipla`
 
+### Code Example
+
+Here's an example of some code you could write and distribute.
+
+```python
+from os import path
+import sys
+sys.path.append(path.abspath('../dipla'))
+
+from dipla.api import Dipla
+
+input_data = ["1", "2", "3", "4", "5"]
+@Dipla.data_source
+def read_function(input_value):
+    return int(input_value) * 2
+
+# Convert the input_data list to a form that dipla can use for
+# distributing
+data_source = Dipla.read_data_source(read_function, input_data) 
+```
