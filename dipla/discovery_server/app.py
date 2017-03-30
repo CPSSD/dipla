@@ -71,6 +71,7 @@ class DiscoveryAddServerView(MethodView):
             'success': True,
         })
 
+
 class ProjectStatusChecker(threading.Thread):
 
     def __init__(self, servers, servers_lock, poll_time=10):
