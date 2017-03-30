@@ -148,7 +148,7 @@ class ServerServices:
                 if signal not in task_signals:
                     continue
                 for values in message_signals[signal]:
-                    task_signals[signal](task_uid, json.loads(values))
+                    task_signals[signal](task_uid, values)
             server.distribute_tasks()
 
         # TODO remove results if not verified

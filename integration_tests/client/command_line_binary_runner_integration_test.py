@@ -26,14 +26,14 @@ class CommandLineBinaryRunnerIntegrationTest(TestCase):
         self.given_using_a_github_resource()
         self.given_searching_for("word")
         self.when_the_binary_is_run()
-        self.then_the_result_will_be(["3"])
+        self.then_the_result_will_be([3])
 
     def test_that_binary_produces_valid_output_with_another_url(self):
         self.given_a_web_count_binary()
         self.given_using_another_github_resource()
         self.given_searching_for("BLARG")
         self.when_the_binary_is_run()
-        self.then_the_result_will_be(["4"])
+        self.then_the_result_will_be([4])
 
     def given_a_non_existent_binary(self):
         self.filepath = "/dont_exist/binary"
@@ -68,7 +68,7 @@ class CommandLineBinaryRunnerIntegrationTest(TestCase):
 
     def when_the_binary_is_run(self):
         self.runner = CommandLineBinaryRunner()
-        self.result = self.runner.run(
+        self.result, self.signals = self.runner.run(
             self.filepath, self.arguments)
 
     def then_a_FileNotFoundError_will_be_thrown(self):

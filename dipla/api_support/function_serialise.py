@@ -1,5 +1,5 @@
 from base64 import b64encode
-import pickle
+import dill
 
 
 def get_encoded_script(func, input_script_template):
@@ -41,4 +41,4 @@ def serialise_code_object(co):
         co.co_freevars,
         co.co_cellvars,
     )
-    return pickle.dumps(co_tuple)
+    return dill.dumps(co_tuple)

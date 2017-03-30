@@ -6,12 +6,13 @@
 unwrap_function_script = """#! /usr/bin/python3
 from base64 import b64decode
 from types import CodeType
-import pickle
+import dill
+import json
 import sys
 
 encoded_code = {}
 pickled_code = b64decode(encoded_code)
-codeobject_data = pickle.loads(pickled_code)
+codeobject_data = dill.loads(pickled_code)
 func_code = CodeType(*codeobject_data)
 
 def unwraped_func():
@@ -21,12 +22,31 @@ unwraped_func.__code__ = func_code
 """
 
 argv_input_script = unwrap_function_script + """
-print(unwraped_func(*sys.argv[1:]))"""
+output = dict()
+
+args = json.loads(sys.argv[1])
+output['data'] = unwraped_func(*args)
+output['signals'] = dict()
+print(json.dumps(output))"""
 
 explorer_argv_input_script = unwrap_function_script + """discovered = []
 
-print(unwraped_func(*sys.argv[1:], discovered))
+output = dict()
+output['signals'] = dict()
+
+args = json.loads(sys.argv[1])
+output['data'] = unwraped_func(*args, discovered)
+
 for value in discovered:
-    str_value = str(value)
-    print("DISCOVERED("+str(len(str_value))+")("+str_value+")")
+    f = open('yolo.swag', "w")
+    f.write(str(value) + " in discovered")
+    if 'DISCOVERED' not in output['signals']:
+        f.write("setting signal to empty list discovered")
+        output['signals']['DISCOVERED'] = []
+    f.write("about to appedn")
+    output['signals']['DISCOVERED'].append([value])
+    f.write("Appended")
+    f.close()
+
+print(json.dumps(output))
 """
