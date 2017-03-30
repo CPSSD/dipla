@@ -63,7 +63,6 @@ class DistributableDecoratorTest(TestCase):
 
     def when_it_is_applied_to_a_function(self):
         self.operation = self._apply_distributable_decorator
-        print(self.operation)
 
     def when_it_is_applied_to_a_function_with_verifier(self):
         self.operation = self._apply_distributable_decorator_with_verifier

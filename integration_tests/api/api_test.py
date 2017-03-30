@@ -53,7 +53,7 @@ class APIIntegrationTest(TestCase):
         Dipla.apply_distributable(func, inputsA, inputsB)
 
         server_services = ServerServices(
-            BinaryManager, Dipla.stat_updater)
+            BinaryManager(), Dipla.stat_updater)
         service = server_services.get_service("client_result")
 
         worker_group = WorkerGroup(Dipla.stat_updater)
