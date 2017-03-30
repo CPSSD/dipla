@@ -27,7 +27,7 @@ class DiscoveryGetServersView(View):
 
 class DiscoveryAddServerView(MethodView):
 
-    def __init__(self, servers, server_file):
+    def __init__(self, servers, server_file=None):
         self.__servers = servers
         self.__server_file = server_file
 
@@ -38,7 +38,9 @@ class DiscoveryAddServerView(MethodView):
 
     def _write_new_project_to_file(self, project):
         with open(self.__server_file, 'a') as f:
-            s = json.dumps(project, default=lambda x: x.serialize())
+            s = json.dumps(project,
+                           default=lambda x: x.serialize(),
+                           indent=None)
             f.write(s)
             f.write('\n')
 
@@ -80,7 +82,7 @@ class DiscoveryServer:
         """
         self.__host = host
         self.__port = port
-        servers = {}
+        self._servers = {}
         self.__server_file = server_file
 
         if server_file is not None:
@@ -96,9 +98,8 @@ class DiscoveryServer:
                     project = Project(data['address'],
                                       data['title'],
                                       data['description'])
-                    servers[project.address] = project
+                    self._servers[project.address] = project
 
-        self.__servers = servers
         self._app = self._create_flask_app()
 
     def _create_flask_app(self):
@@ -106,10 +107,10 @@ class DiscoveryServer:
         but don't run it yet."""
         app = Flask(__name__)
         get_servers = DiscoveryGetServersView.as_view(
-            "api/get_servers", servers=self.__servers)
+            "api/get_servers", servers=self._servers)
         add_server = DiscoveryAddServerView.as_view(
             "api/add_server",
-            servers=self.__servers,
+            servers=self._servers,
             server_file=self.__server_file)
         app.add_url_rule("/get_servers", "api/get_servers",
                          view_func=get_servers)
