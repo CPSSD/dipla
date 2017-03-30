@@ -285,6 +285,9 @@ class DataSource:
         # Copy the values to a new list and return it
         return list(stream)[location:]
 
+    def read_next_from_generator(stream, location):
+        return next(stream)
+
     def any_data_available(stream, location):
         return len(stream) - location > 0
 
@@ -318,9 +321,9 @@ class DataSource:
     def create_source_from_generator(
             generator,
             source_uid,
-            read_function=read_all_values,
+            read_function=read_next_from_generator,
             availability_check=any_data_available,
-            location_changer=move_by_collection_size):
+            location_changer=lambda x, y: 0):
         wrapped = DataSource._generator_wrapper(generator)
         return DataSource(source_uid, None, DataStreamer(
             wrapped, read_function, availability_check, location_changer))
