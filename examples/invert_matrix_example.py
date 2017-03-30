@@ -42,6 +42,11 @@ matrix = [
     [1, 8, 9, 10],
     [10, 11, 10, 1]
 ]
+
+if MatrixOperations.determinant(matrix) == 0:
+    print("Matrix is not invertible!")
+    sys.exit()
+
 cofactors = Dipla.get(Dipla.apply_distributable(cofactors_matrix, [[matrix]]))
 
 transposed = transpose([x for x in cofactors if len(x) > 0])
