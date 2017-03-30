@@ -21,6 +21,8 @@ class DiscoveryGetServersView(View):
         with self.__servers_lock:
             for key in self.__servers:
                 server = self.__servers[key]
+                if not server.alive:
+                    continue
                 server_list.append({
                     'address': server.address,
                     'title': server.title,
@@ -57,7 +59,8 @@ class DiscoveryAddServerView(MethodView):
             abort(400)
         project = Project(request.form['address'],
                           request.form['title'],
-                          request.form['description'])
+                          request.form['description'],
+                          alive=True)
         with self.__servers_lock:
             if project.address in self.__servers.keys():
                 abort(409)
@@ -84,14 +87,12 @@ class ProjectStatusChecker(threading.Thread):
             return None
 
     def _check_project(self, project):
+        """Return True if a websocket connection to the given
+        project is accepted, and False oherwise."""
         loop = asyncio.get_event_loop()
         websocket = loop.run_until_complete(
                 self._websocket_connect(project.address))
-        print('trying', project.address)
-        if websocket is None:
-            print ('not online')
-        else:
-            print ('all g')
+        return websocket is not None
 
     def run(self):
         loop = asyncio.new_event_loop()
@@ -102,8 +103,10 @@ class ProjectStatusChecker(threading.Thread):
                 if len(self.__servers) > 0:
                     keys = list(self.__servers.keys())
                     i = (i+1) % len(keys)
-                    proj = self.__servers[keys[i]]
-                    self._check_project(proj)
+                    k = keys[i]
+                    proj = self.__servers[k]
+                    alive = self._check_project(proj)
+                    servers[k].alive = alive
             time.sleep(self.__poll_time)
 
 
@@ -144,7 +147,8 @@ class DiscoveryServer:
                     data = json.loads(line)
                     project = Project(data['address'],
                                       data['title'],
-                                      data['description'])
+                                      data['description'],
+                                      alive=False)
                     self._servers[project.address] = project
 
         self.__servers_lock = Lock()

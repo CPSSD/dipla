@@ -42,10 +42,21 @@ class DiscoveryTest(unittest.TestCase):
         self.assertEqual(0, len(data["servers"]))
 
         address = "http://example.com:1234"
-        self.servers[address] = Project(address, None, None)
+        self.servers[address] = Project(address, None, None, True)
         response = self.app.get("/get_servers")
         data = json.loads(response.data.decode())
         self.assertEqual(1, len(data["servers"]))
+
+    def test_get_servers_doesnt_give_offline_servers(self):
+        response = self.app.get("/get_servers")
+        data = json.loads(response.data.decode())
+        self.assertEqual(0, len(data["servers"]))
+
+        address = "http://example.com:1234"
+        self.servers[address] = Project(address, None, None, False)
+        response = self.app.get("/get_servers")
+        data = json.loads(response.data.decode())
+        self.assertEqual(0, len(data["servers"]))
 
     def test_add_server(self):
         self.assertEqual(0, len(self.servers))
