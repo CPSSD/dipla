@@ -1,4 +1,3 @@
-import functools
 from os.path import abspath
 import sys
 sys.path.append(abspath('../dipla'))
@@ -30,16 +29,13 @@ def count_word_on_web_page(url):
 
 
 def main():
-
     word_count_promise = Dipla.apply_distributable(
         count_word_on_web_page,
         generate_urls()
     )
-
     word_counts = [int(s) for s in Dipla.get(word_count_promise)]
-    print(word_counts)
-    # total_word_count = sum(word_counts)
-    # print(total_word_count)
+    total_word_count = sum(word_counts)
+    print(total_word_count)
 
 
 if __name__ == '__main__':
