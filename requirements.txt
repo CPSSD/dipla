@@ -3,4 +3,3 @@ pep8==1.7.0
 websockets==3.2
 flask==0.12
 dill==0.2.6
-beautifulsoup4==4.5.3

@@ -14,14 +14,12 @@ def generate_urls():
 @Dipla.distributable()
 def count_word_on_web_page(url):
     try:
-        import bs4 as bs
         import re
         file = open(url, 'rt')
         raw_page = file.read()
         file.close()
-        soup = bs.BeautifulSoup(raw_page, 'html.parser')
         pattern = re.compile('primes'.lower())
-        all_matches = pattern.findall(soup.text.lower())
+        all_matches = pattern.findall(raw_page.lower())
         answer = len(all_matches) if all_matches is not None else 0
         return answer
     except Exception as e:
