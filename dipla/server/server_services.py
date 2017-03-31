@@ -148,12 +148,11 @@ class ServerServices:
                 if signal not in task_signals:
                     continue
                 for values in message_signals[signal]:
-                    task_signals[signal](task_uid, json.loads(values))
+                    task_signals[signal](task_uid, values)
             server.distribute_tasks()
 
         # TODO remove results if not verified
         for result in results:
-            print("adding result for", task_id, result)
             server.task_queue.add_result(task_id, result)
 
         # We need to send verify_inputs before returning the worker so

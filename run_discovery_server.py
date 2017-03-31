@@ -12,6 +12,12 @@ if __name__ == '__main__':
                         type=int,
                         default=8766,
                         help="The port of the server (default=8766)")
+    parser.add_argument('--file',
+                        type=str,
+                        default=None,
+                        help="A file to load a list of servers from at" +\
+                             "boot time, and save new servers to as" +\
+                             "they are received.")
     args = parser.parse_args()
-    app = DiscoveryServer(host=args.host, port=args.port)
+    app = DiscoveryServer(host=args.host, port=args.port, server_file=args.file)
     app.start()
