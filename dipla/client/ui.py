@@ -170,6 +170,9 @@ class DiplaClientUI:
             sticky='n')
 
     def _open_discovery_server_dialog(self):
+        if self._discovery_server_ui is not None:
+            # already have one open
+            return
         def discovery_ui_callback(project):
             if project is None:
                 return
@@ -186,6 +189,7 @@ class DiplaClientUI:
             port_entry.insert(0, project_port)
 
         dialog = DiscoveryServerDialog(discovery_ui_callback)
+        self._discovery_server_ui = dialog
 
     def _draw_stats_frame(self):
         # Add the statistics frame
