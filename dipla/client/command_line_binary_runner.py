@@ -49,6 +49,7 @@ class CommandLineBinaryRunner(object):
             shell=False
         )
         process_output = process.communicate(None)[0]
+        print('Process output: {}'.format(process_output))
         return process_output.strip().decode()
 
 
