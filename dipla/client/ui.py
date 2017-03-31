@@ -1,7 +1,9 @@
 import tkinter
+import json
 import multiprocessing
 import sys
 
+from urllib import request
 from tkinter import ttk
 from dipla.client.client import Client
 from dipla.shared.statistics import StatisticsReader
@@ -297,7 +299,21 @@ class DiscoveryServerDialog:
         self.selected = tuple()
         self._draw_pane()
 
-    def _choose_button_callback(self):
+    def _choose_server_callback(self):
+        address = self.server_address_label.get() + '/get_servers'
+        try:
+            content = request.urlopen(address).read().decode('utf-8')
+            data = json.loads(content)
+            if not data['success']:
+                raise RuntimeError('Discovery server error: ' + data['error'])
+            for server in data['servers']:
+                print(server)
+                self._display_list.insert(tkinter.END, server['title'] + ' (' + server['address'] + ')')
+            self._choose_project_button.configure(state='active')
+        except Exception as e:
+            print(e)
+
+    def _choose_project_callback(self):
         print('chosen')
         self.die()
 
@@ -307,19 +323,28 @@ class DiscoveryServerDialog:
         self._pane.resizable(0,0)
         self._pane.bind('<Escape>', self.die)
         self._pane.protocol('WM_DELETE_WINDOW', self.die)
+        server_choice_frame = tkinter.Frame(self._pane)
+        server_choice_frame.pack()
+        self.server_address_label = tkinter.Entry(server_choice_frame)
+        self.server_address_label.pack(side=tkinter.LEFT)
+        server_go_button = tkinter.Button(server_choice_frame,
+                                          text="Get Project List",
+                                          command=self._choose_server_callback)
+        server_go_button.pack()
         list_frame = tkinter.Frame(self._pane)
-        list_frame.pack()
+        list_frame.pack(expand=True, fill=tkinter.BOTH)
         scrollbar = tkinter.Scrollbar(list_frame)
         scrollbar.pack(side=tkinter.RIGHT, fill=tkinter.Y)
-        display_list = tkinter.Listbox(list_frame, yscrollcommand=scrollbar.set)
+        self._display_list = tkinter.Listbox(list_frame,
+                                             yscrollcommand=scrollbar.set)
 
         for line in range(100):
-            display_list.insert(tkinter.END, 'hiya, line ' + str(line))
+            pass#display_list.insert(tkinter.END, 'hiya, line ' + str(line))
 
-        display_list.pack(side=tkinter.LEFT, fill=tkinter.BOTH)
-        scrollbar.config(command=display_list.yview)
-        button = tkinter.Button(self._pane, text="Choose this server", command=self._choose_button_callback)
-        button.pack()
+        self._display_list.pack(side=tkinter.LEFT, expand=True, fill=tkinter.BOTH)
+        scrollbar.config(command=self._display_list.yview)
+        self._choose_project_button = tkinter.Button(self._pane, text="Choose This Project", command=self._choose_project_callback, state='disabled')
+        self._choose_project_button.pack()
 
     def die(self):
         if self._destroyed:
