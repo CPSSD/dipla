@@ -173,6 +173,7 @@ class DiplaClientUI:
         if self._discovery_server_ui is not None:
             # already have one open
             return
+
         def discovery_ui_callback(project):
             if project is None:
                 return
