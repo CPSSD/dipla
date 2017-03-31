@@ -22,6 +22,7 @@ class DiplaClientUI:
 
         self._default_config = config
         self._configs = {}
+        self._discovery_server_ui = None
 
         self._client_creator = client_creator
         self._client_processes = {}
@@ -32,6 +33,8 @@ class DiplaClientUI:
         for process in self._client_processes.values():
             if process:
                 process.terminate()
+        if self._discovery_server_ui is not None:
+            self._discovery_server_ui.die()
         self._root.destroy()
 
     def _reset_stats(self):
@@ -63,6 +66,7 @@ class DiplaClientUI:
         self._draw_client_selection()
         self._draw_config_options()
         self._draw_stats_frame()
+        self._discovery_server_ui = DiscoveryServerDialog(self._root)
 
     def _draw_client_selection(self):
         self._selected_client = tkinter.StringVar(self._root, '')
@@ -284,3 +288,41 @@ class DiplaClientUI:
 
     def run(self):
         self._root.mainloop()
+
+class DiscoveryServerDialog:
+
+    def __init__(self, root):
+        self._root = root
+        self._destroyed = False
+        self.selected = tuple()
+        self._draw_pane()
+
+    def _choose_button_callback(self):
+        print('chosen')
+        self.die()
+
+    def _draw_pane(self):
+        self._pane = tkinter.Tk()
+        self._pane.title("Add project from discovery server")
+        self._pane.resizable(0,0)
+        self._pane.bind('<Escape>', self.die)
+        self._pane.protocol('WM_DELETE_WINDOW', self.die)
+        list_frame = tkinter.Frame(self._pane)
+        list_frame.pack()
+        scrollbar = tkinter.Scrollbar(list_frame)
+        scrollbar.pack(side=tkinter.RIGHT, fill=tkinter.Y)
+        display_list = tkinter.Listbox(list_frame, yscrollcommand=scrollbar.set)
+
+        for line in range(100):
+            display_list.insert(tkinter.END, 'hiya, line ' + str(line))
+
+        display_list.pack(side=tkinter.LEFT, fill=tkinter.BOTH)
+        scrollbar.config(command=display_list.yview)
+        button = tkinter.Button(self._pane, text="Choose this server", command=self._choose_button_callback)
+        button.pack()
+
+    def die(self):
+        if self._destroyed:
+            return
+        self._destroyed = True
+        self._pane.destroy()
