@@ -68,7 +68,6 @@ class DiplaClientUI:
         self._draw_client_selection()
         self._draw_config_options()
         self._draw_stats_frame()
-        self._discovery_server_ui = DiscoveryServerDialog(self._root)
 
     def _draw_client_selection(self):
         self._selected_client = tkinter.StringVar(self._root, '')
@@ -146,6 +145,18 @@ class DiplaClientUI:
                 column=1, row=row,
                 padx=5, pady=5)
 
+        # Add the button to open the discovery server dialog
+        self._discovery_button = tkinter.Button(
+            master=self._root,
+            text="Load Discovery Server",
+            command=self._open_discovery_server_dialog,
+            state='disabled')
+        self._discovery_button.grid(
+            row=len(self._default_config.config_types) + 2, column=0,
+            columnspan=1,
+            padx=5, pady=5,
+            sticky='n')
+
         # Finally add the button for starting and stopping the client
         self._toggle_button = tkinter.Button(
             master=self._root,
@@ -153,10 +164,28 @@ class DiplaClientUI:
             command=self._toggle_run_client,
             state='disabled')
         self._toggle_button.grid(
-            row=len(self._default_config.config_types) + 2, column=0,
-            columnspan=2,
+            row=len(self._default_config.config_types) + 2, column=1,
+            columnspan=1,
             padx=5, pady=5,
             sticky='n')
+
+    def _open_discovery_server_dialog(self):
+        def discovery_ui_callback(project):
+            if project is None:
+                return
+            d = project['address'].rfind(':')
+            project_ip = project['address'][:d]
+            project_port = project['address'][d+1:]
+            ip_entry = self._option_vars['server_ip']
+            ip_entry.configure(state='normal')
+            ip_entry.delete(0, 'end')
+            ip_entry.insert(0, project_ip)
+            port_entry = self._option_vars['server_port']
+            port_entry.configure(state='normal')
+            port_entry.delete(0, 'end')
+            port_entry.insert(0, project_port)
+
+        dialog = DiscoveryServerDialog(discovery_ui_callback)
 
     def _draw_stats_frame(self):
         # Add the statistics frame
@@ -197,6 +226,7 @@ class DiplaClientUI:
         self._rem_client_button.configure(state=state)
         self._client_selector.configure(state=state)
         self._toggle_button.configure(state=state)
+        self._discovery_button.configure(state=state)
         for option in self._default_config.config_types:
             self._option_labels[option].configure(state=state)
             self._option_vars[option].configure(state=state)
@@ -291,38 +321,63 @@ class DiplaClientUI:
     def run(self):
         self._root.mainloop()
 
+
 class DiscoveryServerDialog:
 
-    def __init__(self, root):
-        self._root = root
+    def __init__(self, callback):
+        """Callback is the function that should be called when the
+        user has chosen a project through this dialog."""
+        self._callback = callback
         self._destroyed = False
-        self.selected = tuple()
+        self._projects = []
         self._draw_pane()
 
     def _choose_server_callback(self):
+        # The function to be run when the "load discovery server" button
+        # is clicked.
         address = self.server_address_label.get() + '/get_servers'
         try:
             content = request.urlopen(address).read().decode('utf-8')
             data = json.loads(content)
+
             if not data['success']:
                 raise RuntimeError('Discovery server error: ' + data['error'])
+
+            self._projects = data['servers']
+            # delete all of the previously listed projects
+            self._display_list.delete(0, last='end')
             for server in data['servers']:
-                print(server)
-                self._display_list.insert(tkinter.END, server['title'] + ' (' + server['address'] + ')')
+                self._display_list.insert(
+                    tkinter.END,
+                    server['title'] + ' (' + server['address'] + ')')
             self._choose_project_button.configure(state='active')
         except Exception as e:
             print(e)
 
     def _choose_project_callback(self):
-        print('chosen')
+        # The function to be run when the "I've chosen a project" button
+        # is clicked.
+        indexes = self._display_list.curselection()
+        if len(indexes) == 0:
+            print('Nothing selected')
+            return
+        index = indexes[0]
+        if index < 0 or index >= len(self._projects):
+            print('Selection out of bounds')
+            return
+        self._callback(self._projects[index])
         self.die()
 
     def _draw_pane(self):
+        # Set up the window
         self._pane = tkinter.Tk()
         self._pane.title("Add project from discovery server")
-        self._pane.resizable(0,0)
+        self._pane.resizable(0, 0)
         self._pane.bind('<Escape>', self.die)
         self._pane.protocol('WM_DELETE_WINDOW', self.die)
+
+        # This frame will hold the server address entry box and the
+        # button to click to load the projects from that server.
         server_choice_frame = tkinter.Frame(self._pane)
         server_choice_frame.pack()
         self.server_address_label = tkinter.Entry(server_choice_frame)
@@ -331,6 +386,8 @@ class DiscoveryServerDialog:
                                           text="Get Project List",
                                           command=self._choose_server_callback)
         server_go_button.pack()
+
+        # This frame will hold the scrollable list of projects.
         list_frame = tkinter.Frame(self._pane)
         list_frame.pack(expand=True, fill=tkinter.BOTH)
         scrollbar = tkinter.Scrollbar(list_frame)
@@ -338,16 +395,23 @@ class DiscoveryServerDialog:
         self._display_list = tkinter.Listbox(list_frame,
                                              yscrollcommand=scrollbar.set)
 
-        for line in range(100):
-            pass#display_list.insert(tkinter.END, 'hiya, line ' + str(line))
-
-        self._display_list.pack(side=tkinter.LEFT, expand=True, fill=tkinter.BOTH)
+        self._display_list.pack(side=tkinter.LEFT,
+                                expand=True,
+                                fill=tkinter.BOTH)
         scrollbar.config(command=self._display_list.yview)
-        self._choose_project_button = tkinter.Button(self._pane, text="Choose This Project", command=self._choose_project_callback, state='disabled')
+
+        # Finally, a "go" button at the end.
+        self._choose_project_button = tkinter.Button(
+            self._pane,
+            text="Choose This Project",
+            command=self._choose_project_callback,
+            state='disabled')
         self._choose_project_button.pack()
 
     def die(self):
         if self._destroyed:
+            # check if this dialog has already been closed,
+            # before being killed when the main window is killed.
             return
         self._destroyed = True
         self._pane.destroy()
