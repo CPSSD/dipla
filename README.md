@@ -28,7 +28,7 @@ You can view the user manual for using the Dipla API [here](docs/user_facing_api
 
 4. Activate your virtual environment: `source venv/bin/activate`
 
-5. Install the project dependencies: `pip install --upgrade -r requirements.txt`
+5. Install the project dependencies: `pip3 install --upgrade -r requirements.txt`
 
 You can now write code for the project!
 
