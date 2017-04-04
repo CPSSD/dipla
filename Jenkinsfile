@@ -37,6 +37,7 @@ node {
       }
   
       stage ('Install pip dependencies') {
+        sh 'python3.5 -m easy_install pip'
         sh 'python3.5 -m pip install --upgrade -r requirements.txt'
       }
   
