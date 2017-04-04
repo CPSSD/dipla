@@ -9,6 +9,7 @@ from dipla.shared.logutils import LogUtils
 from dipla.shared.statistics import StatisticsUpdater
 import sys
 import argparse
+import multiprocessing
 from logging import FileHandler
 
 TK_AVAILABLE = True
@@ -22,6 +23,8 @@ def main(argv):
     parser = argparse.ArgumentParser(description="Start a Dipla client.")
     parser.add_argument('-c', default='', dest='config_path',
                         help="Optional path to a JSON config file")
+    parser.add_argument('--cores', default=1, dest='cores', type=int,
+                        help="Number of concurent clients to run")
     parser.add_argument('--ui', action="store_true",
                         help="Use the Dipla Client UI")
     args = parser.parse_args()
@@ -41,8 +44,28 @@ def main(argv):
             stats_creator=create_default_client_stats)
         ui.run()
     else:
+        run_n_clients(args.cores, config)
+
+def run_n_clients(n, config):
+    if n < 1:
+        raise Exception('Number of clients must be greater than 1')
+    elif n > multiprocessing.cpu_count():
+        raise Exception('Number of clients must not exceed number of CPUs')
+    processes = []
+    for i in range(n):
         stats = create_default_client_stats()
-        create_and_run_client(config, stats)
+        process = multiprocessing.Process(
+            target=create_and_run_client,
+            args=(config.copy(), stats)
+            )
+        # Each process isn't explicitly run on different cores but they
+        # will almost certainly be balanced that way by the system
+        process.start()
+        processes.append(process)
+
+    # Join each, one after the other, waiting until all are done to exit
+    for proc in processes:
+        proc.join()
 
 def create_default_client_stats():
     return {
