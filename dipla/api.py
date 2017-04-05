@@ -1,5 +1,5 @@
 import json
-from threading import Thread
+from multiprocessing import Process
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
@@ -10,6 +10,8 @@ from dipla.server.result_verifier import ResultVerifier
 from dipla.server.server import BinaryManager, Server, ServerServices
 from dipla.server.task_queue import TaskQueue, Task, DataSource, MachineType
 from dipla.shared import uid_generator, statistics
+from dipla.client.client_factory import ClientFactory
+from dipla.client.config_handler import ConfigHandler
 
 
 class Dipla:
@@ -302,7 +304,17 @@ class Dipla:
         return BinaryManager()
 
     @staticmethod
-    def get(promise):
+    def _start_client_thread():
+        config = ConfigHandler()
+        proc = Process(
+            target=ClientFactory.create_and_run_client,
+            args=(config,)
+        )
+        proc.start()
+        return proc
+
+    @staticmethod
+    def get(promise, run_on_server=False):
         task_uid = Dipla._generate_task_id()
 
         # Get function is given a complete function so that the server
@@ -340,7 +352,13 @@ class Dipla:
                 Dipla.stat_updater),
             result_verifier=Dipla.result_verifier,
             stats=Dipla.stat_updater)
-        server.start(password=Dipla._password)
+
+        if run_on_server:
+            client = Dipla._start_client_thread()
+            server.start(password=Dipla._password)
+            client.terminate()
+        else:
+            server.start(password=Dipla._password)
 
         return get_task.task_output
 
