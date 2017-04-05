@@ -306,6 +306,8 @@ class Dipla:
     @staticmethod
     def _start_client_thread():
         config = ConfigHandler()
+        if Dipla._password:
+            config.add_param('password', Dipla._password)
         proc = Process(
             target=ClientFactory.create_and_run_client,
             args=(config,)
