@@ -24,7 +24,7 @@ def main(argv):
     parser.add_argument('-c', default='', dest='config_path',
                         help="Optional path to a JSON config file")
     parser.add_argument('--cores', default=1, dest='cores', type=int,
-                        help="Number of concurent clients to run")
+                        help="Number of concurrent clients to run")
     parser.add_argument('--ui', action="store_true",
                         help="Use the Dipla Client UI")
     args = parser.parse_args()
