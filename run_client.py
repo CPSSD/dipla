@@ -48,7 +48,7 @@ def main(argv):
 
 def run_n_clients(n, config):
     if n < 1:
-        raise Exception('Number of clients must be greater than 1')
+        raise Exception('Number of clients must be at least 1')
     elif n > multiprocessing.cpu_count():
         raise Exception('Number of clients must not exceed number of CPUs')
     processes = []
@@ -63,7 +63,8 @@ def run_n_clients(n, config):
         process.start()
         processes.append(process)
 
-    # Join each, one after the other, waiting until all are done to exit
+    # Join each thread, this function only returns once all the threads have
+    # exited.
     for proc in processes:
         proc.join()
 
