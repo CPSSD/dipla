@@ -14,6 +14,8 @@ def main(argv):
     parser = argparse.ArgumentParser(description="Start a Dipla client.")
     parser.add_argument('-c', default='', dest='config_path',
                         help="Optional path to a JSON config file")
+    parser.add_argument('--cores', default=1, dest='cores', type=int,
+                        help="Number of concurrent clients to run")
     parser.add_argument('--ui', action="store_true",
                         help="Use the Dipla Client UI")
     args = parser.parse_args()
@@ -33,7 +35,7 @@ def main(argv):
             stats_creator=ClientFactory.create_default_client_stats)
         ui.run()
     else:
-        ClientFactory.create_and_run_client(config)
+        ClientFactory.run_n_clients(args.cores, config)
 
 if __name__ == '__main__':
     main(sys.argv)

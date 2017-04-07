@@ -7,9 +7,33 @@ from dipla.client.command_line_binary_runner import CommandLineBinaryRunner
 from dipla.shared.logutils import LogUtils
 from dipla.shared.statistics import StatisticsUpdater
 from logging import FileHandler
+import multiprocessing
 
 
 class ClientFactory:
+
+    @staticmethod
+    def run_n_clients(n, config):
+        if n < 1:
+            raise Exception('Number of clients must be at least 1')
+        elif n > multiprocessing.cpu_count():
+            raise Exception('Number of clients must not exceed number of CPUs')
+        processes = []
+        for i in range(n):
+            stats = ClientFactory.create_default_client_stats()
+            process = multiprocessing.Process(
+                target=ClientFactory.create_and_run_client,
+                args=(config.copy(), stats)
+                )
+            # Each process isn't explicitly run on different cores but they
+            # will almost certainly be balanced that way by the system
+            process.start()
+            processes.append(process)
+
+        # Join each thread, this function only returns once all the threads
+        # have exited.
+        for proc in processes:
+            proc.join()
 
     @staticmethod
     def create_default_client_stats():
