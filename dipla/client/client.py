@@ -34,7 +34,7 @@ class Client(object):
         # need to be passed into all of the ClientServices.
         self.services = services
 
-    def send(self, message):
+    def _json_message(self, message):
         """Send a message to the server.
 
         message, dict: the message to be sent, a dict with a 'label' field
@@ -47,10 +47,10 @@ class Client(object):
         json_message = json.dumps(message)
 
         # run the coroutine to send the message
-        asyncio.ensure_future(self._send_async(json_message))
         self._stats_updater.increment('messages_sent')
+        return json_message
 
-    def send_error(self, details, code):
+    def _make_error_message(self, details, code):
         """Send an error to the server.
 
         details, str: the error message.
@@ -60,7 +60,7 @@ class Client(object):
             'code': code
         }
         message = generate_message('runtime_error', data)
-        self.send(message)
+        return self._json_message(message)
 
     async def _send_async(self, message):
         """Asynchronous task for sending a message to the server.
@@ -73,13 +73,18 @@ class Client(object):
         try:
             while True:
                 message = await self.websocket.recv()
-                try:
-                    self._handle(message)
-                    self._stats_updater.increment('requests_resolved')
-                except ServiceError as e:
-                    self.send_error(str(e), e.code)
+                resp = self._safe_handle(message)
+                if resp:
+                    await self._send_async(resp)
+                self._stats_updater.increment('requests_resolved')
         except websockets.exceptions.ConnectionClosed:
             LogUtils.warning("Connection closed.")
+
+    def _safe_handle(self, raw_message):
+        try:
+            return self._handle(raw_message)
+        except ServiceError as e:
+            return self._make_error_message(str(e), e.code)
 
     def _handle(self, raw_message):
         """Do something with a message received from the server.
@@ -98,11 +103,11 @@ class Client(object):
         time_taken_to_process = finished_processing_at - started_processing_at
         self._stats_updater.adjust('processing_time', time_taken_to_process)
 
+        self._stats_updater.increment('tasks_done')
         if result_message is not None:
             # send the client_result back to the server
-            self.send(result_message)
-
-        self._stats_updater.increment('tasks_done')
+            return self._json_message(result_message)
+        return None
 
     def _run_service(self, label, data):
         try:
@@ -153,14 +158,18 @@ class Client(object):
                 'Could not connect to server after %d tries' %
                 self.connect_tries_limit)
             return
+
         receive_task = asyncio.ensure_future(self.receive_loop())
-        self._stats_updater.overwrite('running', True)
+
         data = {
             'platform': self._get_platform(),
             'quality': self._get_quality(),
         }
         if password != '':
             data['password'] = password
-        self.send(generate_message('get_binaries', data))
+        get_binaries_future = asyncio.ensure_future(
+            self._send_async(
+                self._json_message(generate_message('get_binaries', data))))
 
+        self._stats_updater.overwrite('running', True)
         loop.run_until_complete(receive_task)
