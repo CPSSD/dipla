@@ -34,24 +34,8 @@ class Client(object):
         # need to be passed into all of the ClientServices.
         self.services = services
 
-    def _json_message(self, message):
-        """Send a message to the server.
-
-        message, dict: the message to be sent, a dict with a 'label' field
-            and a 'data' field"""
-        if not ('label' in message and 'data' in message):
-            raise ValueError(
-                'Missing label or data field in message %s.' % message)
-
-        LogUtils.debug('Sending message: %s.' % message)
-        json_message = json.dumps(message)
-
-        # run the coroutine to send the message
-        self._stats_updater.increment('messages_sent')
-        return json_message
-
     def _make_error_message(self, details, code):
-        """Send an error to the server.
+        """Returns an error message for the server.
 
         details, str: the error message.
         code, int: the error code."""
@@ -59,17 +43,23 @@ class Client(object):
             'details': details,
             'code': code
         }
-        message = generate_message('runtime_error', data)
-        return self._json_message(message)
+        return generate_message('runtime_error', data)
 
     async def _send_async(self, message):
         """Asynchronous task for sending a message to the server.
 
-        message, string: the message to be sent"""
-        await self.websocket.send(message)
+        message, dict: the message to be sent"""
+        if not ('label' in message and 'data' in message):
+            raise ValueError(
+                'Missing label or data field in message %s.' % message)
+
+        self._stats_updater.increment('messages_sent')
+        LogUtils.debug('Sending message: %s.' % message)
+        await self.websocket.send(json.dumps(message))
 
     async def receive_loop(self):
-        """Task for handling messages received from server."""
+        """Task for handling messages received from server and
+        sending replies."""
         try:
             while True:
                 message = await self.websocket.recv()
@@ -103,11 +93,10 @@ class Client(object):
         time_taken_to_process = finished_processing_at - started_processing_at
         self._stats_updater.adjust('processing_time', time_taken_to_process)
 
+        # Return the final message, if result_message is None then nothing is
+        # sent back to the server.
         self._stats_updater.increment('tasks_done')
-        if result_message is not None:
-            # send the client_result back to the server
-            return self._json_message(result_message)
-        return None
+        return result_message
 
     def _run_service(self, label, data):
         try:
@@ -164,12 +153,10 @@ class Client(object):
         data = {
             'platform': self._get_platform(),
             'quality': self._get_quality(),
+            'password': password,
         }
-        if password != '':
-            data['password'] = password
-        get_binaries_future = asyncio.ensure_future(
-            self._send_async(
-                self._json_message(generate_message('get_binaries', data))))
+        asyncio.ensure_future(
+            self._send_async(generate_message('get_binaries', data)))
 
         self._stats_updater.overwrite('running', True)
         loop.run_until_complete(receive_task)
