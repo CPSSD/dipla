@@ -49,6 +49,9 @@ class Client(object):
         """Asynchronous task for sending a message to the server.
 
         message, dict: the message to be sent"""
+        self._stats_updater.increment('requests_resolved')
+        if not message:
+            return
         if not ('label' in message and 'data' in message):
             raise ValueError(
                 'Missing label or data field in message %s.' % message)
@@ -57,16 +60,22 @@ class Client(object):
         LogUtils.debug('Sending message: %s.' % message)
         await self.websocket.send(json.dumps(message))
 
+    async def _sending_callback(self, future):
+        """A method that acts almost as a callback, waiting for a future to
+        be ready and then sending its result."""
+        await asyncio.wait_for(future, None)
+        await self._send_async(future.result())
+
     async def receive_loop(self):
         """Task for handling messages received from server and
         sending replies."""
         try:
+            loop = asyncio.get_event_loop()
             while True:
                 message = await self.websocket.recv()
-                resp = self._safe_handle(message)
-                if resp:
-                    await self._send_async(resp)
-                self._stats_updater.increment('requests_resolved')
+                task_future = loop.run_in_executor(
+                    None, self._safe_handle, message)
+                asyncio.ensure_future(self._sending_callback(task_future))
         except websockets.exceptions.ConnectionClosed:
             LogUtils.warning("Connection closed.")
 
