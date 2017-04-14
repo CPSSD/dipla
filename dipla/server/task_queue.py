@@ -285,6 +285,10 @@ class DataSource:
         # Copy the values to a new list and return it
         return list(stream)[location:]
 
+    def read_one_value(stream, location):
+        location += 1
+        return list(stream)[location-1:location]
+
     def any_data_available(stream, location):
         return len(stream) - location > 0
 
@@ -295,7 +299,7 @@ class DataSource:
     def create_source_from_task(
             task,
             source_uid,
-            read_function=read_all_values,
+            read_function=read_one_value,
             availability_check=any_data_available,
             location_changer=move_by_collection_size):
         return DataSource(source_uid, task.uid, DataStreamer(
@@ -308,7 +312,7 @@ class DataSource:
     def create_source_from_iterable(
             iterable,
             source_uid,
-            read_function=read_all_values,
+            read_function=read_one_value,
             availability_check=any_data_available,
             location_changer=move_by_collection_size):
         return DataSource(source_uid, None, DataStreamer(
