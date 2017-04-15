@@ -204,32 +204,31 @@ class Dipla:
         return real_decorator
 
     @staticmethod
-    def chasing_distributable(count, verifier=None):
+    def chasing_distributable(count, chasers, verifier=None):
         """
         Takes a function and converts it to a binary, the binary is then
         registered with the BinaryManager. The function is returned unchanged.
 
-        This function must have parameters called `index` and `count` as
-        the last two parameters which contain integer values for the
-        current interval (index) out of the total number of intervals
-        (count) for this function
+        This function must have parameters called `last_calculated`,
+        `index` and `count` as the last three parameters which contain
+        integer values for the current interval (index) out of the
+        total number of intervals (count) for this function
 
         Each interval is dependant on the interval before it, and will
-        receive the output from the task at the interval before it
+        receive the output from the task at the interval before it as
+        the last_calculated parameter
         """
-        # If no count is supplied then count will be a function. This is
-        # not supported
-        if callable(count):
-            raise NotImplementedError(
-                "Cannot create scoped distributable without providing a count")
-
         def _create_chasing_task(sources, task_instructions):
             """
             sources are objects that can be used to create a data
             source, e.g. an iterable or another task
             """
 
-            print("Sources are", sources)
+            def read_by_consuming(collection, current_location):
+                return [collection.pop(0)]
+
+            def any_data_available(collection, current_location):
+                return len(collection) - current_location > 0
 
             def read_without_consuming(collection, current_location):
                 return collection[0]
@@ -254,9 +253,26 @@ class Dipla:
                     always_move_by_1)
 
             tasks = []
-            for i in range(count):
+            for i in range(chasers):
                 task = Dipla._create_clientside_task(task_instructions)
-                Dipla._add_sources_to_task(sources, task, create_data_source)
+                Dipla._add_sources_to_task(
+                  [[[x[i]] for x in sources]], task, create_data_source)
+
+                if i == 0:
+                    task.add_data_source(
+                        DataSource.create_source_from_iterable(
+                            [None],
+                            Dipla._generate_uid_in_list(source_uids),
+                            read_without_consuming,
+                            available_n_times,
+                            always_move_by_1))
+                else:
+                    task.add_data_source(DataSource.create_source_from_task(
+                        tasks[i-1],
+                        Dipla._generate_uid_in_list(source_uids),
+                        read_by_consuming,
+                        any_data_available,
+                        return_current_location))
 
                 task.add_data_source(DataSource.create_source_from_iterable(
                     [0],
@@ -272,7 +288,6 @@ class Dipla:
                     available_n_times,
                     always_move_by_1))
                 tasks.append(task)
-
             return tasks
 
         def real_decorator(function):
