@@ -151,7 +151,9 @@ class Client(object):
         if not self.websocket:
             LogUtils.error(
                 'Could not connect to server after %d tries' %
-                self.connect_tries_limit)
+                self.connect_tries_limit,
+                None
+            )
             return
         receive_task = asyncio.ensure_future(self.receive_loop())
         self._stats_updater.overwrite('running', True)

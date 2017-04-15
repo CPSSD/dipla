@@ -41,6 +41,7 @@ class LogUtils:
         """
         LogUtils.logger.warning(message)
 
+    @staticmethod
     def error(message, error):
         """
         Params:

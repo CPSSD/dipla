@@ -326,3 +326,14 @@ class TaskQueueTest(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             self.queue.push_task_input("foo", [[1, 2], [1, 2]])
+
+    def test_create_data_source_from_generator(self):
+        def generator():
+            yield [1, 2, 3]
+            yield [2, 3, 4]
+
+        data_source = DataSource.create_source_from_generator(
+            generator(), "foo")
+
+        self.assertEquals([1, 2, 3], data_source.data_streamer.read())
+        self.assertEquals([2, 3, 4], data_source.data_streamer.read())

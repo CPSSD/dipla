@@ -240,6 +240,7 @@ class Server:
 
     async def _send_message(self, socket, label, data):
         message = generate_message(label, data)
+        print("SENDING: {}".format(message))
         await socket.send(json.dumps(message))
 
     def send(self, socket, label, data):

@@ -285,6 +285,9 @@ class DataSource:
         # Copy the values to a new list and return it
         return list(stream)[location:]
 
+    def read_next_from_generator(stream, location):
+        return next(stream)
+
     def any_data_available(stream, location):
         return len(stream) - location > 0
 
@@ -314,6 +317,17 @@ class DataSource:
         return DataSource(source_uid, None, DataStreamer(
             iterable, read_function, availability_check, location_changer))
 
+    @staticmethod
+    def create_source_from_generator(
+            generator,
+            source_uid,
+            read_function=read_next_from_generator,
+            availability_check=any_data_available,
+            location_changer=lambda x, y: 0):
+        wrapped = DataSource._generator_wrapper(generator)
+        return DataSource(source_uid, None, DataStreamer(
+            wrapped, read_function, availability_check, location_changer))
+
     def __init__(self, source_uid, source_task_uid, data_streamer):
         """
         This is a class composed of a DataStreamer, which also contains
@@ -333,6 +347,38 @@ class DataSource:
         self.source_uid = source_uid
         self.source_task_uid = source_task_uid
         self.data_streamer = data_streamer
+
+    class _generator_wrapper:
+        def __init__(self, it):
+            self.it = it
+            self.next_values = self._get_next_values()
+
+        def __next__(self):
+            next_values = self.next_values
+            self.next_values = self._get_next_values()
+            return next_values
+
+        def has_next(self):
+            return self.next_values is not None
+
+        def _get_next_values(self):
+            try:
+                return next(self.it)
+            except StopIteration:
+                return None
+
+        def __len__(self):
+            if self.next_values is None:
+                return 0
+            return len(self.next_values)
+
+        def pop(self, index):
+            if self.next_values is None:
+                return None
+            popped = self.next_values.pop(index)
+            if len(self.next_values) == 0:
+                self.next_values = self._get_next_values()
+            return popped
 
 
 class DataStreamer:
