@@ -110,7 +110,7 @@ class Dipla:
             return data_source_creator(source, source_uids)
 
         Dipla._add_sources_to_task(sources, task, create_default_data_source)
-        return task
+        return [task]
 
     def _process_decorated_function(function, verifier=None):
         function_id = id(function)
@@ -195,10 +195,88 @@ class Dipla:
                 available_n_times,
                 always_move_by_1))
 
-            return task
+            return [task]
 
         def real_decorator(function):
             Dipla._task_creators[id(function)] = _create_scoped_task
+            Dipla._process_decorated_function(function, verifier)
+            return function
+        return real_decorator
+
+    @staticmethod
+    def chasing_distributable(count, verifier=None):
+        """
+        Takes a function and converts it to a binary, the binary is then
+        registered with the BinaryManager. The function is returned unchanged.
+
+        This function must have parameters called `index` and `count` as
+        the last two parameters which contain integer values for the
+        current interval (index) out of the total number of intervals
+        (count) for this function
+
+        Each interval is dependant on the interval before it, and will
+        receive the output from the task at the interval before it
+        """
+        # If no count is supplied then count will be a function. This is
+        # not supported
+        if callable(count):
+            raise NotImplementedError(
+                "Cannot create scoped distributable without providing a count")
+
+        def _create_chasing_task(sources, task_instructions):
+            """
+            sources are objects that can be used to create a data
+            source, e.g. an iterable or another task
+            """
+
+            print("Sources are", sources)
+
+            def read_without_consuming(collection, current_location):
+                return collection[0]
+
+            def return_current_location(collection, current_location):
+                return current_location
+
+            def available_n_times(collection, current_location):
+                return current_location < count
+
+            def always_move_by_1(collection, current_location):
+                return current_location + 1
+
+            source_uids = []
+
+            def create_data_source(source, data_source_creator):
+                return data_source_creator(
+                    source,
+                    Dipla._generate_uid_in_list(source_uids),
+                    read_without_consuming,
+                    available_n_times,
+                    always_move_by_1)
+
+            tasks = []
+            for i in range(count):
+                task = Dipla._create_clientside_task(task_instructions)
+                Dipla._add_sources_to_task(sources, task, create_data_source)
+
+                task.add_data_source(DataSource.create_source_from_iterable(
+                    [0],
+                    Dipla._generate_uid_in_list(source_uids),
+                    return_current_location,
+                    available_n_times,
+                    always_move_by_1))
+
+                task.add_data_source(DataSource.create_source_from_iterable(
+                    [count],
+                    Dipla._generate_uid_in_list(source_uids),
+                    read_without_consuming,
+                    available_n_times,
+                    always_move_by_1))
+                tasks.append(task)
+
+            return tasks
+
+        def real_decorator(function):
+            Dipla._task_creators[id(function)] = _create_chasing_task
             Dipla._process_decorated_function(function, verifier)
             return function
         return real_decorator
@@ -292,11 +370,12 @@ class Dipla:
             else:
                 raise UnsupportedInput()
         function_id = id(function)
-        task = Dipla._task_creators[function_id](args, function.__name__)
-        if function_id in Dipla._task_input_script_info:
-            task.signals = Dipla._task_input_script_info[function_id][1]
-        Dipla.task_queue.push_task(task)
-        return Promise(task.uid)
+        tasks = Dipla._task_creators[function_id](args, function.__name__)
+        for task in tasks:
+            if function_id in Dipla._task_input_script_info:
+                task.signals = Dipla._task_input_script_info[function_id][1]
+            Dipla.task_queue.push_task(task)
+        return Promise(tasks[-1].uid)
 
     def _create_binary_manager():
         return BinaryManager()
