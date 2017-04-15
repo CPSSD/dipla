@@ -55,9 +55,7 @@ grid = [
 
 # Apply a distributable function to the stream of values from
 # the above source
-bfs_result = Dipla.apply_distributable(bfs, [[grid]])
-
-out = Dipla.get(bfs_result)
+out = Dipla.apply_distributable(bfs, [[grid]]).get()
 
 u = []
 for y in out:

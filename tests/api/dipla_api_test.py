@@ -183,5 +183,40 @@ class DiplaAPITest(unittest.TestCase):
         self.mock_task_queue.push_task.assert_called_with(
             TaskWithDiscoveredSignal())
 
+    def test_apply_distributable_twice_on_same_task(self):
+        @Dipla.data_source
+        def read(input_value):
+            return input_value + " "
+
+        @Dipla.distributable()
+        def func(input_value):
+            return input_value
+
+        input_data = ["1", "2", "3", "4", "5"]
+
+        promise = Dipla.read_data_source(func, input_data)
+        result = promise.distribute(func)
+        self.assertIsNotNone(result.task_uid)
+
+    def test_apply_distributable_with_dependent_tasks(self):
+        @Dipla.data_source
+        def func1(input_value):
+            return input_value*2
+
+        @Dipla.data_source
+        def func2(input_value):
+            return input_value//2
+
+        @Dipla.distributable()
+        def add(a, b):
+            return a+b
+
+        inputs1 = [1, 2, 3, 4, 5]
+        inputs2 = [6, 7, 8, 9, 10]
+        result1 = Dipla.read_data_source(func1, inputs1)
+        result2 = Dipla.read_data_source(func2, inputs2)
+        promise = result1.distribute(add, result2)
+        self.assertIsNotNone(promise.task_uid)
+
     def tearDown(self):
         Dipla._task_creators = dict()
