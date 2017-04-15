@@ -37,7 +37,7 @@ node {
       }
   
       stage ('Install pip dependencies') {
-        sh 'python3.5 -m "pip" install --upgrade -r requirements.txt'
+        sh 'python3.5 -m pip install --upgrade -r requirements.txt'
       }
   
       stage ('Run python linter') {

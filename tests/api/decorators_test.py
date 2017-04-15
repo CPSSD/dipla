@@ -1,4 +1,6 @@
 from unittest import TestCase
+from unittest.mock import Mock, patch
+from dipla.shared import uid_generator
 from dipla.api import Dipla
 
 
@@ -19,6 +21,8 @@ class DistributableDecoratorTest(TestCase):
         self.given_a_distributable_decorator()
         self.when_it_is_applied_to_a_function()
         self.then_no_errors_are_thrown()
+        self.when_the_function_is_applied_to_data()
+        self.when_the_server_is_started()
         self.then_there_is_a_new_binary()
 
     def test_that_distributable_decorator_adds_a_verifier(self):
@@ -29,15 +33,12 @@ class DistributableDecoratorTest(TestCase):
         self.then_there_is_a_new_verifier()
 
     def given_a_binary_manager(self):
-        class MockBM:
-            def __init__(self):
-                self.regexs = []
-                self.binaries = []
+        self.binary_manager = Mock()
 
-            def add_encoded_binaries(self, regex, binary):
-                self.regexs.append(regex)
-                self.binaries.append(binary)
-        Dipla.binary_manager = MockBM()
+        def create_mock_binary_manager():
+            return self.binary_manager
+
+        Dipla._create_binary_manager = create_mock_binary_manager
 
     def given_a_result_verifier(self):
         class MockRV:
@@ -53,6 +54,10 @@ class DistributableDecoratorTest(TestCase):
     def given_a_distributable_decorator(self):
         pass
 
+    def when_the_server_is_started(self):
+        with patch('dipla.server.server.Server.start') as start_function:
+            Dipla.get(self.promised)
+
     def when_it_is_imported(self):
         self.operation = self._import_distributable_decorator
 
@@ -62,12 +67,16 @@ class DistributableDecoratorTest(TestCase):
     def when_it_is_applied_to_a_function_with_verifier(self):
         self.operation = self._apply_distributable_decorator_with_verifier
 
+    def when_the_function_is_applied_to_data(self):
+        self.promised = Dipla.apply_distributable(self.applied_distributable,
+                                                  [1, 2, 3])
+
     def then_no_errors_are_thrown(self):
         self.operation()
 
     def then_there_is_a_new_binary(self):
-        self.assertTrue(len(Dipla.binary_manager.regexs) > 0)
-        self.assertTrue(len(Dipla.binary_manager.binaries) > 0)
+        self.assertTrue(
+            len(self.binary_manager.add_encoded_binaries.mock_calls) > 0)
 
     def then_there_is_a_new_verifier(self):
         self.assertTrue(len(Dipla.result_verifier.task_names) > 0)
@@ -80,12 +89,14 @@ class DistributableDecoratorTest(TestCase):
         @Dipla.distributable()
         def foo():
             pass
+        self.applied_distributable = foo
         return foo
 
     def _apply_distributable_decorator_with_verifier(self):
         @Dipla.distributable(verifier=lambda i, o: True)
         def foo():
             pass
+        self.applied_distributable = foo
         return foo
 
 
@@ -140,6 +151,8 @@ class ScopedDistributableTest(TestCase):
         self.given_a_scoped_distributable_decorator()
         self.when_it_is_applied_to_a_function()
         self.then_no_errors_are_thrown()
+        self.when_the_function_is_applied_to_data()
+        self.when_the_server_is_started()
         self.then_there_is_a_new_binary()
 
     def test_that_distributable_decorator_adds_a_verifier(self):
@@ -154,15 +167,12 @@ class ScopedDistributableTest(TestCase):
         self.then_no_count_causes_implemented_error()
 
     def given_a_binary_manager(self):
-        class MockBM:
-            def __init__(self):
-                self.regexs = []
-                self.binaries = []
+        self.binary_manager = Mock()
 
-            def add_encoded_binaries(self, regex, binary):
-                self.regexs.append(regex)
-                self.binaries.append(binary)
-        Dipla.binary_manager = MockBM()
+        def create_mock_binary_manager():
+            return self.binary_manager
+
+        Dipla._create_binary_manager = create_mock_binary_manager
 
     def given_a_result_verifier(self):
         class MockRV:
@@ -188,16 +198,24 @@ class ScopedDistributableTest(TestCase):
         self.operation =\
             self._apply_scoped_distributable_decorator_with_verifier
 
+    def when_the_function_is_applied_to_data(self):
+        self.promised = Dipla.apply_distributable(self.applied_distributable,
+                                                  [1, 2, 3])
+
     def then_no_errors_are_thrown(self):
         self.operation()
+
+    def when_the_server_is_started(self):
+        with patch('dipla.server.server.Server.start') as start_function:
+            Dipla.get(self.promised)
 
     def then_no_count_causes_implemented_error(self):
         with self.assertRaises(NotImplementedError):
             self._apply_scoped_distributable_without_count()
 
     def then_there_is_a_new_binary(self):
-        self.assertTrue(len(Dipla.binary_manager.regexs) > 0)
-        self.assertTrue(len(Dipla.binary_manager.binaries) > 0)
+        self.assertTrue(
+            len(self.binary_manager.add_encoded_binaries.mock_calls) > 0)
 
     def then_there_is_a_new_verifier(self):
         self.assertTrue(len(Dipla.result_verifier.task_names) > 0)
@@ -210,12 +228,14 @@ class ScopedDistributableTest(TestCase):
         @Dipla.scoped_distributable(count=2)
         def foo(input_value, interval, count):
             pass
+        self.applied_distributable = foo
         return foo
 
     def _apply_scoped_distributable_decorator_with_verifier(self):
         @Dipla.scoped_distributable(count=2, verifier=lambda i, o: True)
         def foo(input_value, interval, count):
             pass
+        self.applied_distributable = foo
         return foo
 
     def _apply_scoped_distributable_without_count(self):
