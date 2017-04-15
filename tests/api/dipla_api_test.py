@@ -182,14 +182,8 @@ class DiplaAPITest(unittest.TestCase):
         self.mock_task_queue.push_task.assert_called_with(
             TaskWithDiscoveredSignal())
 
-    def test_apply_chasing_distributable_raises_error_if_no_count_supplied(self):  # nopep8
-        with self.assertRaises(NotImplementedError):
-            @Dipla.chasing_distributable
-            def func(input_value, index, count):
-                return input_value+1
-
     def test_apply_chasing_distributable_with_multiple_immediate_arguments(self):  # nopep8
-        @Dipla.chasing_distributable(count=3)
+        @Dipla.chasing_distributable(count=3, chasers=3)
         def func(input_value, interval, count):
             return input_value
 
@@ -200,28 +194,6 @@ class DiplaAPITest(unittest.TestCase):
         calls = self.mock_task_queue.push_task.mock_calls
         self.assertEqual(3, len(calls))
         self.assertEqual([call(DiplaAPITest.TaskWithNSources(4))]*3, calls)
-
-    def test_apply_chasing_distributable_with_multiple_task_arguments(self):  # nopep8
-        input_data = ["1", "2", "3", "4", "5"]
-        other_data = ["2", "3", "4", "5", "1"]
-
-        @Dipla.data_source
-        def data_source_function(input_value, interval, count):
-            return int(input_value) * 2
-
-        promised_a = Dipla.read_data_source(input_data, data_source_function)
-        promised_b = Dipla.read_data_source(other_data, data_source_function)
-
-        @Dipla.chasing_distributable(count=4)
-        def func(input_value, interval, count):
-            return input_value
-
-        promised = Dipla.apply_distributable(func, promised_a, promised_b)
-        self.assertIsNotNone(promised.task_uid)
-        # There are 2 calls from reading the data sources
-        calls = self.mock_task_queue.push_task.mock_calls[2:]
-        self.assertEqual(4, len(calls))
-        self.assertEqual([call(DiplaAPITest.TaskWithNSources(4))]*4, calls)
 
     def tearDown(self):
         Dipla._task_creators = dict()
