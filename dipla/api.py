@@ -428,7 +428,8 @@ class Promise:
         self.task_uid = promise_uid
 
     def distribute(self, function, *args):
-        return Dipla.apply_distributable(function, self, [x for x in args])
+        return Dipla.apply_distributable(
+            function, *([self] + [x for x in args]))
 
     def get(self):
         return Dipla.get(self)
