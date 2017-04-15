@@ -47,7 +47,7 @@ if MatrixOperations.determinant(matrix) == 0:
     print("Matrix is not invertible!")
     sys.exit()
 
-cofactors = Dipla.get(Dipla.apply_distributable(cofactors_matrix, [[matrix]]))
+cofactors = Dipla.apply_distributable(cofactors_matrix, [[matrix]]).get()
 
 transposed = transpose([x for x in cofactors if len(x) > 0])
 
