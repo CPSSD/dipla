@@ -317,6 +317,11 @@ class Dipla:
 
     @staticmethod
     def get(promise, run_on_server=False):
+        """Turns a promise into the immediate values by starting the server
+
+        Args:
+         - promise: Promise to get
+         - run_on_server: Start a client alongside the server for debugging"""
         task_uid = Dipla._generate_task_id()
 
         # Get function is given a complete function so that the server
