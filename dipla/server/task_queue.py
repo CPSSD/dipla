@@ -286,8 +286,7 @@ class DataSource:
         return list(stream)[location:]
 
     def read_one_value(stream, location):
-        location += 1
-        return list(stream)[location-1:location]
+        return list(stream)[location:location+1]
 
     def any_data_available(stream, location):
         return len(stream) - location > 0
@@ -295,13 +294,16 @@ class DataSource:
     def move_by_collection_size(collection, current_location):
         return current_location + len(collection)
 
+    def move_by_one(stream, current_location):
+        return current_location + 1
+
     @staticmethod
     def create_source_from_task(
             task,
             source_uid,
             read_function=read_one_value,
             availability_check=any_data_available,
-            location_changer=move_by_collection_size):
+            location_changer=move_by_one):
         return DataSource(source_uid, task.uid, DataStreamer(
             task.task_output,
             read_function,
@@ -314,7 +316,7 @@ class DataSource:
             source_uid,
             read_function=read_one_value,
             availability_check=any_data_available,
-            location_changer=move_by_collection_size):
+            location_changer=move_by_one):
         return DataSource(source_uid, None, DataStreamer(
             iterable, read_function, availability_check, location_changer))
 
