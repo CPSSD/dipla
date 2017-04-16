@@ -15,6 +15,7 @@ class APIIntegrationTest(TestCase):
         self.old_generate_uid = uid_generator.generate_uid
 
         next_id = [0]
+
         def determinable_uid_generator(length, existing_uids):
             next_id[0] = next_id[0] + 1
             return "foo_id " + str(next_id[0])
@@ -103,7 +104,8 @@ class APIIntegrationTest(TestCase):
                 [[[1, 2, 3]], [None], [2], [3]]],
             inputs)
 
-    def test_second_chaser_in_chasing_task_inputs_contain_correct_arguments(self): #nopep8
+    def test_second_chaser_in_chasing_task_inputs_contain_correct_arguments(self):  # nopep8
+
         @Dipla.chasing_distributable(count=3, chasers=2)
         def func(input_value, previously_computed, index, count):
             out = [0, 0, 0]
@@ -126,7 +128,6 @@ class APIIntegrationTest(TestCase):
         while Dipla.task_queue.has_next_input():
             popped_values = Dipla.task_queue.pop_task_input().values
             inputs.append(popped_values)
-
 
         self.assertEquals(6, len(inputs))
         self.assertEquals(
