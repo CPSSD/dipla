@@ -1,5 +1,5 @@
 import json
-from threading import Thread
+from multiprocessing import Process
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
@@ -10,6 +10,8 @@ from dipla.server.result_verifier import ResultVerifier
 from dipla.server.server import BinaryManager, Server, ServerServices
 from dipla.server.task_queue import TaskQueue, Task, DataSource, MachineType
 from dipla.shared import uid_generator, statistics
+from dipla.client.client_factory import ClientFactory
+from dipla.client.config_handler import ConfigHandler
 
 
 class Dipla:
@@ -186,36 +188,6 @@ class Dipla:
             return function
         return real_decorator
 
-    def _get_available_n_times(count):
-        def available_n_times(collection, current_location):
-            return current_location < count
-        return available_n_times
-
-    def _add_scope_parameters(task, source_uids, count):
-        task.add_data_source(DataSource.create_source_from_iterable(
-            [0],
-            Dipla._generate_uid_in_list(source_uids),
-            Dipla.return_current_location,
-            Dipla._get_available_n_times(count),
-            Dipla.always_move_by_1))
-
-        task.add_data_source(DataSource.create_source_from_iterable(
-            [count],
-            Dipla._generate_uid_in_list(source_uids),
-            Dipla.read_without_consuming,
-            Dipla._get_available_n_times(count),
-            Dipla.always_move_by_1))
-
-    def _get_scoped_data_source_creator(source_uids, count):
-        def create_data_source(source, data_source_creator):
-            return data_source_creator(
-                source,
-                Dipla._generate_uid_in_list(source_uids),
-                Dipla.read_without_consuming,
-                Dipla._get_available_n_times(count),
-                Dipla.always_move_by_1)
-        return create_data_source
-
     @staticmethod
     def chasing_distributable(count, chasers, verifier=None):
         """
@@ -373,7 +345,24 @@ class Dipla:
         return BinaryManager()
 
     @staticmethod
-    def get(promise):
+    def _start_client_thread():
+        config = ConfigHandler()
+        if Dipla._password:
+            config.add_param('password', Dipla._password)
+        proc = Process(
+            target=ClientFactory.create_and_run_client,
+            args=(config,)
+        )
+        proc.start()
+        return proc
+
+    @staticmethod
+    def get(promise, run_on_server=False):
+        """Turns a promise into the immediate values by starting the server
+
+        Args:
+         - promise: Promise to get
+         - run_on_server: Start a client alongside the server for debugging"""
         task_uid = Dipla._generate_task_id()
 
         # Get function is given a complete function so that the server
@@ -411,7 +400,13 @@ class Dipla:
                 Dipla.stat_updater),
             result_verifier=Dipla.result_verifier,
             stats=Dipla.stat_updater)
-        server.start(password=Dipla._password)
+
+        if run_on_server:
+            client = Dipla._start_client_thread()
+            server.start(password=Dipla._password)
+            client.terminate()
+        else:
+            server.start(password=Dipla._password)
 
         return get_task.task_output
 
@@ -508,11 +503,52 @@ class Dipla:
             else:
                 raise RuntimeError(error_msg.format(data['error']))
 
+    def _get_available_n_times(count):
+        def available_n_times(collection, current_location):
+            return current_location < count
+        return available_n_times
+
+    def _add_scope_parameters(task, source_uids, count):
+        task.add_data_source(DataSource.create_source_from_iterable(
+            [0],
+            Dipla._generate_uid_in_list(source_uids),
+            Dipla.return_current_location,
+            Dipla._get_available_n_times(count),
+            Dipla.always_move_by_1))
+
+        task.add_data_source(DataSource.create_source_from_iterable(
+            [count],
+            Dipla._generate_uid_in_list(source_uids),
+            Dipla.read_without_consuming,
+            Dipla._get_available_n_times(count),
+            Dipla.always_move_by_1))
+
+    def _get_scoped_data_source_creator(source_uids, count):
+        def create_data_source(source, data_source_creator):
+            return data_source_creator(
+                source,
+                Dipla._generate_uid_in_list(source_uids),
+                Dipla.read_without_consuming,
+                Dipla._get_available_n_times(count),
+                Dipla.always_move_by_1)
+        return create_data_source
+
 
 class Promise:
 
     def __init__(self, promise_uid):
         self.task_uid = promise_uid
+
+    def distribute(self, function, *args):
+        return Dipla.apply_distributable(
+            function, *([self] + [x for x in args]))
+
+    def get(self, run_on_server=False):
+        """Get the immediate value of this promise by starting the server
+
+        If run_on_server is true then a client will be started on the
+        server to help with debugging."""
+        return Dipla.get(self, run_on_server)
 
 
 class UnsupportedInput(Exception):

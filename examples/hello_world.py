@@ -41,10 +41,7 @@ data_source = Dipla.read_data_source(read_function, input_data)
 
 # Apply a distributable function to the stream of values from
 # the above source
-factor_results = Dipla.apply_distributable(get_factors,
-                                           data_source)
-
-out = Dipla.get(factor_results)
+out = data_source.distribute(get_factors).get()
 
 for o in out:
     print(o)

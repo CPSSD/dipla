@@ -21,9 +21,7 @@ def get_evens(input_value, index, count):
 
 # Apply a distributable function to the stream of values from
 # the above source
-evens_results = Dipla.apply_distributable(get_evens, [(1, 12)])
-
-out = Dipla.get(evens_results)
+out = Dipla.apply_distributable(get_evens, [(1, 12)]).get()
 
 for o in out:
     print(o)
