@@ -443,6 +443,13 @@ class Promise:
     def __init__(self, promise_uid):
         self.task_uid = promise_uid
 
+    def distribute(self, function, *args):
+        return Dipla.apply_distributable(
+            function, *([self] + [x for x in args]))
+
+    def get(self):
+        return Dipla.get(self)
+
 
 class UnsupportedInput(Exception):
     """
