@@ -90,7 +90,7 @@ class TaskQueueTest(unittest.TestCase):
         popped = self.queue.pop_task_input()
         self.assertEqual("foo", popped.task_uid)
         self.assertEqual("sample task", popped.task_instructions)
-        self.assertEqual([[1, 2, 3]], popped.values)
+        self.assertEqual([[1]], popped.values)
 
     def test_pop_task_input_using_defined_read_function(self):
         # Test reading data source using specified function
@@ -130,7 +130,7 @@ class TaskQueueTest(unittest.TestCase):
         popped = self.queue.pop_task_input()
         self.assertEqual("foobar", popped.task_uid)
         self.assertEqual("second task", popped.task_instructions)
-        self.assertEqual([[1, 2]], popped.values)
+        self.assertEqual([[1]], popped.values)
 
     def test_pop_task_with_multiple_inputs(self):
         first_task = Task("foo", "first task", MachineType.client)
