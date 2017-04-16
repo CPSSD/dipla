@@ -472,8 +472,12 @@ class Promise:
         return Dipla.apply_distributable(
             function, *([self] + [x for x in args]))
 
-    def get(self):
-        return Dipla.get(self)
+    def get(self, run_on_server=False):
+        """Get the immediate value of this promise by starting the server
+
+        If run_on_server is true then a client will be started on the
+        server to help with debugging."""
+        return Dipla.get(self, run_on_server)
 
 
 class UnsupportedInput(Exception):
