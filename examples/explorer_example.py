@@ -13,13 +13,11 @@ def add_ten(input_value, discovered):
         discovered.append(8)
     return input_value + 10
 
-added_ten = Dipla.apply_distributable(add_ten, [1, 2, 3])
-
 # The inputs of add_ten are 1, 2, 3. Since there is a 1 here, it should
 # discover another input 8. This means the output should add ten to all
 # four inputs, outputting 11, 12, 13, 18
 
-out = Dipla.get(added_ten)
+out = Dipla.apply_distributable(add_ten, [1, 2, 3]).get()
 
 for o in out:
     print(o)
