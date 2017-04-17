@@ -7,11 +7,19 @@ from dipla.api import Dipla
 
 # This tries all values to see if it can discover a block with two
 # zeroes. This is split into one hundred sections, theoretically distributing
-# a tenth of the work to each of one hundred workers
+# a one hundredth of the work to each of one hundred workers
 
 max_search = 100000
 
-@Dipla.scoped_distributable(count=(max_search//1000))
+def verify_block(inp, out):
+    from hashlib import sha256
+    for o in out:
+        correct = sha256(sha256(bytes(o)).digest()).digest()[-2:] == b'\0\0'
+        if not correct:
+            return False
+    return True
+
+@Dipla.scoped_distributable(verifier=verify_block, count=(max_search//1000))
 def find_block(input_value, index, count):
     import hashlib
     start = index*input_value//count
