@@ -5,6 +5,7 @@ from dipla.shared.services import ServiceError
 from dipla.shared.error_codes import ErrorCodes
 
 from abc import ABC, abstractmethod, abstractstaticmethod
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from base64 import b64decode
 
 
@@ -43,6 +44,7 @@ class BinaryRunnerService(ClientService):
     def __init__(self, client, binary_runner):
         super().__init__(client)
         self._binary_runner = binary_runner
+        self._pool = ThreadPoolExecutor()
 
     def execute(self, data):
         task = data["task_instructions"]
@@ -53,10 +55,26 @@ class BinaryRunnerService(ClientService):
         if task not in self._client.binary_paths:
             raise ServiceError(KeyError('Task "' + task + '" does not exist'),
                                ErrorCodes.invalid_binary_key)
-
-        results, signals = self._binary_runner.run(
+        future_res = self._pool.submit(
+            self._binary_runner.run,
             self._client.binary_paths[task],
-            data["arguments"])
+            data['arguments'])
+        # This loop checks every 1 second to see if a task has been canceled
+        # as soon as there is a result ready it moves on, so there is very
+        # little performance penalty.
+        while not future_res.done():
+            try:
+                # Wait for a result for 1 second
+                future_res.result(1)
+            except TimeoutError:
+                pass
+            if self._client.is_task_canceled(data["task_uid"]):
+                expected_results = len(data['arguments'][0])
+                results, signals = [None] * expected_results, {}
+                break
+        else:
+            # If task hasn't been canceled
+            results, signals = future_res.result()
         result_data = {
             'task_uid': data["task_uid"],
             'results': results,
@@ -132,4 +150,15 @@ class ServerErrorService(ClientService):
     def execute(self, data):
         self.logger.error('Error from server (code %d): %s' % (
             data['code'], data['details']))
+        return None
+
+
+class TerminateTaskService(ClientService):
+
+    @staticmethod
+    def get_label():
+        return 'terminate_task'
+
+    def execute(self, data):
+        self._client.mark_task_canceled(data['task_uid'])
         return None

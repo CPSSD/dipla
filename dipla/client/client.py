@@ -18,11 +18,19 @@ class Client(object):
         self._stats_updater = stats
         # the number of times to try to connect before giving up
         self.connect_tries_limit = 8
+        # Set of task UIDs that have been marked as canceled by the server
+        self._canceled_tasks = set()
         # A class to be used to assign a quality to this client
         if quality_scorer:
             self.quality_scorer = quality_scorer
         else:
             self.quality_scorer = QualityScorer()
+
+    def mark_task_canceled(self, task_uid):
+        self._canceled_tasks.add(task_uid)
+
+    def is_task_canceled(self, task_uid):
+        return task_uid in self._canceled_tasks
 
     def inject_services(self, services):
         # TODO: Refactor Client
@@ -93,7 +101,6 @@ class Client(object):
         message = json.loads(raw_message)
         if not ('label' in message and 'data' in message):
             raise ServiceError('Missing field from message: %s' % message, 4)
-
         started_processing_at = time.time()
 
         result_message = self._run_service(message["label"], message["data"])

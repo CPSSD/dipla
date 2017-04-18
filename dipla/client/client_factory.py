@@ -3,6 +3,7 @@ from dipla.client.client_services import RunInstructionsService
 from dipla.client.client_services import VerifyInputsService
 from dipla.client.client_services import BinaryReceiverService
 from dipla.client.client_services import ServerErrorService
+from dipla.client.client_services import TerminateTaskService
 from dipla.client.command_line_binary_runner import CommandLineBinaryRunner
 from dipla.shared.logutils import LogUtils
 from dipla.shared.statistics import StatisticsUpdater
@@ -73,7 +74,8 @@ class ClientFactory:
                 ClientFactory._create_verify_inputs_service(client),
             BinaryReceiverService.get_label():
                 ClientFactory._create_binary_receiver(client),
-            ServerErrorService.get_label(): ServerErrorService(client)
+            ServerErrorService.get_label(): ServerErrorService(client),
+            TerminateTaskService.get_label(): TerminateTaskService(client),
         }
         return services
 
