@@ -268,6 +268,12 @@ class Dipla:
         return Promise(task_uid)
 
     @staticmethod
+    def terminate_tasks():
+        # This is here in case someone calls Dipla.terminate_tasks() from
+        # outside a distributed function.
+        print("terminate_tasks can only be called inside a distributable")
+
+    @staticmethod
     def apply_distributable(function, *raw_args):
         """
         Takes a distributable function, and any number of further arguments
