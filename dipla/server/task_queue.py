@@ -48,7 +48,11 @@ class TaskQueue:
         """
         if item.uid is None:
             raise AttributeError("Added task to TaskQueue with no id")
-        self._nodes[item.uid] = TaskQueueNode(item)
+        if item.is_reduce:
+            print('creating reducetaskqueuenode')
+            self._nodes[item.uid] = ReduceTaskQueueNode(item, item.reduce_group_size)
+        else:
+            self._nodes[item.uid] = TaskQueueNode(item)
 
         # Add this task as a dependant of all its prerequisite tasks
         active = True
@@ -155,6 +159,18 @@ class TaskQueue:
                 "Attempted to add result for a task not present in the queue")
 
         self._nodes[task_id].task_item.add_result(result)
+        if self._nodes[task_id].task_item.is_reduce:
+            # This task has been marked as a reduce task, so outputs should be
+            # put back into the same task as an input.
+
+            print('push_task_input({}, [{}])'.format(task_id, result))
+            # self.push_task_input() expects a series of groups of inputs,
+            # (one group of inputs is the things a task needs to run once)
+            # so we must turn this single value into that format
+            args = [[result]]
+            self.push_task_input(task_id, args)
+        print('add_result continuing')
+
         if self.is_task_open(task_id):
             self.activate_new_tasks(self._nodes[task_id].dependees)
         # Check if the task is now completed
@@ -269,6 +285,44 @@ class TaskQueueNode:
         if machine_type == MachineType.any_machine:
             return True
         return machine_type == self.task_item.machine_type
+
+
+class ReduceTaskQueueNode(TaskQueueNode):
+
+    def __init__(self, task_item, reduce_group_size):
+        super().__init__(task_item)
+        self.reduce_group_size = reduce_group_size
+
+    def next_input(self):
+        if not self.dependencies[0].data_streamer.has_available_data():
+            raise DataStreamerEmpty(
+                "Attempted to read input from an empty source")
+        arguments = []
+
+        for i in range(self.reduce_group_size):
+            dependency = self.dependencies[0]
+            if not dependency.data_streamer.has_available_data():
+                break
+            argument_id = dependency.source_uid
+            arg = dependency.data_streamer.read()
+
+            print("arg:", arg)
+            arguments.append(arg[0])
+
+            # if we are not adding things one by one
+            if len(arguments) >= self.reduce_group_size:
+                break
+        print("arguments:", arguments)
+        arguments = [[arguments]]
+
+        # Not very pretty, but expect a result for every element in the args
+        self.task_item.inc_expected_results_by(len(arguments[0]))
+        return TaskInput(
+            self.task_item.uid,
+            self.task_item.instructions,
+            self.task_item.machine_type,
+            arguments,
+            signals=[x for x in self.task_item.signals])
 
 
 class DataStreamerEmpty(Exception):
@@ -461,7 +515,9 @@ class Task:
             machine_type,
             open_check=lambda x: True,
             complete_check=lambda x: False,
-            signals={}):
+            signals={},
+            is_reduce=False,
+            reduce_group_size=2):
         """
         Initalises the Task
 
@@ -492,6 +548,8 @@ class Task:
         self.uid = uid
         self.instructions = task_instructions
         self.machine_type = machine_type
+        self.is_reduce = is_reduce
+        self.reduce_group_size = reduce_group_size
         self.data_instructions = []
 
         self.open_check = open_check
