@@ -208,7 +208,7 @@ class Dipla:
     @staticmethod
     def explorer():
         def real_decorator(function):
-            def discovered_handler(task_uid, signal_inputs):
+            def discovered_handler(server, task_uid, signal_inputs):
                 Dipla.task_queue.push_task_input(task_uid, signal_inputs)
 
             signals = {
@@ -295,8 +295,12 @@ class Dipla:
                 raise UnsupportedInput()
         function_id = id(function)
         task = Dipla._task_creators[function_id](args, function.__name__)
+        # Add a TERMINATE handler
+        task.signals = {
+            'TERMINATE': lambda server, uid, _: server.terminate_task(uid)
+        }
         if function_id in Dipla._task_input_script_info:
-            task.signals = Dipla._task_input_script_info[function_id][1]
+            task.signals.update(Dipla._task_input_script_info[function_id][1])
         Dipla.task_queue.push_task(task)
         return Promise(task.uid)
 

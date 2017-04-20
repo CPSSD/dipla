@@ -242,6 +242,9 @@ class Server:
         message = generate_message(label, data)
         await socket.send(json.dumps(message))
 
+    def terminate_task(task_uid):
+        pass
+
     def send(self, socket, label, data):
         asyncio.ensure_future(self._send_message(socket, label, data))
 
