@@ -144,7 +144,9 @@ class Dipla:
         values to reduce, and registers it with the BinaryManager."""
 
         def distributable_decorator(function):
+            Dipla._process_decorated_function(function, None)
             Dipla._task_creators[id(function)] = Dipla._create_normal_task
+            print('reduce_group_size = ', reduce_group_size)
             Dipla._reduce_task_group_sizes[id(function)] = reduce_group_size
             return function
 
@@ -317,14 +319,11 @@ class Dipla:
         function_id = id(function)
         task = None
         if is_reduce:
-            print('creating reduce task')
             group_size = Dipla._reduce_task_group_sizes[id(function)]
-            print('group size =', group_size)
             task = Dipla._task_creators[function_id](args,
                                                      function.__name__,
                                                      is_reduce=True,
                                                      reduce_group_size=group_size)
-            print(args)
         else:
             task = Dipla._task_creators[function_id](args, function.__name__)
 
