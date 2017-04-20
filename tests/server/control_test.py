@@ -11,6 +11,7 @@ class ControlTest(TestCase):
         mock_server = create_mock_object(Server)
         start_server(mock_server)
         self.assertTrue(mock_server.should_distribute_tasks)
+        self.assert_called_once(mock_server.distribute_tasks)
 
     def test_stop_server(self):
         mock_exit_function = MagicMock()
