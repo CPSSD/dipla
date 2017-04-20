@@ -59,7 +59,7 @@ class BinaryRunnerService(ClientService):
             self._binary_runner.run,
             self._client.binary_paths[task],
             data['arguments'])
-        # This loop checks every 1 second to see if a task has been canceled
+        # This loop checks every 1 second to see if a task has been terminated
         # as soon as there is a result ready it moves on, so there is very
         # little performance penalty.
         while not future_res.done():
@@ -68,12 +68,12 @@ class BinaryRunnerService(ClientService):
                 future_res.result(1)
             except TimeoutError:
                 pass
-            if self._client.is_task_canceled(data["task_uid"]):
+            if self._client.is_task_terminated(data["task_uid"]):
                 expected_results = len(data['arguments'][0])
                 results, signals = [None] * expected_results, {}
                 break
         else:
-            # If task hasn't been canceled
+            # If task hasn't been terminated
             results, signals = future_res.result()
         result_data = {
             'task_uid': data["task_uid"],
@@ -160,5 +160,5 @@ class TerminateTaskService(ClientService):
         return 'terminate_task'
 
     def execute(self, data):
-        self._client.mark_task_canceled(data['task_uid'])
+        self._client.mark_task_terminated(data['task_uid'])
         return None
