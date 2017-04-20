@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Dipla Server Controller</title>
+        <script type="text/javascript" src="control.js"></script>
+    </head>
+    <body>
+        <h1>Dipla Server Controller</h1>
+        <div>
+            <h2>Connection Settings</h2>
+            <label for="server-address">Server Address:</label>
+            <input type="text" name="server-address" id="server-address" value="localhost" />
+            <br>
+            <label for="server-port">Server Port:</label>
+            <input type="text" name="server-port" id="server-port" value="8765" />
+            <br>
+            <button type="button" onclick="initialiseConnection()" id="connect">Connect to Server!</button>
+        </div>
+        <div>
+            <h2>Controls</h2>
+            <button type="button" onclick="startServer();" id="start-server" disabled="true">Start server</button>
+            <button type="button" onclick="stopServer();" id="stop-server" disabled="true">Stop server</button>
+            <p>These controls will become available once a connection has been established.</p>
+        </div>
+    </body>
+</html>

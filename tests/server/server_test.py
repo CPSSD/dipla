@@ -26,6 +26,8 @@ class ServerTest(unittest.TestCase):
                              self.worker_group,
                              stat_updater)
 
+        self.server.should_distribute_tasks = True
+
         self.sample_data_source = DataSource.create_source_from_iterable(
           [1, 2, 3, 4], "foosource")
 
@@ -54,7 +56,7 @@ class ServerTest(unittest.TestCase):
         self.task_queue.push_task(self.client_task)
 
         def mock_send(socket, label, data):
-            self.assertEquals([1, 2, 3, 4], data['arguments'][0])
+            self.assertEquals([1], data['arguments'][0])
         self.server.send = mock_send
 
         self.server.distribute_tasks()
