@@ -177,6 +177,8 @@ class TaskQueue:
             # Check to see if the task still needs to wait on anything
             can_activate = True
             for dependency in self._nodes[task_id].dependencies:
+                if dependency.source_task_uid is None:
+                    continue
                 if not self.is_task_open(dependency.source_task_uid):
                     can_activate = False
                     break
