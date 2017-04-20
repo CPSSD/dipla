@@ -64,19 +64,19 @@ class Dipla:
     def stream_not_empty(stream, location):
         return len(stream) > 0
 
-    def read_without_consuming(collection, current_location):
+    def _read_without_consuming(collection, current_location):
         return collection[0]
 
-    def return_current_location(collection, current_location):
+    def _return_current_location(collection, current_location):
         return current_location
 
-    def always_move_by_1(collection, current_location):
+    def _always_move_by_1(collection, current_location):
         return current_location + 1
 
-    def read_by_consuming(collection, current_location):
+    def _read_by_consuming(collection, current_location):
         return [collection.pop(0)]
 
-    def any_data_available(collection, current_location):
+    def _any_data_available(collection, current_location):
         return len(collection) - current_location > 0
 
     def _create_clientside_task(task_instructions):
@@ -224,16 +224,16 @@ class Dipla:
                         DataSource.create_source_from_iterable(
                             [None],
                             Dipla._generate_uid_in_list(source_uids),
-                            Dipla.read_without_consuming,
+                            Dipla._read_without_consuming,
                             Dipla._get_available_n_times(count),
-                            Dipla.always_move_by_1))
+                            Dipla._always_move_by_1))
                 else:
                     task.add_data_source(DataSource.create_source_from_task(
                         tasks[i-1],
                         Dipla._generate_uid_in_list(source_uids),
-                        Dipla.read_by_consuming,
-                        Dipla.any_data_available,
-                        Dipla.return_current_location))
+                        Dipla._read_by_consuming,
+                        Dipla._any_data_available,
+                        Dipla._return_current_location))
 
                 Dipla._add_scope_parameters(task, source_uids, count)
                 tasks.append(task)
@@ -512,25 +512,25 @@ class Dipla:
         task.add_data_source(DataSource.create_source_from_iterable(
             [0],
             Dipla._generate_uid_in_list(source_uids),
-            Dipla.return_current_location,
+            Dipla._return_current_location,
             Dipla._get_available_n_times(count),
-            Dipla.always_move_by_1))
+            Dipla._always_move_by_1))
 
         task.add_data_source(DataSource.create_source_from_iterable(
             [count],
             Dipla._generate_uid_in_list(source_uids),
-            Dipla.read_without_consuming,
+            Dipla._read_without_consuming,
             Dipla._get_available_n_times(count),
-            Dipla.always_move_by_1))
+            Dipla._always_move_by_1))
 
     def _get_scoped_data_source_creator(source_uids, count):
         def create_data_source(source, data_source_creator):
             return data_source_creator(
                 source,
                 Dipla._generate_uid_in_list(source_uids),
-                Dipla.read_without_consuming,
+                Dipla._read_without_consuming,
                 Dipla._get_available_n_times(count),
-                Dipla.always_move_by_1)
+                Dipla._always_move_by_1)
         return create_data_source
 
 
