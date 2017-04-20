@@ -49,7 +49,8 @@ class TaskQueue:
         if item.uid is None:
             raise AttributeError("Added task to TaskQueue with no id")
         if item.is_reduce:
-            self._nodes[item.uid] = ReduceTaskQueueNode(item, item.reduce_group_size)
+            group_size = item.reduce_group_size
+            self._nodes[item.uid] = ReduceTaskQueueNode(item, group_size)
         else:
             self._nodes[item.uid] = TaskQueueNode(item)
 
