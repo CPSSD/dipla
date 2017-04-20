@@ -44,6 +44,8 @@ It can be run with `python3 -m pydoc dipla/server/task_queue.py` where `task_que
 
 * Remember to deactivate the virtual environment when you're done using `deactivate`
 
+* Remember to run `./tests/example_binaries/build_binaries.sh` before running the tests
+
 ## Running the tests
 
 You can run all the tests with: `nosetests`
