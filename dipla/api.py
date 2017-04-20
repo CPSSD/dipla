@@ -46,7 +46,8 @@ class Dipla:
 
     _use_control_webpage = False
 
-    def use_control_webpage(self):
+    @staticmethod
+    def use_control_webpage():
         Dipla._use_control_webpage = True
 
     # Stop reading the data source once we hit EOF
