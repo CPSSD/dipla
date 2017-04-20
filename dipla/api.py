@@ -44,6 +44,11 @@ class Dipla:
     # Dipla_task_creators for details on how the id is determined.
     _task_input_script_info = dict()
 
+    _use_control_webpage = False
+
+    def use_control_webpage(self):
+        Dipla._use_control_webpage = True
+
     # Stop reading the data source once we hit EOF
     # TODO(StefanKennedy) Set up data sources to run indefinitely.
     @staticmethod
@@ -358,7 +363,8 @@ class Dipla:
                 binary_manager,
                 Dipla.stat_updater),
             result_verifier=Dipla.result_verifier,
-            stats=Dipla.stat_updater)
+            stats=Dipla.stat_updater,
+            should_distribute_tasks=not Dipla._use_control_webpage)
 
         if run_on_server:
             client = Dipla._start_client_thread()
