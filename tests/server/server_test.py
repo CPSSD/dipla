@@ -26,6 +26,8 @@ class ServerTest(unittest.TestCase):
                              self.worker_group,
                              stat_updater)
 
+        self.server.should_distribute_tasks = True
+
         self.sample_data_source = DataSource.create_source_from_iterable(
           [1, 2, 3, 4], "foosource")
 

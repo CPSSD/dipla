@@ -165,6 +165,9 @@ class ServerServicesTest(unittest.TestCase):
 
         service(message, ServiceParams(self.mock_server, self.foo_worker))
 
+    # def test_handle_start_server(self):
+    #     service = self.server_services.get_service('start_server')
+
     def test_handle_verify_inputs_detect_mismatch(self):
         service = self.server_services.get_service('verify_inputs_result')
 
@@ -259,10 +262,10 @@ class ServerServicesTest(unittest.TestCase):
 
         service(message, ServiceParams(self.mock_server, self.foo_worker))
 
-        verify = False
+        verify_ = False
 
         def verify_every_second_value(task_instructions, input_value, result):
-            verify = not verify
+            verify = not verify_
             print("Returning", verify)
             return verify
 
