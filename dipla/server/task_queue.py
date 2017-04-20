@@ -268,7 +268,7 @@ class TaskQueueNode:
             self.task_item.instructions,
             self.task_item.machine_type,
             arguments,
-            signals=[x for x in self.task_item.signals])
+            signals=list(self.task_item.signals))
 
     def has_next_input(self):
         if len(self.dependencies) == 0:
@@ -297,7 +297,7 @@ class ReduceTaskQueueNode(TaskQueueNode):
                 "Attempted to read input from an empty source")
         arguments = []
 
-        for i in range(self.reduce_group_size):
+        for _ in range(self.reduce_group_size):
             dependency = self.dependencies[0]
             if not dependency.data_streamer.has_available_data():
                 break
@@ -318,7 +318,7 @@ class ReduceTaskQueueNode(TaskQueueNode):
             self.task_item.instructions,
             self.task_item.machine_type,
             arguments,
-            signals=[x for x in self.task_item.signals])
+            signals=list(self.task_item.signals))
 
 
 class DataStreamerEmpty(Exception):
