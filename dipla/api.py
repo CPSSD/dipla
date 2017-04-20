@@ -144,20 +144,20 @@ class Dipla:
         return distributable_decorator
 
     @staticmethod
-    def reduce_distributable(reduce_group_size=2):
+    def reduce_distributable(n=2):
         """Takes a function that should expect a single parameter of a list of
-        values to reduce, and registers it with the BinaryManager."""
+        values to reduce, and registers it with the BinaryManager. You can give
+        it a parameter `n` - this denotes up to how many values should be given
+        to the reduce function at a time (defaults to 2). Raising this number
+        may increase performance."""
 
         def distributable_decorator(function):
             Dipla._process_decorated_function(function, None)
             Dipla._task_creators[id(function)] = Dipla._create_normal_task
-            print('reduce_group_size = ', reduce_group_size)
-            print(function)
-            Dipla._reduce_task_group_sizes[id(function)] = reduce_group_size
+            Dipla._reduce_task_group_sizes[id(function)] = n
             return function
 
         return distributable_decorator
-        
 
     @staticmethod
     def scoped_distributable(count, verifier=None):
@@ -309,8 +309,6 @@ class Dipla:
         if id(function) not in Dipla._task_creators:
             raise KeyError("Provided function was not decorated using Dipla")
 
-        print('apply_distributable!')
-
         is_reduce = id(function) in Dipla._reduce_task_group_sizes
 
         if is_reduce and len(raw_args) != 1:
@@ -327,9 +325,7 @@ class Dipla:
         function_id = id(function)
         task = None
         if is_reduce:
-            print('we have a reduce!')
             group_size = Dipla._reduce_task_group_sizes[id(function)]
-            print("apply_distributable: ", group_size)
             task = Dipla._task_creators[function_id](args,
                                                      function.__name__,
                                                      is_reduce=True,

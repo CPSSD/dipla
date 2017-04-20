@@ -22,9 +22,8 @@ To this end, Communists of various nationalities have assembled in London and sk
 """
 
 input_data = [word.lower() for word in communist_manifesto.split() if len(word) > 0]
-print(input_data)
 
-@Dipla.reduce_distributable(reduce_group_size=5)
+@Dipla.reduce_distributable(n = 6)
 def find_most_vowels(words):
     vowels = set(['a', 'e', 'i', 'o', 'u'])
     best = ""
