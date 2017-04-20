@@ -8,6 +8,10 @@ from dipla.shared.logutils import LogUtils
 from dipla.shared.statistics import StatisticsUpdater
 from logging import FileHandler
 import multiprocessing
+import hashlib
+import string
+import random
+import os
 
 
 class ClientFactory:
@@ -89,4 +93,13 @@ class ClientFactory:
 
     @staticmethod
     def _create_binary_receiver(client):
-        return BinaryReceiverService(client, './binary')
+        m = hashlib.md5()
+        path = None
+        while True:
+            m.update(random.choice(string.ascii_letters).encode('utf-8'))
+            path = '.dipla_' + m.hexdigest()
+            if not os.path.isdir(path):
+                os.mkdir(path)
+                break
+        path += '/'
+        return BinaryReceiverService(client, path)
