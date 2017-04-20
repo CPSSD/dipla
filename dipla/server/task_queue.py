@@ -49,7 +49,6 @@ class TaskQueue:
         if item.uid is None:
             raise AttributeError("Added task to TaskQueue with no id")
         if item.is_reduce:
-            print('creating reducetaskqueuenode')
             self._nodes[item.uid] = ReduceTaskQueueNode(item, item.reduce_group_size)
         else:
             self._nodes[item.uid] = TaskQueueNode(item)
@@ -163,13 +162,11 @@ class TaskQueue:
             # This task has been marked as a reduce task, so outputs should be
             # put back into the same task as an input.
 
-            print('push_task_input({}, [{}])'.format(task_id, result))
             # self.push_task_input() expects a series of groups of inputs,
             # (one group of inputs is the things a task needs to run once)
             # so we must turn this single value into that format
             args = [[result]]
             self.push_task_input(task_id, args)
-        print('add_result continuing')
 
         if self.is_task_open(task_id):
             self.activate_new_tasks(self._nodes[task_id].dependees)
@@ -306,13 +303,11 @@ class ReduceTaskQueueNode(TaskQueueNode):
             argument_id = dependency.source_uid
             arg = dependency.data_streamer.read()
 
-            print("arg:", arg)
             arguments.append(arg[0])
 
             # if we are not adding things one by one
             if len(arguments) >= self.reduce_group_size:
                 break
-        print("arguments:", arguments)
         arguments = [[arguments]]
 
         # Not very pretty, but expect a result for every element in the args

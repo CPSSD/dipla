@@ -66,7 +66,6 @@ class Dipla:
         return len(stream) > 0
 
     def _create_clientside_task(task_instructions, is_reduce=False, reduce_group_size=2):
-        print("_create_clientside_task:", reduce_group_size)
         task_uid = uid_generator.generate_uid(
             length=8,
             existing_uids=Dipla.task_queue.get_task_ids())
@@ -108,10 +107,6 @@ class Dipla:
         sources are objects that can be used to create a data source,
         e.g. an iterable or another task
         """
-        print("_create_normal_task", reduce_group_size)
-        print(task_instructions)
-        print(Dipla._reduce_task_group_sizes)
-        print(id(task_instructions))
         task = Dipla._create_clientside_task(task_instructions, is_reduce, reduce_group_size)
 
         source_uids = []
