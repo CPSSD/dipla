@@ -178,7 +178,7 @@ class DiplaAPITest(unittest.TestCase):
 
             def __eq__(self, other):
                 print(other.signals.keys())
-                return [x for x in other.signals.keys()] == ["DISCOVERED"]
+                return "DISCOVERED" in other.signals
 
         self.mock_task_queue.push_task.assert_called_with(
             TaskWithDiscoveredSignal())

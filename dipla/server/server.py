@@ -242,8 +242,13 @@ class Server:
         message = generate_message(label, data)
         await socket.send(json.dumps(message))
 
-    def terminate_task(task_uid):
-        pass
+    def terminate_task(self, task_uid):
+        # Notify all the workers that a task's been terminated
+        for worker in self.worker_group.get_all_workers():
+            self.send(
+                worker.websocket,
+                'terminate_task',
+                {'task_uid': task_uid})
 
     def send(self, socket, label, data):
         asyncio.ensure_future(self._send_message(socket, label, data))
