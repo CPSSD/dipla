@@ -66,6 +66,7 @@ class Dipla:
         return len(stream) > 0
 
     def _create_clientside_task(task_instructions, is_reduce=False, reduce_group_size=2):
+        print("_create_clientside_task:", reduce_group_size)
         task_uid = uid_generator.generate_uid(
             length=8,
             existing_uids=Dipla.task_queue.get_task_ids())
@@ -107,6 +108,10 @@ class Dipla:
         sources are objects that can be used to create a data source,
         e.g. an iterable or another task
         """
+        print("_create_normal_task", reduce_group_size)
+        print(task_instructions)
+        print(Dipla._reduce_task_group_sizes)
+        print(id(task_instructions))
         task = Dipla._create_clientside_task(task_instructions, is_reduce, reduce_group_size)
 
         source_uids = []
@@ -147,6 +152,7 @@ class Dipla:
             Dipla._process_decorated_function(function, None)
             Dipla._task_creators[id(function)] = Dipla._create_normal_task
             print('reduce_group_size = ', reduce_group_size)
+            print(function)
             Dipla._reduce_task_group_sizes[id(function)] = reduce_group_size
             return function
 
@@ -303,6 +309,8 @@ class Dipla:
         if id(function) not in Dipla._task_creators:
             raise KeyError("Provided function was not decorated using Dipla")
 
+        print('apply_distributable!')
+
         is_reduce = id(function) in Dipla._reduce_task_group_sizes
 
         if is_reduce and len(raw_args) != 1:
@@ -319,7 +327,9 @@ class Dipla:
         function_id = id(function)
         task = None
         if is_reduce:
+            print('we have a reduce!')
             group_size = Dipla._reduce_task_group_sizes[id(function)]
+            print("apply_distributable: ", group_size)
             task = Dipla._task_creators[function_id](args,
                                                      function.__name__,
                                                      is_reduce=True,
@@ -331,27 +341,6 @@ class Dipla:
             task.signals = Dipla._task_input_script_info[function_id][1]
         Dipla.task_queue.push_task(task)
         return Promise(task.uid)
-
-    @staticmethod
-    def apply_reduce(function, arg):
-        if id(function) not in Dipla._task_creators:
-            raise KeyError("blah")
-
-        args = None
-        if isinstance(arg, Promise):
-            args = [Dipla.task_queue.get_task_by_id(arg.task_uid)]
-        elif isinstance(arg, list):
-            args = [arg]
-        else:
-            raise UnsupportedInput()
-
-        print(args)
-
-        function_id = id(function)
-        task = Dipla._task_creators[function_id](args, function.__name__, is_reduce=True)
-        Dipla.task_queue.push_task(task)
-        return Promise(task.uid)
-        
 
     def _create_binary_manager():
         return BinaryManager()
