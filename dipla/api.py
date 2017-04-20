@@ -70,6 +70,21 @@ class Dipla:
     def stream_not_empty(stream, location):
         return len(stream) > 0
 
+    def _read_without_consuming(collection, current_location):
+        return collection[0]
+
+    def _return_current_location(collection, current_location):
+        return current_location
+
+    def _always_move_by_1(collection, current_location):
+        return current_location + 1
+
+    def _read_by_consuming(collection, current_location):
+        return [collection.pop(0)]
+
+    def _any_data_available(collection, current_location):
+        return len(collection) - current_location > 0
+
     def _create_clientside_task(task_instructions):
         task_uid = uid_generator.generate_uid(
             length=8,
@@ -118,7 +133,7 @@ class Dipla:
             return data_source_creator(source, source_uids)
 
         Dipla._add_sources_to_task(sources, task, create_default_data_source)
-        return task
+        return [task]
 
     def _process_decorated_function(function, verifier=None):
         function_id = id(function)
@@ -163,50 +178,75 @@ class Dipla:
             sources are objects that can be used to create a data
             source, e.g. an iterable or another task
             """
-
-            def read_without_consuming(collection, current_location):
-                return collection[0]
-
-            def return_current_location(collection, current_location):
-                return current_location
-
-            def available_n_times(collection, current_location):
-                return current_location < count
-
-            def always_move_by_1(collection, current_location):
-                return current_location + 1
-
             source_uids = []
 
-            def create_data_source(source, data_source_creator):
-                return data_source_creator(
-                    source,
-                    Dipla._generate_uid_in_list(source_uids),
-                    read_without_consuming,
-                    available_n_times,
-                    always_move_by_1)
-
             task = Dipla._create_clientside_task(task_instructions)
-            Dipla._add_sources_to_task(sources, task, create_data_source)
-
-            task.add_data_source(DataSource.create_source_from_iterable(
-                [0],
-                Dipla._generate_uid_in_list(source_uids),
-                return_current_location,
-                available_n_times,
-                always_move_by_1))
-
-            task.add_data_source(DataSource.create_source_from_iterable(
-                [count],
-                Dipla._generate_uid_in_list(source_uids),
-                read_without_consuming,
-                available_n_times,
-                always_move_by_1))
-
-            return task
+            Dipla._add_sources_to_task(
+                sources,
+                task,
+                Dipla._get_scoped_data_source_creator(source_uids, count))
+            Dipla._add_scope_parameters(task, source_uids, count)
+            return [task]
 
         def real_decorator(function):
             Dipla._task_creators[id(function)] = _create_scoped_task
+            Dipla._process_decorated_function(function, verifier)
+            return function
+        return real_decorator
+
+    @staticmethod
+    def chasing_distributable(count, chasers, verifier=None):
+        """
+        Takes a function and converts it to a binary, the binary is then
+        registered with the BinaryManager. The function is returned unchanged.
+
+        This function must have parameters called `last_calculated`,
+        `index` and `count` as the last three parameters which contain
+        integer values for the current interval (index) out of the
+        total number of intervals (count) for this function
+
+        Each interval is dependant on the interval before it, and will
+        receive the output from the task at the interval before it as
+        the last_calculated parameter
+        """
+        def _create_chasing_task(sources, task_instructions):
+            """
+            sources are objects that can be used to create a data
+            source, e.g. an iterable or another task
+            """
+
+            source_uids = []
+
+            tasks = []
+            for i in range(chasers):
+                task = Dipla._create_clientside_task(task_instructions)
+                Dipla._add_sources_to_task(
+                  [[[x[i]] for x in sources]],
+                  task,
+                  Dipla._get_scoped_data_source_creator(source_uids, count))
+
+                if i == 0:
+                    task.add_data_source(
+                        DataSource.create_source_from_iterable(
+                            [None],
+                            Dipla._generate_uid_in_list(source_uids),
+                            Dipla._read_without_consuming,
+                            Dipla._get_available_n_times(count),
+                            Dipla._always_move_by_1))
+                else:
+                    task.add_data_source(DataSource.create_source_from_task(
+                        tasks[i-1],
+                        Dipla._generate_uid_in_list(source_uids),
+                        Dipla._read_by_consuming,
+                        Dipla._any_data_available,
+                        Dipla._return_current_location))
+
+                Dipla._add_scope_parameters(task, source_uids, count)
+                tasks.append(task)
+            return tasks
+
+        def real_decorator(function):
+            Dipla._task_creators[id(function)] = _create_chasing_task
             Dipla._process_decorated_function(function, verifier)
             return function
         return real_decorator
@@ -306,15 +346,16 @@ class Dipla:
             else:
                 raise UnsupportedInput()
         function_id = id(function)
-        task = Dipla._task_creators[function_id](args, function.__name__)
-        # Add a TERMINATE handler
-        task.signals = {
-            'TERMINATE': lambda server, uid, _: server.terminate_task(uid)
-        }
-        if function_id in Dipla._task_input_script_info:
-            task.signals.update(Dipla._task_input_script_info[function_id][1])
-        Dipla.task_queue.push_task(task)
-        return Promise(task.uid)
+        tasks = Dipla._task_creators[function_id](args, function.__name__)
+        for task in tasks:
+            task.signals = {
+                'TERMINATE': lambda server, uid, _: server.terminate_task(uid)
+            }
+            if function_id in Dipla._task_input_script_info:
+                task.signals.update(
+                    Dipla._task_input_script_info[function_id][1])
+            Dipla.task_queue.push_task(task)
+        return Promise(tasks[-1].uid)
 
     def _create_binary_manager():
         return BinaryManager()
@@ -478,6 +519,36 @@ class Dipla:
                 raise DiscoveryBadRequest(error_msg.format(data['error']))
             else:
                 raise RuntimeError(error_msg.format(data['error']))
+
+    def _get_available_n_times(count):
+        def available_n_times(collection, current_location):
+            return current_location < count
+        return available_n_times
+
+    def _add_scope_parameters(task, source_uids, count):
+        task.add_data_source(DataSource.create_source_from_iterable(
+            [0],
+            Dipla._generate_uid_in_list(source_uids),
+            Dipla._return_current_location,
+            Dipla._get_available_n_times(count),
+            Dipla._always_move_by_1))
+
+        task.add_data_source(DataSource.create_source_from_iterable(
+            [count],
+            Dipla._generate_uid_in_list(source_uids),
+            Dipla._read_without_consuming,
+            Dipla._get_available_n_times(count),
+            Dipla._always_move_by_1))
+
+    def _get_scoped_data_source_creator(source_uids, count):
+        def create_data_source(source, data_source_creator):
+            return data_source_creator(
+                source,
+                Dipla._generate_uid_in_list(source_uids),
+                Dipla._read_without_consuming,
+                Dipla._get_available_n_times(count),
+                Dipla._always_move_by_1)
+        return create_data_source
 
 
 class Promise:

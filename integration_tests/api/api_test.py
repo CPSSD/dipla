@@ -14,8 +14,11 @@ class APIIntegrationTest(TestCase):
     def setUp(self):
         self.old_generate_uid = uid_generator.generate_uid
 
+        next_id = [0]
+
         def determinable_uid_generator(length, existing_uids):
-            return "foo_id"
+            next_id[0] = next_id[0] + 1
+            return "foo_id " + str(next_id[0])
         uid_generator.generate_uid = determinable_uid_generator
 
     def test_scoped_task_inputs_contain_correct_arguments(self):
@@ -70,7 +73,7 @@ class APIIntegrationTest(TestCase):
         worker_group.lease_worker()
 
         message = {
-                "task_uid": "foo_id",
+                "task_uid": "foo_id 1",
                 "results": [1, 2, 3],
                 "signals": {"DISCOVERED": [[[0, 0], [3, 3]]]}
         }
@@ -78,6 +81,64 @@ class APIIntegrationTest(TestCase):
         service(message, ServiceParams(server, worker))
         self.assertEquals([0, 0], inputsA)
         self.assertEquals([3, 3], inputsB)
+
+    def test_chasing_task_inputs_contain_correct_arguments(self):
+        @Dipla.chasing_distributable(count=3, chasers=2)
+        def func(input_value, previously_computed, index, count):
+            return None  # This function isn't used in this test
+
+        input_data = [
+          [1, 2, 3],
+          [4, 5, 6]
+        ]
+
+        Dipla.apply_distributable(func, input_data)
+        inputs = []
+        while Dipla.task_queue.has_next_input():
+            inputs.append(Dipla.task_queue.pop_task_input().values)
+        self.assertEquals(3, len(inputs))
+        self.assertEquals(
+            [
+                [[[1, 2, 3]], [None], [0], [3]],
+                [[[1, 2, 3]], [None], [1], [3]],
+                [[[1, 2, 3]], [None], [2], [3]]],
+            inputs)
+
+    def test_second_chaser_in_chasing_task_inputs_contain_correct_arguments(self):  # nopep8
+
+        @Dipla.chasing_distributable(count=3, chasers=2)
+        def func(input_value, previously_computed, index, count):
+            out = [0, 0, 0]
+            out[2-index] = 1
+            return out
+
+        input_data = [
+          [1, 2, 3],
+          [4, 5, 6]
+        ]
+
+        Dipla.apply_distributable(func, input_data)
+        inputs = []
+        while Dipla.task_queue.has_next_input():
+            popped_values = Dipla.task_queue.pop_task_input().values
+            inputs.append(popped_values)
+        Dipla.task_queue.add_result("foo_id 1", [0, 0, 1])
+        Dipla.task_queue.add_result("foo_id 1", [0, 1, 0])
+        Dipla.task_queue.add_result("foo_id 1", [1, 0, 0])
+        while Dipla.task_queue.has_next_input():
+            popped_values = Dipla.task_queue.pop_task_input().values
+            inputs.append(popped_values)
+
+        self.assertEquals(6, len(inputs))
+        self.assertEquals(
+            [
+                [[[1, 2, 3]], [None], [0], [3]],
+                [[[1, 2, 3]], [None], [1], [3]],
+                [[[1, 2, 3]], [None], [2], [3]],
+                [[[4, 5, 6]], [[0, 0, 1]], [0], [3]],
+                [[[4, 5, 6]], [[0, 1, 0]], [1], [3]],
+                [[[4, 5, 6]], [[1, 0, 0]], [2], [3]]],
+            sorted(inputs))
 
     def tearDown(self):
         uid_generator.generate_uid = self.old_generate_uid
