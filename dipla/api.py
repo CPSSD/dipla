@@ -65,7 +65,9 @@ class Dipla:
     def stream_not_empty(stream, location):
         return len(stream) > 0
 
-    def _create_clientside_task(task_instructions, is_reduce=False, reduce_group_size=2):
+    def _create_clientside_task(task_instructions,
+                                is_reduce=False,
+                                reduce_group_size=2):
         task_uid = uid_generator.generate_uid(
             length=8,
             existing_uids=Dipla.task_queue.get_task_ids())
@@ -140,11 +142,24 @@ class Dipla:
 
     @staticmethod
     def reduce_distributable(n=2):
-        """Takes a function that should expect a single parameter of a list of
-        values to reduce, and registers it with the BinaryManager. You can give
-        it a parameter `n` - this denotes up to how many values should be given
-        to the reduce function at a time (defaults to 2). Raising this number
-        may increase performance."""
+        """Takes a reduce function and converts it to a binary. The binary is
+        then registered with the BinaryManager.
+
+        A reduce function is one which takes a number of inputs, and returns a
+        single
+        value. This value is then added back to the list of inputs for the function.
+        This process is repeated until there is only one value left, which is given
+        as the result.
+
+        The reduce function given here should expect a single parameter, which will
+        be the list of values to reduce. You can provide a parameter `n` to this
+        decorator; this denotes the maximum number of inputs that will be given to
+        the reduce function at a time. It defaults to 2, which is the standard case
+        for a canonical reduce function. Raising this number may increase
+        performance."""
+
+        if n <= 1:
+            raise ReduceBadSize("Input size for a reduce must be greater than 1")
 
         def distributable_decorator(function):
             Dipla._process_decorated_function(function, None)
@@ -539,6 +554,14 @@ class DiscoveryBadRequest(RuntimeError):
     """
     An exception that is raised when the discovery server returns a http
     400 error
+    """
+    pass
+
+
+class ReduceBadSize(RuntimeError):
+    """
+    An exception that is raised when a reduce distributable is given an
+    invalid input size
     """
     pass
 
