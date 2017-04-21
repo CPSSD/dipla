@@ -4,5 +4,5 @@ This example counts all of the words in 'The Romance of Lust - A classic Victori
 
 Sources:
 
-- The Romance Of Lust (`pg30254.txt`) was provided by [Project Gutenberg](http://www.gutenberg.org/ebooks/30254).
+- The Romance Of Lust is loaded from [Project Gutenberg](http://www.gutenberg.org/ebooks/30254).
 - The list of stop words (`stopwords.txt`) was taken from [here](http://xpo6.com/list-of-english-stop-words/).
