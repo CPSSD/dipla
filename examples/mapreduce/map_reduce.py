@@ -45,7 +45,7 @@ def tokenise(doc):
             d[word] = 1
     return d
 
-@Dipla.reduce_distributable(n=4)
+@Dipla.reduce_distributable(n=2)
 def combine_dicts(d):
     comb = {}
     for e in d:
