@@ -118,7 +118,7 @@ class WorkerGroup:
         Returns:
          - The uids of all workers, regardless of state
         """
-        return [x.uid for x in self._all_workers()]
+        return [x.uid for x in self.get_all_workers()]
 
     def has_available_worker(self):
         """
@@ -144,7 +144,7 @@ class WorkerGroup:
 
         raise KeyError("No worker was found with the ID: " + uid)
 
-    def _all_workers(self):
+    def get_all_workers(self):
         """
         Returns:
          - A list of all the ready workers and busy workers

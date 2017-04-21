@@ -1,7 +1,8 @@
-import json
+import sys
 from dipla.shared.logutils import LogUtils
 from dipla.shared.services import ServiceError
 from dipla.shared.error_codes import ErrorCodes
+from dipla.server import control
 
 
 class ServerServices:
@@ -27,7 +28,9 @@ class ServerServices:
             'binaries_received': self._handle_binary_received,
             'client_result': self._handle_client_result,
             'runtime_error': self._handle_runtime_error,
-            'verify_inputs_result': self._handle_verify_inputs
+            'verify_inputs_result': self._handle_verify_inputs,
+            'start_server': self._handle_start_server,
+            'stop_server': self._handle_stop_server
         }
         self.binary_manager = binary_manager
         self.__statistics_updater = stats
@@ -36,6 +39,12 @@ class ServerServices:
         if label in self.services:
             return self.services[label]
         raise KeyError("Label '{}' does not have a handler".format(label))
+
+    def _handle_start_server(self, message, params):
+        control.start_server(params.server)
+
+    def _handle_stop_server(self, message, params):
+        control.stop_server(sys.exit)
 
     def _handle_get_binaries(self, message, params):
         # Check if the worker has provided the correct password
@@ -70,6 +79,7 @@ class ServerServices:
         # assign it to this worker, as it should be the only ready one
         # If there are other workers it is okay to distribute tasks to
         # them too
+
         params.server.distribute_tasks()
         return None
 
@@ -148,7 +158,7 @@ class ServerServices:
                 if signal not in task_signals:
                     continue
                 for values in message_signals[signal]:
-                    task_signals[signal](task_uid, values)
+                    task_signals[signal](server, task_uid, values)
             server.distribute_tasks()
 
         # TODO remove results if not verified

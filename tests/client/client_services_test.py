@@ -51,7 +51,8 @@ class BinaryRunnerServiceTest(TestCase):
 
         binary_runner = BinaryRunnerService(DummyClient(), MockBinaryRunner())
         data = {
-            'task_instructions': None
+            'task_instructions': None,
+            'task_uid': 'abc'
         }
         with self.assertRaises(ServiceError) as context:
             binary_runner.execute(data)
@@ -65,7 +66,8 @@ class BinaryRunnerServiceTest(TestCase):
         client.binary_paths = {}
         binary_runner = BinaryRunnerService(client, MockBinaryRunner())
         data = {
-            'task_instructions': 'foo'
+            'task_instructions': 'foo',
+            'task_uid': 'abc'
         }
         with self.assertRaises(ServiceError) as context:
             binary_runner.execute(data)
@@ -97,6 +99,7 @@ class RunInstructionsServiceTest(TestCase):
 
     def test_signal_results_are_separated(self):
         mock_client = MagicMock()
+        mock_client.is_task_terminated.return_value = False
         mock_client.binary_paths = {
             "foo": "bar"
         }
@@ -121,7 +124,8 @@ class RunInstructionsServiceTest(TestCase):
 
 
 class DummyClient:
-    pass
+    def is_task_terminated(self, uid):
+        return False
 
 
 class MockBinaryRunner(CommandLineBinaryRunner):

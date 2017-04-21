@@ -18,11 +18,19 @@ class Client(object):
         self._stats_updater = stats
         # the number of times to try to connect before giving up
         self.connect_tries_limit = 8
+        # Set of task UIDs that have been marked as terminated by the server
+        self._terminated_tasks = set()
         # A class to be used to assign a quality to this client
         if quality_scorer:
             self.quality_scorer = quality_scorer
         else:
             self.quality_scorer = QualityScorer()
+
+    def mark_task_terminated(self, task_uid):
+        self._terminated_tasks.add(task_uid)
+
+    def is_task_terminated(self, task_uid):
+        return task_uid in self._terminated_tasks
 
     def inject_services(self, services):
         # TODO: Refactor Client
@@ -34,24 +42,8 @@ class Client(object):
         # need to be passed into all of the ClientServices.
         self.services = services
 
-    def send(self, message):
-        """Send a message to the server.
-
-        message, dict: the message to be sent, a dict with a 'label' field
-            and a 'data' field"""
-        if not ('label' in message and 'data' in message):
-            raise ValueError(
-                'Missing label or data field in message %s.' % message)
-
-        LogUtils.debug('Sending message: %s.' % message)
-        json_message = json.dumps(message)
-
-        # run the coroutine to send the message
-        asyncio.ensure_future(self._send_async(json_message))
-        self._stats_updater.increment('messages_sent')
-
-    def send_error(self, details, code):
-        """Send an error to the server.
+    def _make_error_message(self, details, code):
+        """Returns an error message for the server.
 
         details, str: the error message.
         code, int: the error code."""
@@ -59,27 +51,47 @@ class Client(object):
             'details': details,
             'code': code
         }
-        message = generate_message('runtime_error', data)
-        self.send(message)
+        return generate_message('runtime_error', data)
 
     async def _send_async(self, message):
         """Asynchronous task for sending a message to the server.
 
-        message, string: the message to be sent"""
-        await self.websocket.send(message)
+        message, dict: the message to be sent"""
+        self._stats_updater.increment('requests_resolved')
+        if not message:
+            return
+        if not ('label' in message and 'data' in message):
+            raise ValueError(
+                'Missing label or data field in message %s.' % message)
+
+        self._stats_updater.increment('messages_sent')
+        LogUtils.debug('Sending message: %s.' % message)
+        await self.websocket.send(json.dumps(message))
+
+    async def _sending_callback(self, future):
+        """A method that acts almost as a callback, waiting for a future to
+        be ready and then sending its result."""
+        await asyncio.wait_for(future, None)
+        await self._send_async(future.result())
 
     async def receive_loop(self):
-        """Task for handling messages received from server."""
+        """Task for handling messages received from server and
+        sending replies."""
         try:
+            loop = asyncio.get_event_loop()
             while True:
                 message = await self.websocket.recv()
-                try:
-                    self._handle(message)
-                    self._stats_updater.increment('requests_resolved')
-                except ServiceError as e:
-                    self.send_error(str(e), e.code)
+                task_future = loop.run_in_executor(
+                    None, self._safe_handle, message)
+                asyncio.ensure_future(self._sending_callback(task_future))
         except websockets.exceptions.ConnectionClosed:
             LogUtils.warning("Connection closed.")
+
+    def _safe_handle(self, raw_message):
+        try:
+            return self._handle(raw_message)
+        except ServiceError as e:
+            return self._make_error_message(str(e), e.code)
 
     def _handle(self, raw_message):
         """Do something with a message received from the server.
@@ -89,7 +101,6 @@ class Client(object):
         message = json.loads(raw_message)
         if not ('label' in message and 'data' in message):
             raise ServiceError('Missing field from message: %s' % message, 4)
-
         started_processing_at = time.time()
 
         result_message = self._run_service(message["label"], message["data"])
@@ -98,11 +109,10 @@ class Client(object):
         time_taken_to_process = finished_processing_at - started_processing_at
         self._stats_updater.adjust('processing_time', time_taken_to_process)
 
-        if result_message is not None:
-            # send the client_result back to the server
-            self.send(result_message)
-
+        # Return the final message, if result_message is None then nothing is
+        # sent back to the server.
         self._stats_updater.increment('tasks_done')
+        return result_message
 
     def _run_service(self, label, data):
         try:
@@ -153,14 +163,16 @@ class Client(object):
                 'Could not connect to server after %d tries' %
                 self.connect_tries_limit)
             return
+
         receive_task = asyncio.ensure_future(self.receive_loop())
-        self._stats_updater.overwrite('running', True)
+
         data = {
             'platform': self._get_platform(),
             'quality': self._get_quality(),
+            'password': password,
         }
-        if password != '':
-            data['password'] = password
-        self.send(generate_message('get_binaries', data))
+        asyncio.ensure_future(
+            self._send_async(generate_message('get_binaries', data)))
 
+        self._stats_updater.overwrite('running', True)
         loop.run_until_complete(receive_task)

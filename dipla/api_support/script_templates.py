@@ -19,20 +19,23 @@ def unwraped_func():
     pass
 
 unwraped_func.__code__ = func_code
+
+output = dict()
+output['signals'] = dict()
+
+class Dipla:
+    @staticmethod
+    def terminate_tasks():
+        output['signals']['TERMINATE'] = [True]
 """
 
 argv_input_script = unwrap_function_script + """
-output = dict()
-
 args = json.loads(sys.argv[1])
 output['data'] = unwraped_func(*args)
-output['signals'] = dict()
 print(json.dumps(output))"""
 
-explorer_argv_input_script = unwrap_function_script + """discovered = []
-
-output = dict()
-output['signals'] = dict()
+explorer_argv_input_script = unwrap_function_script + """
+discovered = []
 
 args = json.loads(sys.argv[1])
 output['data'] = unwraped_func(*args, discovered)
