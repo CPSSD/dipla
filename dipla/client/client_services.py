@@ -5,6 +5,7 @@ from dipla.shared.services import ServiceError
 from dipla.shared.error_codes import ErrorCodes
 
 from abc import ABC, abstractmethod, abstractstaticmethod
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from base64 import b64decode
 
 
@@ -43,9 +44,26 @@ class BinaryRunnerService(ClientService):
     def __init__(self, client, binary_runner):
         super().__init__(client)
         self._binary_runner = binary_runner
+        self._pool = ThreadPoolExecutor()
+
+    def _make_nop_results(self, args):
+        expected_results = len(args[0])
+        return [None] * expected_results
+
+    def _make_final_message(self, uid, results, signals):
+        data = {
+            'task_uid': uid,
+            'results': results,
+            'signals': signals,
+        }
+        return message_generator.generate_message('binary_result', data)
 
     def execute(self, data):
         task = data["task_instructions"]
+
+        if self._client.is_task_terminated(data['task_uid']):
+            results = self._make_nop_results(data['arguments'])
+            return self._make_final_message(data['task_uid'], results, {})
 
         if not hasattr(self._client, 'binary_paths'):
             raise ServiceError(ValueError('Client does not have any binaries'),
@@ -53,19 +71,24 @@ class BinaryRunnerService(ClientService):
         if task not in self._client.binary_paths:
             raise ServiceError(KeyError('Task "' + task + '" does not exist'),
                                ErrorCodes.invalid_binary_key)
-
-        results, signals = self._binary_runner.run(
+        future_res = self._pool.submit(
+            self._binary_runner.run,
             self._client.binary_paths[task],
-            data["arguments"])
-        result_data = {
-            'task_uid': data["task_uid"],
-            'results': results,
-            'signals': signals,
-        }
-
-        message = message_generator.generate_message(
-            'binary_result', result_data)
-        return message
+            data['arguments'])
+        # This loop checks every 1 second to see if a task has been terminated
+        # as soon as there is a result ready it moves on, so there is very
+        # little performance penalty.
+        while not future_res.done():
+            try:
+                # Wait for a result for 1 second
+                future_res.result(1)
+            except TimeoutError:
+                pass
+            if self._client.is_task_terminated(data["task_uid"]):
+                results = self._make_nop_results(data['arguments'])
+                return self._make_final_message(data['task_uid'], results, {})
+        results, signals = future_res.result()
+        return self._make_final_message(data['task_uid'], results, signals)
 
 
 class RunInstructionsService(BinaryRunnerService):
@@ -132,4 +155,15 @@ class ServerErrorService(ClientService):
     def execute(self, data):
         self.logger.error('Error from server (code %d): %s' % (
             data['code'], data['details']))
+        return None
+
+
+class TerminateTaskService(ClientService):
+
+    @staticmethod
+    def get_label():
+        return 'terminate_task'
+
+    def execute(self, data):
+        self._client.mark_task_terminated(data['task_uid'])
         return None

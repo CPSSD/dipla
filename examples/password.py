@@ -33,6 +33,7 @@ def check_pw(given, words, salt):
             word = op(orig_word).encode('utf-8')
             a = bcrypt.hashpw(word, salt).decode('utf-8')
             if a == given:
+                Dipla.terminate_tasks()
                 return word.decode('utf-8')
     return None
 
@@ -88,7 +89,7 @@ results = Dipla.apply_distributable(check_pw, [given] * n, partitions, [salt] * 
 print('sending')
 
 for result in Dipla.get(results):
-    if result is not None and result is not {}:
+    if result:
         print('result =', result)
         end = time()
         print(end-start, 'seconds distributed')

@@ -75,7 +75,8 @@ class Server:
                  services,
                  result_verifier,
                  worker_group=None,
-                 stats=None):
+                 stats=None,
+                 should_distribute_tasks=False):
         """
         task_queue is a TaskQueue object that tasks to be run are taken from
 
@@ -114,6 +115,8 @@ class Server:
 
         self.verify_probability = 0.5
         self.verify_inputs = {}
+
+        self.should_distribute_tasks = should_distribute_tasks
 
     async def websocket_handler(self, websocket, path):
         user_id = self.worker_group.generate_uid()
@@ -174,6 +177,9 @@ class Server:
         }
 
     def distribute_tasks(self):
+        if not self.should_distribute_tasks:
+            return
+
         # By leasing workers without specifying an id, we get the
         # highest quality worker for the task
         while self.task_queue.has_next_input():
@@ -241,6 +247,14 @@ class Server:
     async def _send_message(self, socket, label, data):
         message = generate_message(label, data)
         await socket.send(json.dumps(message))
+
+    def terminate_task(self, task_uid):
+        # Notify all the workers that a task's been terminated
+        for worker in self.worker_group.get_all_workers():
+            self.send(
+                worker.websocket,
+                'terminate_task',
+                {'task_uid': task_uid})
 
     def send(self, socket, label, data):
         asyncio.ensure_future(self._send_message(socket, label, data))

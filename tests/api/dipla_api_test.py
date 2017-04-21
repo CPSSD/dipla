@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import Mock
+from unittest.mock import call, Mock
 
 from dipla.api import Dipla, UnsupportedInput
 from dipla.server.task_queue import Task
@@ -14,7 +14,7 @@ class DiplaAPITest(unittest.TestCase):
             self.n = n
 
         def __eq__(self, other):
-            print(len(other.data_instructions))
+            print("Num other sources:", len(other.data_instructions))
             return len(other.data_instructions) == self.n
 
     def setUp(self):
@@ -146,12 +146,11 @@ class DiplaAPITest(unittest.TestCase):
         promised_a = Dipla.read_data_source(input_data, data_source_function)
         promised_b = Dipla.read_data_source(other_data, data_source_function)
 
-        @Dipla.scoped_distributable(count=1)
+        @Dipla.scoped_distributable(count=3)
         def func(input_value, interval, count):
             return input_value
 
         promised = Dipla.apply_distributable(func, promised_a, promised_b)
-        self.assertIsNotNone(promised.task_uid)
         self.mock_task_queue.push_task.assert_called_with(
             DiplaAPITest.TaskWithNSources(4))
 
@@ -178,10 +177,23 @@ class DiplaAPITest(unittest.TestCase):
 
             def __eq__(self, other):
                 print(other.signals.keys())
-                return [x for x in other.signals.keys()] == ["DISCOVERED"]
+                return "DISCOVERED" in other.signals
 
         self.mock_task_queue.push_task.assert_called_with(
             TaskWithDiscoveredSignal())
+
+    def test_apply_chasing_distributable_with_multiple_immediate_arguments(self):  # nopep8
+        @Dipla.chasing_distributable(count=3, chasers=3)
+        def func(input_value, interval, count):
+            return input_value
+
+        input_data = [1, 2, 3, 4, 5]
+        other_data = [5, 4, 3, 2, 1]
+        promised = Dipla.apply_distributable(func, input_data, other_data)
+        self.assertIsNotNone(promised.task_uid)
+        calls = self.mock_task_queue.push_task.mock_calls
+        self.assertEqual(3, len(calls))
+        self.assertEqual([call(DiplaAPITest.TaskWithNSources(4))]*3, calls)
 
     def test_apply_distributable_twice_on_same_task(self):
         @Dipla.data_source
