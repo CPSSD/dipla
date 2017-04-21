@@ -1,6 +1,7 @@
 from os import path
 from time import time
 import sys
+import urllib
 # Append to path so that this script can access the dipla package
 sys.path.append(path.abspath('../dipla'))
 
@@ -10,23 +11,25 @@ from dipla.api import Dipla
 
 true_start_time = time()
 
+response = urllib.request.urlopen("http://www.gutenberg.org/cache/epub/30254/pg30254.txt")
+book_contents = [line.strip() for line in str(response.read()).split('\\r\\n')]
+print(len(book_contents))
 splits = []
-with open('examples/mapreduce/pg30254.txt', 'r') as f:
-    while True:
-        curr = f.readline()
-        s = None
-        for _ in range(10):
-            s = f.readline()
-            if s == '':
-                print('s is None >')
-                break
-            curr += f.readline()
-        splits.append(curr)
-        if s == '':
-            print('s is None')
-            break
-        if len(splits) > 10:
-            break
+curr_line = 0
+while True:
+    curr = book_contents[curr_line]
+    curr_line += 1
+    s = None
+    for _ in range(15):
+        if curr_line < len(book_contents):
+            curr += '\n' + book_contents[curr_line]
+            curr_line += 1
+    splits.append(curr)
+    if curr_line >= len(book_contents):
+        break
+
+print(len(splits))
+print('Book loaded and partitioned')
 
 with open('examples/mapreduce/stopwords.txt', 'r') as f:
     stop_words = set([w.lower().strip() for w in f.readlines()])
@@ -47,6 +50,7 @@ def tokenise(doc):
 
 @Dipla.reduce_distributable(n=2)
 def combine_dicts(d):
+    max_dict_size = 100
     comb = {}
     for e in d:
         for w in e:
@@ -54,10 +58,10 @@ def combine_dicts(d):
                 comb[w] += e[w]
             else:
                 comb[w] = e[w]
-    if len(comb) > 50:
+    if len(comb) > max_dict_size:
         sorted_keys = sorted(comb, key = lambda x: comb[x], reverse=True)
         small_comb = {}
-        for k in sorted_keys[:50]:
+        for k in sorted_keys[:max_dict_size]:
             small_comb[k] = comb[k]
         return small_comb
     return comb
