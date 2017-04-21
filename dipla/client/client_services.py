@@ -46,8 +46,24 @@ class BinaryRunnerService(ClientService):
         self._binary_runner = binary_runner
         self._pool = ThreadPoolExecutor()
 
+    def _make_nop_results(self, args):
+        expected_results = len(args[0])
+        return [None] * expected_results
+
+    def _make_final_message(self, uid, results, signals):
+        data = {
+            'task_uid': uid,
+            'results': results,
+            'signals': signals,
+        }
+        return message_generator.generate_message('binary_result', data)
+
     def execute(self, data):
         task = data["task_instructions"]
+
+        if self._client.is_task_terminated(data['task_uid']):
+            results = self._make_nop_results(data['arguments'])
+            return self._make_final_message(data['task_uid'], results, {})
 
         if not hasattr(self._client, 'binary_paths'):
             raise ServiceError(ValueError('Client does not have any binaries'),
@@ -69,21 +85,10 @@ class BinaryRunnerService(ClientService):
             except TimeoutError:
                 pass
             if self._client.is_task_terminated(data["task_uid"]):
-                expected_results = len(data['arguments'][0])
-                results, signals = [None] * expected_results, {}
-                break
-        else:
-            # If task hasn't been terminated
-            results, signals = future_res.result()
-        result_data = {
-            'task_uid': data["task_uid"],
-            'results': results,
-            'signals': signals,
-        }
-
-        message = message_generator.generate_message(
-            'binary_result', result_data)
-        return message
+                results = self._make_nop_results(data['arguments'])
+                return self._make_final_message(data['task_uid'], results, {})
+        results, signals = future_res.result()
+        return self._make_final_message(data['task_uid'], results, signals)
 
 
 class RunInstructionsService(BinaryRunnerService):

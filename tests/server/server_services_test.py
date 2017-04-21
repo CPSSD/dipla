@@ -250,7 +250,7 @@ class ServerServicesTest(unittest.TestCase):
         service(message, ServiceParams(self.mock_server, self.foo_worker))
 
         mock_task.signals["FOOBAR"].assert_called_with(
-            "foo_task", [[0, 0], [3, 3]])
+            self.mock_server, "foo_task", [[0, 0], [3, 3]])
 
     def test_handle_client_result_does_not_add_invalid_results(self):
         service = self.server_services.get_service("client_result")

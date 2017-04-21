@@ -254,7 +254,7 @@ class Dipla:
     @staticmethod
     def explorer():
         def real_decorator(function):
-            def discovered_handler(task_uid, signal_inputs):
+            def discovered_handler(server, task_uid, signal_inputs):
                 Dipla.task_queue.push_task_input(task_uid, signal_inputs)
 
             signals = {
@@ -308,6 +308,12 @@ class Dipla:
         return Promise(task_uid)
 
     @staticmethod
+    def terminate_tasks():
+        # This is here in case someone calls Dipla.terminate_tasks() from
+        # outside a distributed function.
+        print("terminate_tasks can only be called inside a distributable")
+
+    @staticmethod
     def apply_distributable(function, *raw_args):
         """
         Takes a distributable function, and any number of further arguments
@@ -342,8 +348,12 @@ class Dipla:
         function_id = id(function)
         tasks = Dipla._task_creators[function_id](args, function.__name__)
         for task in tasks:
+            task.signals = {
+                'TERMINATE': lambda server, uid, _: server.terminate_task(uid)
+            }
             if function_id in Dipla._task_input_script_info:
-                task.signals = Dipla._task_input_script_info[function_id][1]
+                task.signals.update(
+                    Dipla._task_input_script_info[function_id][1])
             Dipla.task_queue.push_task(task)
         return Promise(tasks[-1].uid)
 
